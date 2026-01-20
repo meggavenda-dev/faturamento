@@ -551,79 +551,101 @@ def ui_block_info(title: str, content: str):
 # ============================================================
 # 9. PÁGINA — CADASTRO / EDIÇÃO DE CONVÊNIOS
 # ============================================================
-def page_cadastro(dados_atuais):
+
+def page_cadastro():
+    """
+    Página de cadastro totalmente corrigida:
+    - Sempre recarrega do GitHub (nunca usa lista mutável da sessão)
+    - Usa cópia real dos dados
+    - Salva com atomicidade
+    - Atualiza imediatamente as telas
+    """
+
+    # 🔥 Recarrega sempre dados frescos do GitHub
+    dados_atuais, _ = db.load(force_refresh=True)
+    dados_atuais = list(dados_atuais)  # segurança contra mutação
 
     ui_card_start("📝 Cadastro de Convênio")
 
-    # Lista com ID + Nome para garantir segurança
+    # Lista com ID + Nome
     opcoes = ["+ Novo Convênio"] + [
         f"{c.get('id')} — {safe_get(c, 'nome')}" for c in dados_atuais
     ]
 
     escolha = st.selectbox("Selecione um convênio para editar:", opcoes)
 
-    # Determina ID real escolhido
     if escolha == "+ Novo Convênio":
         conv_id = None
         dados_conv = None
     else:
-        # Extrai o ID antes do travessão
         conv_id = escolha.split(" — ")[0]
-        # Busca o convênio garantindo que a comparação seja entre Strings
-        dados_conv = next((c for c in dados_atuais if str(c.get("id")) == str(conv_id)), None)
+        dados_conv = next(
+            (c for c in dados_atuais if str(c.get("id")) == str(conv_id)),
+            None
+        )
 
     ui_card_end()
 
-    # --------------------------------------------------------
-    # FORMULÁRIO COMPLETO
-    # --------------------------------------------------------
+    # --------------------------------------------
+    # FORMULÁRIO
+    # --------------------------------------------
     with st.form("form_cadastro"):
 
         col1, col2, col3 = st.columns(3)
 
-        # ---------------------- COLUNA 1 ----------------------
+        # COLUNA 1
         with col1:
             nome = st.text_input("Nome do Convênio", value=safe_get(dados_conv, "nome"))
             codigo = st.text_input("Código", value=safe_get(dados_conv, "codigo"))
 
-            idx_empresa = 0
-            if dados_conv and safe_get(dados_conv, "empresa") in EMPRESAS_FATURAMENTO:
-                idx_empresa = EMPRESAS_FATURAMENTO.index(safe_get(dados_conv, "empresa"))
+            empresa = st.selectbox(
+                "Empresa Faturamento",
+                EMPRESAS_FATURAMENTO,
+                index=EMPRESAS_FATURAMENTO.index(safe_get(dados_conv, "empresa"))
+                if dados_conv and safe_get(dados_conv, "empresa") in EMPRESAS_FATURAMENTO else 0
+            )
 
-            empresa = st.selectbox("Empresa Faturamento", EMPRESAS_FATURAMENTO, index=idx_empresa)
+            sistema = st.selectbox(
+                "Sistema",
+                SISTEMAS,
+                index=SISTEMAS.index(safe_get(dados_conv, "sistema_utilizado"))
+                if dados_conv and safe_get(dados_conv, "sistema_utilizado") in SISTEMAS else 0
+            )
 
-            idx_sistema = 0
-            if dados_conv and safe_get(dados_conv, "sistema_utilizado") in SISTEMAS:
-                idx_sistema = SISTEMAS.index(safe_get(dados_conv, "sistema_utilizado"))
-
-            sistema = st.selectbox("Sistema", SISTEMAS, index=idx_sistema)
-
-        # ---------------------- COLUNA 2 ----------------------
+        # COLUNA 2
         with col2:
             site = st.text_input("Site/Portal", value=safe_get(dados_conv, "site"))
             login = st.text_input("Login", value=safe_get(dados_conv, "login"))
             senha = st.text_input("Senha", value=safe_get(dados_conv, "senha"))
             retorno = st.text_input("Prazo Retorno", value=safe_get(dados_conv, "prazo_retorno"))
 
-        # ---------------------- COLUNA 3 ----------------------
+        # COLUNA 3
         with col3:
             envio = st.text_input("Prazo Envio", value=safe_get(dados_conv, "envio"))
             validade = st.text_input("Validade da Guia", value=safe_get(dados_conv, "validade"))
 
-            xml = st.radio("Envia XML?", ["Sim", "Não"], 
-                           index=0 if safe_get(dados_conv, "xml") != "Não" else 1)
+            xml = st.radio(
+                "Envia XML?",
+                ["Sim", "Não"],
+                index=0 if safe_get(dados_conv, "xml") != "Não" else 1
+            )
 
-            nf = st.radio("Exige Nota Fiscal?", ["Sim", "Não"], 
-                          index=0 if safe_get(dados_conv, "nf") != "Não" else 1)
+            nf = st.radio(
+                "Exige Nota Fiscal?",
+                ["Sim", "Não"],
+                index=0 if safe_get(dados_conv, "nf") != "Não" else 1
+            )
 
-        # ---------------------- BLOCO XML + NF ------------------
+        # XML/NF
         colA, colB = st.columns(2)
 
         with colA:
-            idx_tiss = 0
-            if dados_conv and safe_get(dados_conv, "versao_xml") in VERSOES_TISS:
-                idx_tiss = VERSOES_TISS.index(safe_get(dados_conv, "versao_xml"))
-            versao_xml = st.selectbox("Versão XML (TISS)", VERSOES_TISS, index=idx_tiss)
+            versao_xml = st.selectbox(
+                "Versão XML (TISS)",
+                VERSOES_TISS,
+                index=VERSOES_TISS.index(safe_get(dados_conv, "versao_xml"))
+                if dados_conv and safe_get(dados_conv, "versao_xml") in VERSOES_TISS else 0
+            )
 
         with colB:
             fluxo_nf = st.selectbox(
@@ -632,57 +654,77 @@ def page_cadastro(dados_atuais):
                 index=0 if safe_get(dados_conv, "fluxo_nf") == "Envia XML sem nota" else 1
             )
 
-        config_gerador = st.text_area("Configuração do Gerador XML", value=safe_get(dados_conv, "config_gerador"))
-        doc_digitalizacao = st.text_area("Digitalização e Documentação", value=safe_get(dados_conv, "doc_digitalizacao"))
-        observacoes = st.text_area("Observações Críticas", value=safe_get(dados_conv, "observacoes"))
+        config_gerador = st.text_area(
+            "Configuração do Gerador XML",
+            value=safe_get(dados_conv, "config_gerador"),
+        )
+        doc_digitalizacao = st.text_area(
+            "Digitalização e Documentação",
+            value=safe_get(dados_conv, "doc_digitalizacao"),
+        )
+        observacoes = st.text_area(
+            "Observações Críticas",
+            value=safe_get(dados_conv, "observacoes"),
+        )
 
         submit = st.form_submit_button("💾 Salvar Dados")
 
-       
         if submit:
-                novo_registro = {
-                    "nome": nome, "codigo": codigo, "empresa": empresa,
-                    "sistema_utilizado": sistema, "site": site, "login": login,
-                    "senha": senha, "prazo_retorno": retorno, "envio": envio,
-                    "validade": validade, "xml": xml, "nf": nf,
-                    "versao_xml": versao_xml, "fluxo_nf": fluxo_nf,
-                    "config_gerador": config_gerador, "doc_digitalizacao": doc_digitalizacao,
-                    "observacoes": observacoes,
-                }
-        
-                # --- Lógica de novo ou edição ---
-                if conv_id is None:
-                    novo_registro["id"] = generate_id(dados_atuais)
-                    dados_atuais.append(novo_registro)
-                else:
-                    novo_registro["id"] = int(conv_id)
-                    for i, c in enumerate(dados_atuais):
-                        if str(c.get("id")) == str(conv_id):
-                            dados_atuais[i] = novo_registro
-                            break
-        
-                # --- SALVAR (para novo OU editar) ---
-                if db.save(dados_atuais):
-                    st.success(f"✔ Convênio {novo_registro['id']} salvo com sucesso!")
-                    
-                    # --- AS TRÊS LINHAS QUE RESOLVEM O SEU PROBLEMA ---
-                    db._cache_data = None      # 1. Limpa o cache de dados do objeto
-                    db._cache_timestamp = 0    # 2. Reseta o cronômetro do cache
-                    time.sleep(1.2)            # 3. Dá tempo para o GitHub processar (importante!)
-                    
-                    st.rerun()
 
-    # --------------------------------------------------------
-    # BOTÃO DE PDF (Fora do formulário para permitir download)
-    # --------------------------------------------------------
+            # MONTA REGISTRO
+            novo_registro = {
+                "nome": nome,
+                "codigo": codigo,
+                "empresa": empresa,
+                "sistema_utilizado": sistema,
+                "site": site,
+                "login": login,
+                "senha": senha,
+                "prazo_retorno": retorno,
+                "envio": envio,
+                "validade": validade,
+                "xml": xml,
+                "nf": nf,
+                "versao_xml": versao_xml,
+                "fluxo_nf": fluxo_nf,
+                "config_gerador": config_gerador,
+                "doc_digitalizacao": doc_digitalizacao,
+                "observacoes": observacoes,
+            }
+
+            # NOVO OU EXISTENTE
+            if conv_id is None:
+                novo_registro["id"] = generate_id(dados_atuais)
+                dados_atuais.append(novo_registro)
+
+            else:
+                novo_registro["id"] = int(conv_id)
+                for i, c in enumerate(dados_atuais):
+                    if str(c.get("id")) == str(conv_id):
+                        dados_atuais[i] = novo_registro
+                        break
+
+            # SALVAR NO GITHUB
+            if db.save(dados_atuais):
+
+                st.success(f"✔ Convênio {novo_registro['id']} salvo com sucesso!")
+
+                # LIMPA CACHE DO BANCO
+                db._cache_data = None
+                db._cache_timestamp = 0
+
+                # LIMPA ESTADO DO STREAMLIT (o segredo!)
+                st.session_state.clear()
+
+                time.sleep(1)
+                st.rerun()
+
+    # BOTÃO PDF
     if dados_conv:
-        # Gerar o conteúdo em bytes uma única vez
-        pdf_bytes = gerar_pdf(dados_conv)
-        
         st.download_button(
-            label="📥 Baixar PDF do Convênio",
-            data=pdf_bytes,
-            file_name=f"Manual_{safe_get(dados_conv, 'nome')}.pdf",
+            "📥 Baixar PDF do Convênio",
+            gerar_pdf(dados_conv),
+            file_name=f"Manual_{safe_get(dados_conv,'nome')}.pdf",
             mime="application/pdf"
         )
               
