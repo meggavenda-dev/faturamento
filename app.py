@@ -82,93 +82,92 @@ def gerar_pdf(dados):
     pdf = FPDF()
     pdf.add_page()
     
-    # Caminhos dos arquivos de fonte
     fonte_normal = "DejaVuSans.ttf"
     fonte_negrito = "DejaVuSans-Bold.ttf"
     
-    # Lógica de carregamento de fontes
     if os.path.exists(fonte_normal):
-        pdf.add_font("DejaVu", "", fonte_normal, uni=True)
+        pdf.add_font("DejaVu", "", fonte_normal)
         fonte_principal = "DejaVu"
-        # Só tenta carregar o negrito se o arquivo existir
-        if os.path.exists(fonte_negrito):
-            pdf.add_font("DejaVu", "B", fonte_negrito, uni=True)
-            estilo_b = "B"
-        else:
-            estilo_b = "" # Se não tem o arquivo Bold, usa a normal mesmo
+        estilo_b = "B" if os.path.exists(fonte_negrito) else ""
+        if estilo_b == "B":
+            pdf.add_font("DejaVu", "B", fonte_negrito)
     else:
-        # Se não tiver nem a normal, volta para a padrão do PDF
         pdf.set_font("Helvetica", "", 12)
         fonte_principal = "Helvetica"
         estilo_b = "B"
 
     # --- CABEÇALHO ---
-    pdf.set_fill_color(31, 73, 125) # Azul GABMA
+    pdf.set_fill_color(31, 73, 125) 
     pdf.set_text_color(255, 255, 255)
     pdf.set_font(fonte_principal, estilo_b, 16)
     pdf.cell(0, 15, f"GUIA DE FATURAMENTO: {dados['nome'].upper()}", ln=True, align='C', fill=True)
     pdf.ln(5)
 
-    # --- SEÇÃO 1: ACESSO ---
+    # --- SEÇÃO 1: ACESSO (Ajustado para evitar sobreposição) ---
     pdf.set_text_color(0, 0, 0)
     pdf.set_font(fonte_principal, estilo_b, 12)
     pdf.set_fill_color(230, 230, 230)
     pdf.cell(0, 8, " 1. INFORMAÇÕES DE ACESSO", ln=True, fill=True)
     
-    pdf.set_font(fonte_principal, "", 10)
     pdf.ln(2)
     pdf.set_font(fonte_principal, estilo_b, 10)
-    pdf.cell(30, 7, "Site/Portal:", border=0)
+    pdf.write(7, "Site/Portal: ")
     pdf.set_font(fonte_principal, "", 10)
-    pdf.cell(0, 7, dados['site'], ln=True)
+    pdf.write(7, f"{dados['site']}\n")
     
     pdf.set_font(fonte_principal, estilo_b, 10)
-    pdf.cell(30, 7, "Login:", border=0)
+    pdf.write(7, "Login: ")
     pdf.set_font(fonte_principal, "", 10)
-    pdf.cell(60, 7, dados['login'])
+    pdf.write(7, f"{dados['login']}   ")
     
     pdf.set_font(fonte_principal, estilo_b, 10)
-    pdf.cell(20, 7, "Senha:", border=0)
+    pdf.write(7, "Senha: ")
     pdf.set_font(fonte_principal, "", 10)
-    pdf.cell(0, 7, dados['senha'], ln=True)
+    pdf.write(7, f"{dados['senha']}\n")
     pdf.ln(5)
 
-    # --- SEÇÃO 2: TABELA ---
+    # --- SEÇÃO 2: CRONOGRAMA (Colunas redimensionadas para evitar estouro) ---
     pdf.set_font(fonte_principal, estilo_b, 12)
     pdf.set_fill_color(230, 230, 230)
     pdf.cell(0, 8, " 2. CRONOGRAMA E CONFIGURAÇÃO XML", ln=True, fill=True)
-    
     pdf.ln(2)
-    pdf.set_font(fonte_principal, estilo_b, 10)
-    pdf.cell(45, 8, "Data de Envio", border=1, align='C')
-    pdf.cell(45, 8, "Validade", border=1, align='C')
-    pdf.cell(45, 8, "Exige XML", border=1, align='C')
-    pdf.cell(45, 8, "Exige NF-e", border=1, align='C')
+    
+    # Ajuste de larguras: Aumentei 'Data de Envio' que costuma ser o texto mais longo
+    pdf.set_font(fonte_principal, estilo_b, 9) # Fonte levemente menor para caber mais texto
+    pdf.cell(85, 8, "Data de Envio", border=1, align='C')
+    pdf.cell(35, 8, "Validade", border=1, align='C')
+    pdf.cell(35, 8, "Exige XML", border=1, align='C')
+    pdf.cell(35, 8, "Exige NF-e", border=1, align='C')
     pdf.ln()
     
-    pdf.set_font(fonte_principal, "", 10)
-    pdf.cell(45, 8, dados['envio'], border=1, align='C')
-    pdf.cell(45, 8, f"{dados['validade']} dias", border=1, align='C')
-    pdf.cell(45, 8, dados['xml'], border=1, align='C')
-    pdf.cell(45, 8, dados['nf'], border=1, align='C')
+    pdf.set_font(fonte_principal, "", 9)
+    # multi_cell não funciona bem dentro de tabelas rígidas, então usamos cell com texto truncado 
+    # ou garantimos que o faturista escreva de forma objetiva.
+    pdf.cell(85, 8, dados['envio'][:45], border=1, align='C') 
+    pdf.cell(35, 8, f"{dados['validade']} dias", border=1, align='C')
+    pdf.cell(35, 8, dados['xml'], border=1, align='C')
+    pdf.cell(35, 8, dados['nf'], border=1, align='C')
     pdf.ln(10)
 
-    # --- SEÇÃO 3: OBSERVAÇÕES ---
+    # --- SEÇÃO 3: OBSERVAÇÕES (Uso de multi_cell para quebra automática) ---
     pdf.set_font(fonte_principal, estilo_b, 12)
     pdf.set_fill_color(230, 230, 230)
     pdf.cell(0, 8, " 3. REGRAS CRÍTICAS E OBSERVAÇÕES", ln=True, fill=True)
     
     pdf.ln(3)
     pdf.set_font(fonte_principal, "", 10)
-    pdf.multi_cell(0, 6, dados['observacoes'], border='L')
     
-    # --- RODAPÉ ---
-    pdf.set_y(-25)
-    pdf.set_font(fonte_principal, "I" if fonte_principal == "Helvetica" else "", 8)
-    pdf.set_text_color(128, 128, 128)
-    pdf.cell(0, 10, "Documento gerado pelo Sistema GABMA - Consultoria Médica", align='C')
+    # O segredo aqui é o multi_cell com a largura 0 (vai até a margem direita)
+    # Adicionamos um pequeno recuo para não encostar na borda lateral esquerda
+    pdf.set_x(15) 
+    pdf.multi_cell(0, 6, dados['observacoes'], border=0, align='L')
+    
+    # Rodapé fixo
+    pdf.set_y(-20)
+    pdf.set_font(fonte_principal, "", 8)
+    pdf.set_text_color(150, 150, 150)
+    pdf.cell(0, 10, "Sistema GABMA - Consultoria Médica e Gestão de Faturamento", align='C')
 
-    # Retorna bytes (importante usar bytes() para evitar erro no download_button)
     return bytes(pdf.output())
 
 # --- INTERFACE STREAMLIT ---
