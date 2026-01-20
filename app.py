@@ -78,16 +78,6 @@ def extrair_dados_manual(texto_manual):
     return dados_extraidos
 
 # --- GERADOR DE PDF ---
-Para implementar esse layout profissional e organizado no seu sistema GABMA, precisamos atualizar a função gerar_pdf no seu arquivo app.py. O foco será usar tabelas (ou grades visuais), cores para destacar títulos e uma organização por blocos lógicos.
-
-Abaixo está o código da função atualizado para o seu sistema. Note que utilizei cores (cinza claro para fundos de títulos) e uma estrutura de "células" que simula uma tabela profissional.
-
-🛠️ Nova Função gerar_pdf (Layout Profissional)
-Python
-
-from fpdf import FPDF
-import os
-
 def gerar_pdf(dados):
     pdf = FPDF()
     pdf.add_page()
