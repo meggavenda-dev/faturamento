@@ -1,13 +1,16 @@
+
 import streamlit as st
 import requests
 import base64
 import json
 import re
 from fpdf import FPDF
-import unicodedata
 import os
+import pandas as pd
 
-# --- CONFIGURAÇÕES DE ACESSO (Secrets) ---
+# -----------------------------------------
+#     CONFIGURAÇÕES DE ACESSO (SECRETS)
+# -----------------------------------------
 try:
     GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
     REPO_OWNER = st.secrets["REPO_OWNER"]
@@ -19,7 +22,9 @@ except:
 FILE_PATH = "dados.json"
 BRANCH = "main"
 
-# --- FUNÇÕES DA API DO GITHUB ---
+# -----------------------------------------
+#     FUNÇÕES DO GITHUB (CRUD JSON)
+# -----------------------------------------
 def buscar_dados_github():
     url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{FILE_PATH}?ref={BRANCH}"
     headers = {"Authorization": f"token {GITHUB_TOKEN}"}
@@ -27,210 +32,204 @@ def buscar_dados_github():
     
     if response.status_code == 200:
         content = response.json()
-        decoded_data = base64.b64decode(content['content']).decode('utf-8')
-        return json.loads(decoded_data), content['sha']
+        decoded = base64.b64decode(content['content']).decode('utf-8')
+        return json.loads(decoded), content['sha']
     else:
-        # Se o arquivo não existir, retorna lista vazia
         return [], None
 
 def salvar_dados_github(novos_dados, sha):
     url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{FILE_PATH}"
     headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+    
     json_string = json.dumps(novos_dados, indent=4, ensure_ascii=False)
-    encoded_content = base64.b64encode(json_string.encode('utf-8')).decode('utf-8')
+    encoded = base64.b64encode(json_string.encode('utf-8')).decode('utf-8')
     
     payload = {
-        "message": "Update faturamento via GABMA System",
-        "content": encoded_content,
+        "message": "Update GABMA Database",
+        "content": encoded,
         "branch": BRANCH
     }
     if sha:
         payload["sha"] = sha
-        
+    
     response = requests.put(url, headers=headers, json=payload)
     return response.status_code in [200, 201]
 
-# --- INTELIGÊNCIA DE EXTRAÇÃO ---
-def extrair_dados_manual(texto_manual):
-    # Lista de convênios para busca baseada no seu manual
-    convenios_lista = ["ASSEFAZ", "AMIL", "CBMDF", "GDF SAÚDE", "GEAP", "BRADESCO", "SAÚDE CAIXA", "CASSI", "POSTAL SAÚDE", "E-VIDA", "CONAB"]
-    dados_extraidos = []
-    for i, nome in enumerate(convenios_lista):
-        inicio = texto_manual.find(nome + ":")
-        if inicio == -1: continue
-        fim = len(texto_manual)
-        for proximo in convenios_lista[i+1:]:
-            pos_proximo = texto_manual.find(proximo + ":")
-            if pos_proximo != -1 and pos_proximo > inicio:
-                fim = pos_proximo
-                break
-        bloco = texto_manual[inicio:fim]
-        dados_extraidos.append({
-            "nome": nome,
-            "site": re.search(r'https?://[^\s]+', bloco).group(0) if re.search(r'https?://[^\s]+', bloco) else "",
-            "login": "", "senha": "",
-            "envio": re.search(r'Data de envio:\s*(.*?)(?=\.|\n)', bloco).group(1) if re.search(r'Data de envio:\s*(.*?)(?=\.|\n)', bloco) else "Ver manual",
-            "validade": re.search(r'Validade.*?(\d+)\s*dias', bloco, re.IGNORECASE).group(1) if re.search(r'Validade.*?(\d+)\s*dias', bloco, re.IGNORECASE) else "",
-            "xml": "Sim" if "XML" in bloco.upper() else "Não",
-            "nf": "Sim" if "NF" in bloco.upper() else "Não",
-            "observacoes": bloco.strip()
-        })
-    return dados_extraidos
-
-# --- GERADOR DE PDF ---
+# -----------------------------------------
+#     GERADOR DE PDF — LAYOUT PREMIUM
+# -----------------------------------------
 def gerar_pdf(dados):
     pdf = FPDF()
     pdf.add_page()
-    
-    # Configuração de Fontes e Caminhos
+
+    # Carregar fonte UTF-8
     fonte_normal = "DejaVuSans.ttf"
-    fonte_negrito = "DejaVuSans-Bold.ttf"
-    
+    fonte_bold = "DejaVuSans-Bold.ttf"
+
     if os.path.exists(fonte_normal):
-        pdf.add_font("DejaVu", "", fonte_normal)
+        pdf.add_font("DejaVu", "", fonte_normal, uni=True)
         fonte_principal = "DejaVu"
-        estilo_b = "B" if os.path.exists(fonte_negrito) else ""
-        if estilo_b == "B":
-            pdf.add_font("DejaVu", "B", fonte_negrito)
+
+        if os.path.exists(fonte_bold):
+            pdf.add_font("DejaVu", "B", fonte_bold, uni=True)
+            estilo_b = "B"
+        else:
+            estilo_b = ""
     else:
         pdf.set_font("Helvetica", "", 12)
         fonte_principal = "Helvetica"
         estilo_b = "B"
 
-    # --- CABEÇALHO ---
-    pdf.set_fill_color(31, 73, 125) # Azul GABMA
+    # Cabeçalho
+    pdf.set_fill_color(31, 73, 125)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font(fonte_principal, estilo_b, 16)
-    pdf.cell(0, 15, f"GUIA DE FATURAMENTO: {dados['nome'].upper()}", ln=True, align='C', fill=True)
+    pdf.cell(0, 15, f"GUIA TÉCNICA: {dados['nome'].upper()}", ln=True, align='C', fill=True)
     pdf.ln(5)
 
-    # --- SEÇÃO 1: INFORMAÇÕES DE ACESSO ---
+    # Seção 1
     pdf.set_text_color(0, 0, 0)
-    pdf.set_font(fonte_principal, estilo_b, 12)
+    pdf.set_font(fonte_principal, estilo_b, 11)
     pdf.set_fill_color(230, 230, 230)
-    pdf.cell(0, 8, " 1. INFORMAÇÕES DE ACESSO", ln=True, fill=True)
-    
+    pdf.cell(0, 8, " 1. DADOS DE IDENTIFICAÇÃO E ACESSO", ln=True, fill=True)
+
+    pdf.set_font(fonte_principal, "", 10)
     pdf.ln(2)
-    pdf.set_font(fonte_principal, estilo_b, 10)
-    pdf.write(7, "Site/Portal: ")
-    pdf.set_font(fonte_principal, "", 10)
-    pdf.write(7, f"{dados['site']}\n")
-    
-    pdf.set_font(fonte_principal, estilo_b, 10)
-    pdf.write(7, "Login: ")
-    pdf.set_font(fonte_principal, "", 10)
-    pdf.write(7, f"{dados['login']}   ")
-    
-    pdf.set_font(fonte_principal, estilo_b, 10)
-    pdf.write(7, "Senha: ")
-    pdf.set_font(fonte_principal, "", 10)
-    pdf.write(7, f"{dados['senha']}\n")
+    pdf.write(7, f"Empresa: {dados.get('empresa', 'N/A')} | Código: {dados.get('codigo', 'N/A')}\n")
+    pdf.write(7, f"Portal: {dados['site']}\n")
+    pdf.write(7, f"Login: {dados['login']}  |  Senha: {dados['senha']}\n")
+    pdf.write(7, f"Sistema: {dados.get('sistema_utilizado', 'N/A')} | Retorno: {dados.get('prazo_retorno', 'N/A')}\n")
     pdf.ln(5)
 
-    # --- SEÇÃO 2: CRONOGRAMA E CONFIGURAÇÃO (TABELA AJUSTADA) ---
-    pdf.set_font(fonte_principal, estilo_b, 12)
+    # Seção 2 — Tabela
+    pdf.set_font(fonte_principal, estilo_b, 11)
     pdf.set_fill_color(230, 230, 230)
-    pdf.cell(0, 8, " 2. CRONOGRAMA E CONFIGURAÇÃO XML", ln=True, fill=True)
+    pdf.cell(0, 8, " 2. CRONOGRAMA E REGRAS TÉCNICAS", ln=True, fill=True)
     pdf.ln(2)
-    
-    # Cabeçalho da Tabela com larguras otimizadas para evitar estouro
-    pdf.set_font(fonte_principal, estilo_b, 9)
-    pdf.cell(85, 8, "Data de Envio", border=1, align='C')
-    pdf.cell(35, 8, "Validade", border=1, align='C')
-    pdf.cell(35, 8, "Exige XML", border=1, align='C')
-    pdf.cell(35, 8, "Exige NF-e", border=1, align='C')
-    pdf.ln()
-    
-    # Conteúdo da Tabela
-    pdf.set_font(fonte_principal, "", 9)
-    # Ajustamos a altura da célula para 8 e garantimos que o texto não vaze
-    pdf.cell(85, 8, dados['envio'][:50], border=1, align='C') 
-    pdf.cell(35, 8, f"{dados['validade']} dias", border=1, align='C')
-    pdf.cell(35, 8, dados['xml'], border=1, align='C')
-    pdf.cell(35, 8, dados['nf'], border=1, align='C')
-    pdf.ln(10)
 
-    # --- SEÇÃO 3: REGRAS CRÍTICAS (COM BORDA DE CONTENÇÃO) ---
-    pdf.set_font(fonte_principal, estilo_b, 12)
-    pdf.set_fill_color(230, 230, 230)
-    pdf.cell(0, 8, " 3. REGRAS CRÍTICAS E OBSERVAÇÕES", ln=True, fill=True)
-    
-    pdf.ln(3)
-    pdf.set_font(fonte_principal, "", 10)
-    
-    # Largura total disponível (Margem essq até margem dir)
-    # Usamos multi_cell com border=1 para criar o quadro fechado
-    pdf.multi_cell(0, 6, dados['observacoes'], border=1, align='L')
-    
-    # --- RODAPÉ ---
-    pdf.set_y(-25)
+    pdf.set_font(fonte_principal, estilo_b, 8)
+    pdf.cell(50, 8, "Prazo Envio", 1, 0, 'C')
+    pdf.cell(30, 8, "Validade Guia", 1, 0, 'C')
+    pdf.cell(25, 8, "XML / Versão", 1, 0, 'C')
+    pdf.cell(25, 8, "Nota Fiscal", 1, 0, 'C')
+    pdf.cell(60, 8, "Fluxo NF", 1, 1, 'C')
+
     pdf.set_font(fonte_principal, "", 8)
-    pdf.set_text_color(128, 128, 128)
-    pdf.cell(0, 10, "Documento gerado pelo Sistema GABMA - Consultoria Médica", align='C')
+    pdf.cell(50, 8, dados["envio"][:30], 1, 0, 'C')
+    pdf.cell(30, 8, f"{dados['validade']} dias", 1, 0, 'C')
+    pdf.cell(25, 8, f"{dados['xml']} / {dados.get('versao_xml', '-')}", 1, 0, 'C')
+    pdf.cell(25, 8, dados['nf'], 1, 0, 'C')
+    pdf.cell(60, 8, dados.get('fluxo_nf', 'N/A')[:35], 1, 1, 'C')
+    pdf.ln(5)
 
-    # Retorna o PDF como stream de bytes para o Streamlit
+    # Seção 3 — blocos
+    def bloco(titulo, conteudo):
+        if conteudo:
+            pdf.set_font(fonte_principal, estilo_b, 11)
+            pdf.set_fill_color(240, 240, 240)
+            pdf.cell(0, 7, f" {titulo}", ln=True, fill=True)
+
+            pdf.set_font(fonte_principal, "", 9)
+            pdf.multi_cell(0, 5, conteudo, border=1)
+            pdf.ln(3)
+
+    bloco("CONFIGURAÇÃO DO GERADOR (XML)", dados.get("config_gerador", ""))
+    bloco("DIGITALIZAÇÃO E DOCUMENTAÇÃO", dados.get("doc_digitalizacao", ""))
+    bloco("OBSERVAÇÕES CRÍTICAS", dados["observacoes"])
+
+    # Rodapé
+    pdf.set_y(-20)
+    pdf.set_font(fonte_principal, "", 8)
+    pdf.set_text_color(150, 150, 150)
+    pdf.cell(0, 10, "GABMA Consultoria - Gestão de Faturamento Médico", align='C')
+
     return bytes(pdf.output())
 
-# --- INTERFACE STREAMLIT ---
+# -----------------------------------------
+#       STREAMLIT — INTERFACE PRINCIPAL
+# -----------------------------------------
 st.set_page_config(page_title="GABMA System", layout="wide")
-st.title("💼 GABMA - Faturamento Inteligente (JSON DB)")
+st.title("💼 Sistema de Gestão GABMA")
 
-# Carrega dados do GitHub
 dados_atuais, sha_atual = buscar_dados_github()
 
-menu = st.sidebar.radio("Navegação", ["Gerenciar Convênios", "Importar Novo Manual"])
+menu = st.sidebar.radio("Navegação", ["Cadastrar / Editar", "Visualizar Banco"])
 
-if menu == "Importar Novo Manual":
-    st.header("📥 Importação em Massa")
-    txt = st.text_area("Cole o texto do manual aqui:", height=300)
-    if st.button("Processar e Salvar no GitHub"):
-        novos = extrair_dados_manual(txt)
-        # Mesclar dados novos com antigos
-        mapa_existente = {c['nome']: c for c in dados_atuais}
-        for n in novos:
-            mapa_existente[n['nome']] = n
-        
-        if salvar_dados_github(list(mapa_existente.values()), sha_atual):
-            st.success("JSON atualizado com sucesso no repositório!")
-            st.rerun()
+# -----------------------------------------
+#       TELA CADASTRAR / EDITAR
+# -----------------------------------------
+if menu == "Cadastrar / Editar":
+    st.header("📝 Cadastro de Convênio")
 
-elif menu == "Gerenciar Convênios":
-    if not dados_atuais:
-        st.info("Nenhum convênio cadastrado. Vá em 'Importar Novo Manual'.")
-    else:
-        nomes = sorted([c['nome'] for c in dados_atuais])
-        escolha = st.selectbox("Selecione o convênio para gerenciar:", nomes)
-        
-        # Busca dados do selecionado
-        idx = next(i for i, c in enumerate(dados_atuais) if c['nome'] == escolha)
-        dados_conv = dados_atuais[idx]
-        
-        with st.form("edicao_form"):
-            col1, col2 = st.columns(2)
-            dados_conv['site'] = col1.text_input("Site", dados_conv['site'])
-            dados_conv['login'] = col1.text_input("Login", dados_conv['login'])
-            dados_conv['senha'] = col1.text_input("Senha", dados_conv['senha'])
-            dados_conv['envio'] = col2.text_input("Data de Envio", dados_conv['envio'])
-            dados_conv['validade'] = col2.text_input("Validade (Dias)", dados_conv['validade'])
-            dados_conv['observacoes'] = st.text_area("Observações", dados_conv['observacoes'], height=200)
-            
-            if st.form_submit_button("Salvar Alterações no GitHub"):
-                if salvar_dados_github(dados_atuais, sha_atual):
-                    st.success("Dados salvos e commitado com sucesso!")
-                    st.rerun()
-        
+    nomes = ["+ Novo Convênio"] + sorted([c["nome"] for c in dados_atuais])
+    escolha = st.selectbox("Selecione um convênio:", nomes)
+
+    dados_conv = next((c for c in dados_atuais if c["nome"] == escolha), None)
+
+    with st.form("form_cadastro"):
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            nome = st.text_input("Nome do Convênio", value=dados_conv["nome"] if dados_conv else "")
+            codigo = st.text_input("Código", value=dados_conv.get("codigo", "") if dados_conv else "")
+            empresa = st.text_input("Empresa Faturamento", value=dados_conv.get("empresa", "") if dados_conv else "")
+            sistema = st.selectbox("Sistema", ["Orizon", "Benner", "Maida", "Facil", "Visual TISS", "Próprio"])
+
+        with col2:
+            site = st.text_input("Site/Portal", value=dados_conv["site"] if dados_conv else "")
+            login = st.text_input("Login", value=dados_conv["login"] if dados_conv else "")
+            senha = st.text_input("Senha", value=dados_conv["senha"] if dados_conv else "")
+            retorno = st.text_input("Prazo Retorno", value=dados_conv.get("prazo_retorno", "") if dados_conv else "")
+
+        with col3:
+            envio = st.text_input("Prazo Envio", value=dados_conv["envio"] if dados_conv else "")
+            validade = st.text_input("Validade Guia", value=dados_conv["validade"] if dados_conv else "")
+            xml = st.radio("Envia XML?", ["Sim", "Não"], index=0 if not dados_conv or dados_conv["xml"] == "Sim" else 1)
+            nf = st.radio("Exige NF?", ["Sim", "Não"], index=0 if not dados_conv or dados_conv["nf"] == "Sim" else 1)
+
         st.divider()
-        st.subheader("Gerar Documentação")
-        
-        # Gerar os bytes do PDF
-        pdf_bytes = gerar_pdf(dados_conv)
-        
-        # Sanitizar nome do arquivo (remover espaços e acentos para evitar erros de browser)
-        nome_arquivo = f"Faturamento_{escolha.replace(' ', '_')}.pdf"
+        col_a, col_b = st.columns(2)
+        v_xml = col_a.text_input("Versão XML", value=dados_conv.get("versao_xml", "") if dados_conv else "")
+        fluxo_nf = col_b.selectbox("Fluxo Nota", ["Envia XML sem nota", "Envia NF junto com o lote"])
 
+        config_gerador = st.text_area("Configuração Gerador XML", value=dados_conv.get("config_gerador", "") if dados_conv else "")
+        doc_dig = st.text_area("Digitalização e Documentação", value=dados_conv.get("doc_digitalizacao", "") if dados_conv else "")
+        obs = st.text_area("Observações Críticas", value=dados_conv["observacoes"] if dados_conv else "")
+
+        if st.form_submit_button("💾 Salvar Dados"):
+            novo = {
+                "nome": nome, "codigo": codigo, "empresa": empresa, "sistema_utilizado": sistema,
+                "site": site, "login": login, "senha": senha, "prazo_retorno": retorno,
+                "envio": envio, "validade": validade, "nf": nf, "fluxo_nf": fluxo_nf,
+                "xml": xml, "versao_xml": v_xml, "config_gerador": config_gerador,
+                "doc_digitalizacao": doc_dig, "observacoes": obs
+            }
+
+            if escolha == "+ Novo Convênio":
+                dados_atuais.append(novo)
+            else:
+                index = next(i for i, c in enumerate(dados_atuais) if c["nome"] == escolha)
+                dados_atuais[index] = novo
+
+            if salvar_dados_github(dados_atuais, sha_atual):
+                st.success("Dados salvos com sucesso!")
+                st.rerun()
+
+    if dados_conv:
+        st.divider()
         st.download_button(
-            label=f"📥 Baixar PDF - {escolha}",
-            data=pdf_bytes,
-            file_name=nome_arquivo,
-            mime="application/pdf"
+            "📥 Baixar PDF do Convênio",
+            gerar_pdf(dados_conv),
+            f"GABMA_{escolha}.pdf",
+            "application/pdf"
         )
+
+# -----------------------------------------
+#       TELA DE VISUALIZAÇÃO DO BANCO
+# -----------------------------------------
+elif menu == "Visualizar Banco":
+    st.header("📋 Cadastro Geral")
+    if dados_atuais:
+        st.dataframe(pd.DataFrame(dados_atuais))
+    else:
+        st.info("Banco vazio.")
