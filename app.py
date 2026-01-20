@@ -77,21 +77,45 @@ def extrair_dados_manual(texto_manual):
 
 # --- GERADOR DE PDF ---
 def gerar_pdf(dados):
+    # Inicializa o PDF com suporte a UTF-8 (nativo na fpdf2)
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(200, 10, f"Formulário de Faturamento: {dados['nome']}", ln=True, align='C')
+    
+    # Usamos fontes padrão que suportam acentos (Helvetica/Arial)
+    pdf.set_font("Helvetica", "B", 16)
+    
+    # Cabeçalho Centralizado
+    pdf.cell(0, 10, f"Formulário de Faturamento: {dados['nome']}", new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.ln(10)
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(200, 10, "1. Acesso e Portal", ln=True)
-    pdf.set_font("Arial", "", 10)
-    pdf.multi_cell(0, 7, f"Site: {dados['site']}\nLogin: {dados['login']} | Senha: {dados['senha']}")
+    
+    # Seção 1: Dados de Acesso
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 10, "1. Acesso e Portal", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 10)
+    
+    info_acesso = (
+        f"Site: {dados['site']}\n"
+        f"Login: {dados['login']} | Senha: {dados['senha']}\n"
+        f"XML: {dados['xml']} | Envio: {dados['envio']}\n"
+        f"Validade: {dados['validade']} dias"
+    )
+    pdf.multi_cell(0, 7, info_acesso)
     pdf.ln(5)
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(200, 10, "2. Regras e Observações", ln=True)
-    pdf.set_font("Arial", "", 10)
-    pdf.multi_cell(0, 6, dados['observacoes'])
-    return pdf.output(dest='S').encode('latin-1')
+    
+    # Seção 2: Regras e Observações
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 10, "2. Regras Extraídas do Manual", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 10)
+    
+    # O fpdf2 lida bem com UTF-8, mas caso existam caracteres "invisíveis" problemáticos,
+    # fazemos uma limpeza leve para garantir a renderização
+    obs_texto = dados['observacoes'].replace('\u2013', '-').replace('\u2014', '-')
+    
+    # Multi_cell para permitir que o texto quebre linhas automaticamente
+    pdf.multi_cell(0, 6, obs_texto)
+    
+    # Gera os bytes do PDF diretamente (dest='S' agora retorna bytes no fpdf2)
+    return pdf.output()
 
 # --- INTERFACE STREAMLIT ---
 st.set_page_config(page_title="GABMA System", layout="wide")
