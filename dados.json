@@ -1,1 +1,22 @@
-[]
+[
+    {
+        "nome": "ASSEFAZ - INTEGRALIS",
+        "codigo": "",
+        "empresa": "Integralis",
+        "sistema_utilizado": "Benner",
+        "site": " https://portalconectasaude.com.br/Account/Login?ReturnUrl=%2F",
+        "login": "",
+        "senha": "",
+        "prazo_retorno": "15",
+        "envio": "Data de envio: 01 ao 05 dia útil",
+        "validade": "60",
+        "xml": "Sim",
+        "nf": "Não",
+        "versao_xml": "4.01.00",
+        "fluxo_nf": "Envia NF junto com o lote",
+        "config_gerador": "",
+        "doc_digitalizacao": "",
+        "observacoes": "(Login e senha disponível no Fhasso)\n\nValidade das guias: 60 dias contando da primeira sessão\n\nData de envio: 01 ao 05 dia útil, não vai físico (só scaneado e anexado ao site)  O arquivo scaneado não pode ser maior que 15 megas.\nMenu Uploads > Novo > carregar arquivo > incluir. (Se der erro, já vai aparecer que tem crítica. Aí, seleciona e clica em “Exibir críticas”. Aí ajusta, depois excluir o arquivo que deu erro, gera e passa novamente. Quando passar e não exibir críticas, clica no quadradinho (deixando selecionado) > detalhes do lote > (confere os dados: operadora, valor...). Mais em baixo tem um tópico “Documentos Anexados ao lote”. Clica em “incluir anexo’’, procura as guias scaneadas e “incluir”. Quando o arquivo baixar, clica na setinha e põe “24-justificativa clínica”, depois clica em “incluir”. No canto superior direito clica em Fechar lote > Sim, Fechar lote > enviar lote > capa do lote > imprimir. \nTem que imprimir a capa de lote, e lá no tópico “documentos anexos ao lote” você verifica se o status do anexo está enviado. Se não tiver da F5 pra atualizar. Depois eu printo essa parte que fala que foi enviada e mando pro financeiro, junto com o aceite e a capa do lote.\n",
+        "id": 1
+    }
+]
