@@ -201,18 +201,16 @@ def safe_get(d: dict, key: str, default=""):
 
 def chunk_text(text, size):
     """
-    Divide palavras extremamente longas (sem espaços) para PDF.
-    Garante que o range receba apenas inteiros.
+    Divide palavras extremamente longas para PDF.
+    Garante que o 'size' seja sempre um inteiro para o range.
     """
     text = sanitize_text(text or "")
-    size = int(size) if size > 1 else 1  # Garante que seja int e no mínimo 1
-    return [text[i:i+size] for i in range(0, len(text), size)]
+    # Garante que o passo do range seja int e no mínimo 1
+    safe_size = int(size) if size >= 1 else 1 
+    return [text[i:i+safe_size] for i in range(0, len(text), safe_size)]
 
 
 def wrap_text(text, pdf, max_width):
-    """
-    Quebra texto para PDF respeitando o limite de largura real.
-    """
     text = sanitize_text(text)
     if not text:
         return [""]
@@ -221,13 +219,12 @@ def wrap_text(text, pdf, max_width):
     lines, current = [], ""
 
     for w in words:
-        # Verifica largura da palavra individual
         if pdf.get_string_width(w) > max_width:
             if current:
                 lines.append(current)
                 current = ""
             
-            # Cálculo do chunk garantindo inteiro
+            # Força a divisão para inteiro
             size = int(max(1, max_width // 3)) 
             lines.extend(chunk_text(w, size))
             continue
@@ -243,7 +240,6 @@ def wrap_text(text, pdf, max_width):
         lines.append(current)
 
     return lines
-
 
 
 # ============================================================
