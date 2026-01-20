@@ -258,11 +258,11 @@ def wrap_text(text, pdf, max_width):
 
 def gerar_pdf(dados):
     """
-    Versão Fiel ao Modelo ASTE: Layout limpo, minimalista e 
-    com posicionamento preciso dos campos de acesso.
+    Versão Premium: Fiel ao modelo visual da imagem (image_d6f786.png).
+    Garante o cabeçalho azul, faixas cinzas e alinhamento em duas colunas.
     """
     pdf = FPDF()
-    pdf.set_margins(15, 15, 15)
+    pdf.set_margins(10, 10, 10)
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
@@ -274,39 +274,54 @@ def gerar_pdf(dados):
     except:
         FONT_MAIN = "Arial"
 
-    W_TOTAL = pdf.w - 30 
+    W_TOTAL = pdf.w - 20 
 
-    # --- TÍTULO PRINCIPAL ---
+    # --- CABEÇALHO AZUL (GUIA TÉCNICA) ---
+    pdf.set_fill_color(31, 73, 125) # Azul Marinho 
+    pdf.set_text_color(255, 255, 255)
     pdf.set_font(FONT_MAIN, "B", 14)
-    pdf.cell(W_TOTAL, 10, f"GUIA TÉCNICA: {safe_get(dados,'nome').upper()}", ln=1, align="L")
-    pdf.ln(5)
-
-    # --- 1. DADOS DE IDENTIFICAÇÃO E ACESSO ---
-    pdf.set_font(FONT_MAIN, "B", 11)
-    pdf.cell(W_TOTAL, 8, "1. DADOS DE IDENTIFICAÇÃO E ACESSO", ln=1)
+    pdf.cell(W_TOTAL, 12, f"GUIA TÉCNICA: {safe_get(dados,'nome').upper()}", ln=1, align="C", fill=True)
     pdf.ln(2)
-    
-    # Grid de Identificação (Limpo)
-    def add_line(label, value):
+
+    # --- SEÇÃO 1: DADOS DE IDENTIFICAÇÃO (FAIXA CINZA) ---
+    pdf.set_fill_color(230, 230, 230) # Cinza claro [cite: 184]
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font(FONT_MAIN, "B", 11)
+    pdf.cell(W_TOTAL, 8, " 1. DADOS DE IDENTIFICAÇÃO E ACESSO", ln=1, fill=True)
+    pdf.ln(2)
+
+    # Dados em duas colunas [cite: 185, 186, 187, 188, 192, 193, 194]
+    def draw_access_line(l1, v1, l2, v2):
         pdf.set_font(FONT_MAIN, "B", 10)
-        pdf.cell(20, 7, label, border=0)
+        pdf.cell(25, 7, l1)
         pdf.set_font(FONT_MAIN, "", 10)
-        pdf.cell(W_TOTAL - 20, 7, value, ln=1)
+        pdf.cell(W_TOTAL/2 - 25, 7, v1)
+        
+        pdf.set_font(FONT_MAIN, "B", 10)
+        pdf.cell(25, 7, l2)
+        pdf.set_font(FONT_MAIN, "", 10)
+        pdf.cell(W_TOTAL/2 - 25, 7, v2, ln=1)
 
-    add_line("Empresa:", safe_get(dados, "empresa"))
-    add_line("Portal:", safe_get(dados, "site"))
-    add_line("Login:", safe_get(dados, "login"))
-    add_line("Sistema:", safe_get(dados, "sistema_utilizado"))
-    pdf.ln(5)
-
-    # --- 2. CRONOGRAMA E REGRAS TÉCNICAS ---
-    pdf.set_font(FONT_MAIN, "B", 11)
-    pdf.cell(W_TOTAL, 8, "2. CRONOGRAMA E REGRAS TÉCNICAS", ln=1)
+    draw_access_line("Empresa:", safe_get(dados, "empresa"), "Código:", safe_get(dados, "codigo"))
+    draw_access_line("Portal:", safe_get(dados, "site"), "Senha:", safe_get(dados, "senha"))
+    draw_access_line("Login:", safe_get(dados, "login"), "Retorno:", safe_get(dados, "prazo_retorno"))
+    
+    # Sistema (Linha única para manter o padrão) [cite: 188]
+    pdf.set_font(FONT_MAIN, "B", 10)
+    pdf.cell(25, 7, "Sistema:")
+    pdf.set_font(FONT_MAIN, "", 10)
+    pdf.cell(0, 7, safe_get(dados, "sistema_utilizado"), ln=1)
     pdf.ln(2)
 
-    # Tabela (Linhas Pretas Finas)
-    widths = [35, 30, 40, 25, 50]
-    headers = ["Prazo Envio", "Validade Guia", "XML/Versão", "Nota Fiscal", "Fluxo NF"]
+    # --- SEÇÃO 2: CRONOGRAMA (FAIXA CINZA) ---
+    pdf.set_fill_color(230, 230, 230)
+    pdf.set_font(FONT_MAIN, "B", 11)
+    pdf.cell(W_TOTAL, 8, " 2. CRONOGRAMA E REGRAS TÉCNICAS", ln=1, fill=True)
+    pdf.ln(2)
+
+    # Tabela de Regras [cite: 195]
+    widths = [38, 32, 38, 25, 57]
+    headers = ["Prazo Envio", "Validade Guia", "XML / Versão", "Nota Fiscal", "Fluxo NF"]
     
     pdf.set_font(FONT_MAIN, "B", 9)
     for i, h in enumerate(headers):
@@ -323,49 +338,33 @@ def gerar_pdf(dados):
         safe_get(dados, "fluxo_nf")
     ]
     
+    # Desenho das células com multi_cell para evitar quebras feias [cite: 195]
+    max_h = 10
     for i, val in enumerate(row_vals):
-        pdf.set_xy(pdf.l_margin + sum(widths[:i]), y_tab)
-        pdf.multi_cell(widths[i], 6, val, border=1, align="C")
+        pdf.set_xy(10 + sum(widths[:i]), y_tab)
+        pdf.multi_cell(widths[i], 5, val, border=1, align="C")
     
-    # Espaçamento após tabela
-    pdf.set_y(y_tab + 15)
+    pdf.set_y(y_tab + max_h + 5)
 
-    # --- CAMPOS ABAIXO DA TABELA (Exatamente como no PDF da ASTE) ---
-    pdf.set_font(FONT_MAIN, "B", 10)
-    pdf.write(7, "Código: ")
-    pdf.set_font(FONT_MAIN, "", 10)
-    pdf.write(7, safe_get(dados, "codigo"))
-    pdf.ln(7)
-
-    pdf.set_font(FONT_MAIN, "B", 10)
-    pdf.write(7, "Senha: ")
-    pdf.set_font(FONT_MAIN, "", 10)
-    pdf.write(7, safe_get(dados, "senha"))
-    pdf.ln(7)
-
-    pdf.set_font(FONT_MAIN, "B", 10)
-    pdf.write(7, "Retorno: ")
-    pdf.set_font(FONT_MAIN, "", 10)
-    pdf.write(7, safe_get(dados, "prazo_retorno"))
-    pdf.ln(12)
-
-    # --- SEÇÕES DE TEXTO ---
-    def add_simple_section(title, key):
+    # --- SEÇÃO 3: OBSERVAÇÕES (FAIXA CINZA + BOX) ---
+    def add_boxed_section(title, key):
         content = safe_get(dados, key)
         if content and content.strip():
+            pdf.set_fill_color(230, 230, 230)
             pdf.set_font(FONT_MAIN, "B", 11)
-            pdf.cell(W_TOTAL, 8, title, ln=1)
-            pdf.ln(1)
+            pdf.cell(W_TOTAL, 8, f" {title}", ln=1, fill=True)
             pdf.set_font(FONT_MAIN, "", 10)
-            pdf.multi_cell(W_TOTAL, 6, content)
-            pdf.ln(6)
+            # Caixa de texto para as observações [cite: 196, 197, 198, 199]
+            pdf.multi_cell(W_TOTAL, 6, content, border=1)
+            pdf.ln(4)
 
-    add_simple_section("OBSERVAÇÕES CRÍTICAS", "observacoes")
-    add_simple_section("DIGITALIZAÇÃO E DOCUMENTAÇÃO", "doc_digitalizacao")
+    add_boxed_section("OBSERVAÇÕES CRÍTICAS", "observacoes")
+    add_boxed_section("DIGITALIZAÇÃO E DOCUMENTAÇÃO", "doc_digitalizacao")
 
-    # RODAPÉ - Centralizado e Simples
-    pdf.set_y(-20)
-    pdf.set_font(FONT_MAIN, "", 10)
+    # Rodapé Invisível para manter o Manual de Faturamento GABMA no fim [cite: 200]
+    pdf.set_y(-15)
+    pdf.set_font(FONT_MAIN, "", 8)
+    pdf.set_text_color(150, 150, 150)
     pdf.cell(W_TOTAL, 10, "Manual de Faturamento GABMA", align="C")
 
     return pdf.output(dest="S").encode("latin-1")
