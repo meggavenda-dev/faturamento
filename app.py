@@ -82,26 +82,20 @@ def gerar_pdf(dados):
     pdf = FPDF()
     pdf.add_page()
     
-    # Verifica se o arquivo de fonte existe na pasta para evitar erros
     fonte_path = "DejaVuSans.ttf"
-    
     if os.path.exists(fonte_path):
-        # Adiciona a fonte que suporta UTF-8 nativamente
         pdf.add_font("DejaVu", "", fonte_path)
         pdf.set_font("DejaVu", "", 14)
         fonte_principal = "DejaVu"
     else:
-        # Fallback caso você esqueça de subir a fonte no GitHub
         pdf.set_font("Helvetica", "B", 14)
         fonte_principal = "Helvetica"
         st.warning("Arquivo DejaVuSans.ttf não encontrado. Acentos podem falhar.")
 
-    # Título
     pdf.set_font(fonte_principal, "B" if fonte_principal == "Helvetica" else "", 16)
     pdf.cell(0, 10, f"Formulário de Faturamento: {dados['nome']}", new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.ln(10)
     
-    # Seção 1: Dados de Acesso
     pdf.set_font(fonte_principal, "B" if fonte_principal == "Helvetica" else "", 12)
     pdf.cell(0, 10, "1. Acesso e Portal", new_x="LMARGIN", new_y="NEXT")
     
@@ -115,15 +109,15 @@ def gerar_pdf(dados):
     pdf.multi_cell(0, 7, info_acesso)
     pdf.ln(5)
     
-    # Seção 2: Regras e Observações
     pdf.set_font(fonte_principal, "B" if fonte_principal == "Helvetica" else "", 12)
     pdf.cell(0, 10, "2. Regras Extraídas do Manual", new_x="LMARGIN", new_y="NEXT")
     
     pdf.set_font(fonte_principal, "", 10)
-    # No fpdf2 com fonte TTF, o UTF-8 funciona direto!
     pdf.multi_cell(0, 6, dados['observacoes'])
     
-    return pdf.output()
+    # IMPORTANTE: No fpdf2, output() sem argumentos retorna bytes. 
+    # Usamos bytearray para garantir que o Streamlit entenda como dado binário.
+    return bytes(pdf.output())
 
 # --- INTERFACE STREAMLIT ---
 st.set_page_config(page_title="GABMA System", layout="wide")
@@ -175,5 +169,16 @@ elif menu == "Gerenciar Convênios":
         
         st.divider()
         st.subheader("Gerar Documentação")
+        
+        # Gerar os bytes do PDF
         pdf_bytes = gerar_pdf(dados_conv)
-        st.download_button(f"📥 Baixar PDF - {escolha}", pdf_bytes, f"Faturamento_{escolha}.pdf", "application/pdf")
+        
+        # Sanitizar nome do arquivo (remover espaços e acentos para evitar erros de browser)
+        nome_arquivo = f"Faturamento_{escolha.replace(' ', '_')}.pdf"
+
+        st.download_button(
+            label=f"📥 Baixar PDF - {escolha}",
+            data=pdf_bytes,
+            file_name=nome_arquivo,
+            mime="application/pdf"
+        )
