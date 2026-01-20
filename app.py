@@ -135,157 +135,297 @@ def salvar_dados_github(novos_dados, sha):
 # ============================================================
 #  PDF — GERADOR PREMIUM COM WRAP CORRIGIDO
 # ============================================================
+
 def gerar_pdf(dados):
+    from fpdf import FPDF
+    import os
+    import unicodedata
+    import re
+
     pdf = FPDF()
     pdf.set_margins(10, 10, 10)
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
-    # Fontes
+    # -----------------------------
+    #  Fontes (UTF-8 se houver .ttf)
+    # -----------------------------
     fonte_normal = "DejaVuSans.ttf"
     fonte_bold = "DejaVuSans-Bold.ttf"
+    has_dejavu = os.path.exists(fonte_normal)
+    has_dejavu_bold = os.path.exists(fonte_bold)
 
-    if os.path.exists(fonte_normal):
+    if has_dejavu:
         pdf.add_font("DejaVu", "", fonte_normal, uni=True)
-        pdf.add_font("DejaVu", "B", fonte_bold, uni=True)
-        fonte_principal = "DejaVu"
+        if has_dejavu_bold:
+            pdf.add_font("DejaVu", "B", fonte_bold, uni=True)
+        font_family = "DejaVu"
     else:
-        fonte_principal = "Helvetica"
+        font_family = "Helvetica"
 
-    # ---- Funções internas ----
+    def set_font(size, bold=False):
+        style = ""
+        if bold:
+            # Se houver bold do DejaVu usa, se não usa bold nativo da Helvetica
+            style = "B" if (font_family == "Helvetica" or has_dejavu_bold) else ""
+        try:
+            pdf.set_font(font_family, style, size)
+        except:
+            # fallback total
+            pdf.set_font("Helvetica", "B" if bold else "", size)
+
+    # -----------------------------
+    #  Sanitização segura
+    # -----------------------------
+    def sanitize_text(text):
+        if text is None:
+            return ""
+        t = str(text)
+        # Normalização + remoções invisíveis/controle
+        t = unicodedata.normalize("NFKD", t)
+        t = re.sub(r"[\u200B-\u200F\u202A-\u202E\u2060-\u206F]", "", t)
+        t = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", "", t)
+        return t.replace("\r", "")
+
+    # -----------------------------
+    #  Helpers de layout
+    # -----------------------------
+    CONTENT_WIDTH = pdf.w - pdf.l_margin - pdf.r_margin
+
     def chunk_long_word(text, max_width):
+        # Divide palavras gigantes (sem espaço)
+        txt = sanitize_text(text or "")
         char_w = max(pdf.get_string_width("M"), 0.01)
         max_chars = max(int((max_width - 2) / char_w), 1)
-        return [text[i:i+max_chars] for i in range(0, len(text), max_chars)]
+        return [txt[i:i+max_chars] for i in range(0, len(txt), max_chars)] if txt else [""]
 
-    def wrap_text(txt, max_width):
-        txt = sanitize_text(str(txt or ""))
+    def wrap_text(text, max_width):
+        # Quebra respeitando espaços + fallback para palavras longas
+        txt = sanitize_text(text or "")
         if not txt.strip():
             return [""]
-
         words = txt.split(" ")
-        lines = []
-        current = ""
-
+        lines, current = [], ""
         for w in words:
-            # palavra gigante sem espaço
-            if pdf.get_string_width(w) > max_width:
+            if pdf.get_string_width(w) > (max_width - 2):
+                # fecha linha atual se houver
+                if current:
+                    lines.append(current)
+                    current = ""
                 lines.extend(chunk_long_word(w, max_width))
                 continue
-
-            candidate = f"{current} {w}".strip()
-            if pdf.get_string_width(candidate) <= max_width:
+            candidate = (current + " " + w).strip() if current else w
+            if pdf.get_string_width(candidate) <= (max_width - 2):
                 current = candidate
             else:
                 lines.append(current)
                 current = w
-
         if current:
             lines.append(current)
-
         return lines
 
-    def draw_row(col_w, data, aligns=None, line_h=6, pad=1):
-        aligns = aligns or ["L"] * len(col_w)
-        col_lines = [wrap_text(t, col_w[i]) for i, t in enumerate(data)]
-        max_lines = max(len(c) for c in col_lines)
+    def label_value_line(label, value, label_w=38, line_h=7):
+        """
+        Imprime 'Label: valor' em linha única com largura total CONTENT_WIDTH.
+        O valor ocupa CONTENT_WIDTH - label_w.
+        Sempre ancora X no início da área útil e restaura após imprimir.
+        """
+        x0, y0 = pdf.get_x(), pdf.get_y()
+        pdf.set_x(pdf.l_margin)
+        set_font(9, bold=True)
+        pdf.cell(label_w, line_h, sanitize_text(f"{label}:"))
+        set_font(9, bold=False)
+        # valor como única linha (cell), com clip caso estoure (fica mais estável)
+        usable_w = CONTENT_WIDTH - label_w
+        # Se a string for maior que usable_w, fazemos wrap manual em seguida
+        if pdf.get_string_width(sanitize_text(value)) <= (usable_w - 2):
+            pdf.cell(usable_w, line_h, sanitize_text(value), ln=1)
+        else:
+            # quebra controlada
+            lines = wrap_text(value, usable_w)
+            # primeira linha
+            pdf.cell(usable_w, line_h, lines[0], ln=1)
+            # linhas seguintes, com a mesma indentação de label
+            for i in range(1, len(lines)):
+                pdf.set_x(pdf.l_margin + label_w)
+                pdf.cell(usable_w, line_h, lines[i], ln=1)
+
+        pdf.set_xy(pdf.l_margin, pdf.get_y())
+
+    def two_cols_line(label_left, value_left, label_right, value_right, label_w=38, gap=8, line_h=7):
+        """
+        Linha 2 colunas: [Label: Valor] |gap| [Label: Valor]
+        Evita colisão e respeita largura útil da página.
+        """
+        x_start = pdf.l_margin
+        total_w = CONTENT_WIDTH
+        col_w = (total_w - gap) / 2.0
+        # Coluna esquerda
+        pdf.set_x(x_start)
+        set_font(9, bold=True)
+        pdf.cell(label_w, line_h, sanitize_text(f"{label_left}:"))
+        set_font(9, bold=False)
+        left_usable = col_w - label_w
+        left_text = sanitize_text(value_left)
+        # impressões em altura calculada
+        left_lines = wrap_text(left_text, left_usable)
+        left_h = max(1, len(left_lines)) * line_h
+
+        # Coluna direita (medição)
+        set_font(9, bold=True)
+        right_label_w = label_w
+        right_usable = col_w - right_label_w
+        right_text = sanitize_text(value_right)
+        right_lines = wrap_text(right_text, right_usable)
+        right_h = max(1, len(right_lines)) * line_h
+
+        row_h = max(left_h, right_h)
+
+        # Page break se necessário
+        if pdf.get_y() + row_h > pdf.page_break_trigger:
+            pdf.add_page()
+
+        # Render coluna esquerda
+        set_font(9, bold=True)
+        pdf.set_xy(x_start, pdf.get_y())
+        pdf.cell(label_w, line_h, sanitize_text(f"{label_left}:"))
+        set_font(9, bold=False)
+        x_left_text = pdf.get_x()
+        y_left_text = pdf.get_y()
+        for i, ln in enumerate(left_lines):
+            pdf.set_xy(x_left_text, y_left_text + i * line_h)
+            pdf.cell(left_usable, line_h, ln)
+
+        # Render coluna direita
+        x_right = x_start + col_w + gap
+        set_font(9, bold=True)
+        pdf.set_xy(x_right, y_left_text)
+        pdf.cell(right_label_w, line_h, sanitize_text(f"{label_right}:"))
+        set_font(9, bold=False)
+        x_right_text = pdf.get_x()
+        for i, ln in enumerate(right_lines):
+            pdf.set_xy(x_right_text, y_left_text + i * line_h)
+            pdf.cell(right_usable, line_h, ln)
+
+        # Avança Y
+        pdf.set_xy(pdf.l_margin, y_left_text + row_h)
+
+    def draw_row(col_widths, data, aligns=None, line_h=6, pad=1):
+        """
+        Tabela com altura uniforme e quebra por coluna.
+        """
+        aligns = aligns or ["L"] * len(col_widths)
+        col_lines = [wrap_text(t, col_widths[i] - pad * 2) for i, t in enumerate(data)]
+        max_lines = max(len(c) for c in col_lines) if col_lines else 1
         row_h = max_lines * line_h
 
         if pdf.get_y() + row_h > pdf.page_break_trigger:
             pdf.add_page()
 
         x0, y0 = pdf.get_x(), pdf.get_y()
-
-        for i, w in enumerate(col_w):
-            x, y = pdf.get_x(), pdf.get_y()
+        for i, w in enumerate(col_widths):
+            x = pdf.get_x()
+            y = pdf.get_y()
             pdf.rect(x, y, w, row_h)
-
-            for j, l in enumerate(col_lines[i]):
+            for j, line in enumerate(col_lines[i]):
                 pdf.set_xy(x + pad, y + j * line_h)
-                pdf.cell(w - pad * 2, line_h, l, border=0, align=aligns[i])
-
+                pdf.cell(w - pad * 2, line_h, line, border=0, ln=0, align=aligns[i])
             pdf.set_xy(x + w, y)
-
         pdf.set_xy(x0, y0 + row_h)
 
-    # ---- Cabeçalho ----
+    # -----------------------------
+    #  Cabeçalho
+    # -----------------------------
     pdf.set_fill_color(31, 73, 125)
     pdf.set_text_color(255, 255, 255)
-    pdf.set_font(fonte_principal, "B", 16)
-    pdf.cell(0, 15, f"GUIA TÉCNICA: {dados.get('nome','').upper()}", ln=True, align='C', fill=True)
+    set_font(16, bold=True)
+    pdf.cell(0, 15, sanitize_text(f"GUIA TÉCNICA: {str(dados.get('nome','')).upper()}"), ln=True, align='C', fill=True)
     pdf.ln(5)
 
-    # ---- Seção 1 ----
+    # -----------------------------
+    #  Seção 1 – Identificação e Acesso (ancorada)
+    # -----------------------------
     pdf.set_text_color(0, 0, 0)
     pdf.set_fill_color(230, 230, 230)
-    pdf.set_font(fonte_principal, "B", 11)
+    set_font(11, bold=True)
     pdf.cell(0, 8, " 1. DADOS DE IDENTIFICAÇÃO E ACESSO", ln=True, fill=True)
     pdf.ln(2)
 
-    CONTENT_WIDTH = pdf.w - pdf.l_margin - pdf.r_margin
-    pdf.set_font(fonte_principal, "", 9)
+    # Linha 1: Empresa | Código
+    two_cols_line("Empresa", dados.get("empresa", "N/A"),
+                  "Código", dados.get("codigo", "N/A"))
 
-    # Empresa / Código
-    pdf.multi_cell(CONTENT_WIDTH, 7,
-                   sanitize_text(f"Empresa: {dados.get('empresa','N/A')} | Código: {dados.get('codigo','N/A')}"))
+    # Linha 2: Portal (quebra controlada, ocupando largura total)
+    label_value_line("Portal", dados.get("site", "") or "—")
 
-    # Portal longa (fix do erro!)
-    portal_text = sanitize_text(f"Portal: {dados.get('site','')}")
-    for line in wrap_text(portal_text, CONTENT_WIDTH):
-        pdf.multi_cell(CONTENT_WIDTH, 7, line)
+    # Linha 3: Login | Senha
+    two_cols_line("Login", dados.get("login", ""),
+                  "Senha", dados.get("senha", ""))
 
-    pdf.multi_cell(CONTENT_WIDTH, 7,
-                   sanitize_text(f"Login: {dados.get('login','')}  |  Senha: {dados.get('senha','')}"))
-    pdf.multi_cell(CONTENT_WIDTH, 7,
-                   sanitize_text(f"Sistema: {dados.get('sistema_utilizado','N/A')} | Retorno: {dados.get('prazo_retorno','N/A')}"))
+    # Linha 4: Sistema | Retorno
+    two_cols_line("Sistema", dados.get("sistema_utilizado", "N/A"),
+                  "Retorno", dados.get("prazo_retorno", "N/A"))
 
-    pdf.ln(5)
+    pdf.ln(4)
 
-    # ---- Seção 2 Tabela ----
+    # -----------------------------
+    #  Seção 2 – Tabela TISS
+    # -----------------------------
     pdf.set_fill_color(230, 230, 230)
-    pdf.set_font(fonte_principal, "B", 11)
+    set_font(11, bold=True)
     pdf.cell(0, 8, " 2. CRONOGRAMA E REGRAS TÉCNICAS", ln=True, fill=True)
     pdf.ln(2)
 
-    pdf.set_font(fonte_principal, "B", 8)
+    set_font(8, bold=True)
     col_w = [45, 30, 25, 25, 65]
-    header = ["Prazo Envio", "Validade Guia", "XML / Versão", "Nota Fiscal", "Fluxo NF"]
-    draw_row(col_w, header, aligns=['C'] * 5, line_h=7)
+    aligns = ['C', 'C', 'C', 'C', 'C']
+    draw_row(col_w, ["Prazo Envio", "Validade Guia", "XML / Versão", "Nota Fiscal", "Fluxo NF"], aligns=aligns, line_h=7)
 
-    pdf.set_font(fonte_principal, "", 8)
-    draw_row(col_w, [
-        dados.get("envio", ""),
-        f"{dados.get('validade','')} dias",
-        f"{dados.get('xml','')} / {dados.get('versao_xml','-')}",
-        dados.get("nf",""),
-        dados.get("fluxo_nf","N/A")
-    ], aligns=['C']*5, line_h=7)
-
+    set_font(8, bold=False)
+    # Observação: "XML / Versão" usa 'xml' (Sim/Não) + 'versao_xml'
+    xml_flag = dados.get("xml", "")
+    xml_ver = dados.get("versao_xml", "-")
+    draw_row(
+        col_w,
+        [
+            sanitize_text(dados.get("envio", "")),
+            f"{str(dados.get('validade', ''))} dias" if str(dados.get('validade', '')).strip() else "—",
+            f"{xml_flag} / {xml_ver}",
+            str(dados.get("nf", "")),
+            str(dados.get("fluxo_nf", "N/A"))
+        ],
+        aligns=aligns,
+        line_h=7
+    )
     pdf.ln(5)
 
-    # ---- Blocos ----
+    # -----------------------------
+    #  Seção 3 – Blocos
+    # -----------------------------
     def bloco(titulo, conteudo):
-        if not conteudo:
+        txt = sanitize_text(conteudo or "").strip()
+        if not txt:
             return
+        set_font(11, bold=True)
         pdf.set_fill_color(240, 240, 240)
-        pdf.set_font(fonte_principal, "B", 11)
         pdf.cell(0, 7, f" {titulo}", ln=True, fill=True)
-        pdf.set_font(fonte_principal, "", 9)
-        pdf.multi_cell(0, 5, sanitize_text(conteudo), border=1)
+        set_font(9, bold=False)
+        pdf.multi_cell(0, 5, txt, border=1)
         pdf.ln(3)
 
-    bloco("CONFIGURAÇÃO DO GERADOR XML", dados.get("config_gerador"))
-    bloco("DIGITALIZAÇÃO E DOCUMENTAÇÃO", dados.get("doc_digitalizacao"))
-    bloco("OBSERVAÇÕES CRÍTICAS", dados.get("observacoes"))
+    bloco("CONFIGURAÇÃO DO GERADOR XML", dados.get("config_gerador", ""))
+    bloco("DIGITALIZAÇÃO E DOCUMENTAÇÃO", dados.get("doc_digitalizacao", ""))
+    bloco("OBSERVAÇÕES CRÍTICAS", dados.get("observacoes", ""))
 
-    # ---- Rodapé ----
+    # -----------------------------
+    #  Rodapé
+    # -----------------------------
     pdf.set_y(-20)
     pdf.set_text_color(120, 120, 120)
-    pdf.set_font(fonte_principal, "", 8)
+    set_font(8, bold=False)
     pdf.cell(0, 10, "GABMA Consultoria - Sistema Técnico de Convênios", align='C')
 
     return bytes(pdf.output())
-
 
 # ============================================================
 #       APP – INÍCIO
