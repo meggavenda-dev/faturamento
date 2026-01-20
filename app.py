@@ -59,24 +59,16 @@ def salvar_dados_github(novos_dados, sha):
 #     GERADOR DE PDF — LAYOUT PREMIUM
 # -----------------------------------------
 
-# --- GERADOR DE PDF (LAYOUT PREMIUM ATUALIZADO E UTF-8) ---
 def gerar_pdf(dados):
-    from fpdf import FPDF
-    import os
-
     pdf = FPDF()
     pdf.add_page()
 
-    # --------------------------------------------------
-    #   FONTES UTF‑8 (DejaVu)
-    # --------------------------------------------------
     fonte_normal = "DejaVuSans.ttf"
     fonte_bold = "DejaVuSans-Bold.ttf"
 
     if os.path.exists(fonte_normal):
         pdf.add_font("DejaVu", "", fonte_normal, uni=True)
         fonte_principal = "DejaVu"
-
         if os.path.exists(fonte_bold):
             pdf.add_font("DejaVu", "B", fonte_bold, uni=True)
             estilo_b = "B"
@@ -87,18 +79,12 @@ def gerar_pdf(dados):
         fonte_principal = "Helvetica"
         estilo_b = "B"
 
-    # --------------------------------------------------
-    #   CABEÇALHO
-    # --------------------------------------------------
     pdf.set_fill_color(31, 73, 125)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font(fonte_principal, estilo_b, 16)
     pdf.cell(0, 15, f"GUIA TÉCNICA: {dados['nome'].upper()}", ln=True, align='C', fill=True)
     pdf.ln(5)
 
-    # --------------------------------------------------
-    #   SEÇÃO 1 — IDENTIFICAÇÃO E ACESSO
-    # --------------------------------------------------
     pdf.set_text_color(0, 0, 0)
     pdf.set_font(fonte_principal, estilo_b, 11)
     pdf.set_fill_color(230, 230, 230)
@@ -112,15 +98,11 @@ def gerar_pdf(dados):
     pdf.write(7, f"Sistema: {dados.get('sistema_utilizado', 'N/A')} | Retorno: {dados.get('prazo_retorno', 'N/A')}\n")
     pdf.ln(5)
 
-    # --------------------------------------------------
-    #   SEÇÃO 2 — TABELA TISS
-    # --------------------------------------------------
     pdf.set_font(fonte_principal, estilo_b, 11)
     pdf.set_fill_color(230, 230, 230)
     pdf.cell(0, 8, " 2. CRONOGRAMA E REGRAS TÉCNICAS", ln=True, fill=True)
     pdf.ln(2)
 
-    # Cabeçalho
     pdf.set_font(fonte_principal, estilo_b, 8)
     pdf.cell(50, 8, "Prazo Envio", 1, 0, 'C')
     pdf.cell(30, 8, "Validade Guia", 1, 0, 'C')
@@ -128,7 +110,6 @@ def gerar_pdf(dados):
     pdf.cell(25, 8, "Nota Fiscal", 1, 0, 'C')
     pdf.cell(60, 8, "Fluxo NF", 1, 1, 'C')
 
-    # Conteúdo
     pdf.set_font(fonte_principal, "", 8)
     pdf.cell(50, 8, dados["envio"][:30], 1, 0, 'C')
     pdf.cell(30, 8, f"{dados['validade']} dias", 1, 0, 'C')
@@ -137,9 +118,6 @@ def gerar_pdf(dados):
     pdf.cell(60, 8, dados.get('fluxo_nf', 'N/A')[:35], 1, 1, 'C')
     pdf.ln(5)
 
-    # --------------------------------------------------
-    #   SEÇÃO 3 — BLOCOS
-    # --------------------------------------------------
     def bloco(titulo, conteudo):
         if conteudo:
             pdf.set_font(fonte_principal, estilo_b, 11)
@@ -154,30 +132,29 @@ def gerar_pdf(dados):
     bloco("DIGITALIZAÇÃO E DOCUMENTAÇÃO", dados.get("doc_digitalizacao", ""))
     bloco("OBSERVAÇÕES CRÍTICAS", dados["observacoes"])
 
-    # --------------------------------------------------
-    #   RODAPÉ
-    # --------------------------------------------------
     pdf.set_y(-20)
     pdf.set_font(fonte_principal, "", 8)
     pdf.set_text_color(150, 150, 150)
     pdf.cell(0, 10, "GABMA Consultoria - Gestão de Faturamento Médico", align='C')
 
-    # Retorna bytes do PDF
     return bytes(pdf.output())
 
-
 # -----------------------------------------
-#       STREAMLIT — INTERFACE PRINCIPAL
+#       INTERFACE PRINCIPAL
 # -----------------------------------------
 st.set_page_config(page_title="GABMA System", layout="wide")
 st.title("💼 Sistema de Gestão GABMA")
 
 dados_atuais, sha_atual = buscar_dados_github()
 
-menu = st.sidebar.radio("Navegação", ["Cadastrar / Editar", "Visualizar Banco"])
+menu = st.sidebar.radio("Navegação", [
+    "Cadastrar / Editar",
+    "Consulta de Convênios",
+    "Visualizar Banco"
+])
 
 # -----------------------------------------
-#       TELA CADASTRAR / EDITAR
+#       CADASTRAR / EDITAR
 # -----------------------------------------
 if menu == "Cadastrar / Editar":
     st.header("📝 Cadastro de Convênio")
@@ -186,6 +163,15 @@ if menu == "Cadastrar / Editar":
     escolha = st.selectbox("Selecione um convênio:", nomes)
 
     dados_conv = next((c for c in dados_atuais if c["nome"] == escolha), None)
+
+    VERSOES_TISS = [
+        "4.03.00",
+        "4.02.00",
+        "4.01.00",
+        "01.06.00",
+        "3.05.00",
+        "3.04.01"
+    ]
 
     with st.form("form_cadastro"):
         col1, col2, col3 = st.columns(3)
@@ -209,18 +195,8 @@ if menu == "Cadastrar / Editar":
             nf = st.radio("Exige NF?", ["Sim", "Não"], index=0 if not dados_conv or dados_conv["nf"] == "Sim" else 1)
 
         st.divider()
-        col_a, col_b = st.columns(2)        
-        # Lista FINAL das versões TISS (oficiais, históricas e vigentes)
-        VERSOES_TISS = [
-            "4.03.00",
-            "4.02.00",
-            "4.01.00",
-            "01.06.00",
-            "3.05.00",
-            "3.04.01"
-        ]
-        
-        # Selectbox das versões TISS
+        col_a, col_b = st.columns(2)
+
         v_xml = col_a.selectbox(
             "Versão XML (Padrão TISS)",
             VERSOES_TISS,
@@ -230,7 +206,11 @@ if menu == "Cadastrar / Editar":
                 else 0
             )
         )
-        fluxo_nf = col_b.selectbox("Fluxo Nota", ["Envia XML sem nota", "Envia NF junto com o lote"])
+
+        fluxo_nf = col_b.selectbox("Fluxo Nota", [
+            "Envia XML sem nota",
+            "Envia NF junto com o lote"
+        ])
 
         config_gerador = st.text_area("Configuração Gerador XML", value=dados_conv.get("config_gerador", "") if dados_conv else "")
         doc_dig = st.text_area("Digitalização e Documentação", value=dados_conv.get("doc_digitalizacao", "") if dados_conv else "")
@@ -265,7 +245,75 @@ if menu == "Cadastrar / Editar":
         )
 
 # -----------------------------------------
-#       TELA DE VISUALIZAÇÃO DO BANCO
+#       CONSULTA DE CONVÊNIOS
+# -----------------------------------------
+elif menu == "Consulta de Convênios":
+    st.header("📚 Consulta de Convênios")
+
+    if not dados_atuais:
+        st.info("Nenhum convênio cadastrado.")
+        st.stop()
+
+    nomes_conv = sorted([c["nome"] for c in dados_atuais])
+    escolha = st.selectbox("Selecione o convênio:", nomes_conv)
+
+    dados = next(c for c in dados_atuais if c["nome"] == escolha)
+
+    st.markdown("---")
+
+    st.markdown(
+        f"""
+        <div style='padding: 20px; border-radius: 12px; 
+                     background-color: #1f497d; color: white; 
+                     text-align:center; font-size:26px;'>
+            {dados['nome'].upper()}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.subheader("🧾 Dados de Identificação")
+    st.info(f"""
+**Empresa:** {dados.get('empresa', 'N/A')}  
+**Código:** {dados.get('codigo', 'N/A')}  
+**Sistema:** {dados.get('sistema_utilizado', 'N/A')}  
+**Retorno:** {dados.get('prazo_retorno', 'N/A')}
+""")
+
+    st.subheader("🔐 Acesso ao Portal")
+    st.success(f"""
+**Portal:** {dados['site']}  
+**Login:** {dados['login']}  
+**Senha:** {dados['senha']}
+""")
+
+    st.subheader("📦 Regras Técnicas")
+    st.write(f"""
+**Prazo Envio:** {dados["envio"]}  
+**Validade da Guia:** {dados["validade"]} dias  
+**Envia XML?** {dados["xml"]}  
+**Versão XML:** {dados.get("versao_xml", "N/A")}  
+**Exige NF?** {dados["nf"]}  
+**Fluxo da Nota:** {dados.get("fluxo_nf", "N/A")}
+""")
+
+    if dados.get("config_gerador"):
+        st.subheader("⚙️ Configuração do Gerador XML")
+        st.code(dados["config_gerador"])
+
+    if dados.get("doc_digitalizacao"):
+        st.subheader("🗂 Digitalização e Documentação")
+        st.info(dados["doc_digitalizacao"])
+
+    if dados.get("observacoes"):
+        st.subheader("⚠️ Observações Críticas")
+        st.warning(dados["observacoes"])
+
+    st.markdown("---")
+    st.caption("GABMA Consultoria — Consulta de Convênios")
+
+# -----------------------------------------
+#       VISUALIZAR BANCO
 # -----------------------------------------
 elif menu == "Visualizar Banco":
     st.header("📋 Cadastro Geral")
