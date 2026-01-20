@@ -601,7 +601,10 @@ def page_cadastro():
     # --------------------------------------------
     # FORMULÁRIO
     # --------------------------------------------
-    with st.form("form_cadastro"):
+    form_key = f"form_{conv_id}" if conv_id else "form_novo"
+
+    with st.form(key=form_key):
+
 
         col1, col2, col3 = st.columns(3)
 
