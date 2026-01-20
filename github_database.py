@@ -56,7 +56,7 @@ class GitHubJSON:
         now = time.time()
 
         if not force_refresh and self._cache_data is not None:
-            if now - self._cache_timestamp < 10:
+            if now - self._cache_timestamp < 2:
                 return self._cache_data, self._cache_sha
 
         url = self.API_URL.format(owner=self.owner, repo=self.repo, path=self.path)
