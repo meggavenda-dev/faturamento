@@ -18,5 +18,25 @@
         "doc_digitalizacao": "",
         "observacoes": "(Login e senha disponível no Fhasso)\n\nValidade das guias: 60 dias contando da primeira sessão\n\nData de envio: 01 ao 05 dia útil, não vai físico (só scaneado e anexado ao site)  O arquivo scaneado não pode ser maior que 15 megas.\nMenu Uploads > Novo > carregar arquivo > incluir. \n(Se der erro, já vai aparecer que tem crítica. Aí, seleciona e clica em “Exibir críticas”. \nAí ajusta, depois excluir o arquivo que deu erro, gera e passa novamente. \nQuando passar e não exibir críticas, clica no quadradinho (deixando selecionado) > detalhes do lote > (confere os dados: operadora, valor...).\n Mais em baixo tem um tópico “Documentos Anexados ao lote”. Clica em “incluir anexo’’, procura as guias scaneadas e “incluir”. \nQuando o arquivo baixar, clica na setinha e põe “24-justificativa clínica”, depois clica em “incluir”. \nNo canto superior direito clica em Fechar lote > Sim, Fechar lote > enviar lote > capa do lote > imprimir. \nTem que imprimir a capa de lote, e lá no tópico “documentos anexos ao lote” você verifica se o status do anexo está enviado. \nSe não tiver da F5 pra atualizar. Depois eu printo essa parte que fala que foi enviada e mando pro financeiro, junto com o aceite e a capa do lote.",
         "id": 1
+    },
+    {
+        "nome": "ASTE - INTEGRALIS",
+        "codigo": "",
+        "empresa": "Integralis",
+        "sistema_utilizado": "Outros",
+        "site": "",
+        "login": "",
+        "senha": "",
+        "prazo_retorno": "",
+        "envio": "Mês subsequente",
+        "validade": "",
+        "xml": "Não",
+        "nf": "Não",
+        "versao_xml": "Não Envia",
+        "fluxo_nf": "Envia XML sem nota",
+        "config_gerador": "",
+        "doc_digitalizacao": "",
+        "observacoes": "Validade das guias: manda-se as guias do mês subsequente.\n\nNão passa XML, Só faz o fechamento no Fhasso para tirar a carta de aceite. \n\nData de envio: Primeiro dia útil do mês. Entrega pelo Chagas. \n",
+        "id": 2
     }
 ]
