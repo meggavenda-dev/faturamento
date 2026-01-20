@@ -42,42 +42,70 @@ TEXT_DARK = "#2D2D2D"
 st.markdown(
     f"""
     <style>
-        /* Ajuste do contêiner principal para dar espaço ao header fixo */
+        /* Ajuste da área de conteúdo para não colidir com o header fixo */
         .block-container {{
-            padding-top: 4rem !important;
+            padding-top: 5rem !important;
+            max-width: 1200px;
         }}
 
+        /* Header Fixo Ultra Elegante */
         .header-premium {{
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
-            z-index: 999999; /* Garante que fique acima de tudo */
-            background-color: white;
-            padding: 15px 20px;
-            border-bottom: 2px solid {PRIMARY_COLOR}22;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            height: 70px;
+            z-index: 9999;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px); /* Efeito de vidro */
+            display: flex;
+            align-items: center;
+            padding: 0 40px;
+            border-bottom: 1px solid {PRIMARY_COLOR}22;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.04);
         }}
 
         .header-title {{
-            font-size: 26px;
+            font-size: 24px;
             font-weight: 700;
             color: {PRIMARY_COLOR};
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }}
 
+        /* Cards Estilo Microsoft (Bordas suaves e sombras leves) */
         .card {{
-            transition: all 0.18s ease-in-out;
-            background: white;
-            padding: 22px;
-            border-radius: 12px;
-            border: 1px solid {GREY_BORDER};
-            margin-bottom: 22px;
+            background: #ffffff;
+            padding: 24px;
+            border-radius: 8px;
+            border: 1px solid #e1e4e8;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+            margin-bottom: 24px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }}
+
+        .card:hover {{
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
+        }}
+
+        /* Botões Estilo MV */
+        .stButton>button {{
+            background-color: {PRIMARY_COLOR} !important;
+            color: white !important;
+            border-radius: 4px !important;
+            padding: 0.5rem 1.5rem !important;
+            border: none !important;
+            font-weight: 500 !important;
+            font-size: 14px !important;
         }}
     </style>
-    
+
     <div class="header-premium">
-        <span class="header-title">💼 Manual de faturamento</span>
+        <div class="header-title">
+            <span>💼</span> Manual de Faturamento
+        </div>
     </div>
     """,
     unsafe_allow_html=True
