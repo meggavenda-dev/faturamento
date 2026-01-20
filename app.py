@@ -258,53 +258,53 @@ def wrap_text(text, pdf, max_width):
 
 def gerar_pdf(dados):
     """
-    Versão Ultra-Otimizada: Foco em densidade de informação e alinhamento rigoroso.
-    Resolve problemas de espaçamento excessivo e sobreposição.
+    Versão Estável: Corrigido erro de fonte indefinida e otimização de layout.
     """
     pdf = FPDF()
     pdf.set_margins(15, 15, 15)
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
-    # Fontes
+    # Configuração de Fontes com Fallback Seguro
     try:
+        # Tenta carregar as fontes personalizadas
         pdf.add_font("DejaVu", "", "DejaVuSans.ttf", uni=True)
         pdf.add_font("DejaVu", "B", "DejaVuSans-Bold.ttf", uni=True)
-        FONT_NAME = "DejaVu"
+        FONT_MAIN = "DejaVu"
     except:
-        FONT_NAME = "Arial"
+        # Se falhar (arquivo ausente), usa Arial que é padrão
+        FONT_MAIN = "Arial"
 
-    W_TOTAL = pdf.w - 30 # Largura útil
+    W_TOTAL = pdf.w - 30 
 
     # --- CABEÇALHO ---
     pdf.set_fill_color(31, 73, 125)
     pdf.set_text_color(255, 255, 255)
-    pdf.set_font(FONT_NAME, "B", 14)
+    pdf.set_font(FONT_MAIN, "B", 14)
     pdf.cell(W_TOTAL, 12, f"GUIA TÉCNICA: {safe_get(dados,'nome').upper()}", ln=1, align="C", fill=True)
     pdf.ln(4)
 
-    # --- HELPER: LINHA DE DUAS COLUNAS COMPACTA ---
+    # --- HELPER: LINHA DE DUAS COLUNAS ---
     def add_compact_row(l1, v1, l2, v2):
         pdf.set_text_color(45, 45, 45)
         w_col = W_TOTAL / 2
-        
         y_before = pdf.get_y()
         
         # Coluna 1
-        pdf.set_font(FONT_NAME, "B", 9)
+        pdf.set_font(FONT_MAIN, "B", 9)
         pdf.text(pdf.l_margin, y_before + 4, f"{l1}:")
-        pdf.set_font(FONT_NAME, "", 9)
+        pdf.set_font(FONT_MAIN, "", 9)
         pdf.set_xy(pdf.l_margin + 22, y_before)
-        pdf.multi_cell(w_col - 25, 5, safe_get(dados, v1), border=0)
+        pdf.multi_cell(w_col - 25, 5, safe_get(dados, v1))
         h1 = pdf.get_y() - y_before
         
         # Coluna 2
         pdf.set_xy(pdf.l_margin + w_col, y_before)
-        pdf.set_font(FONT_NAME, "B", 9)
+        pdf.set_font(FONT_MAIN, "B", 9)
         pdf.text(pdf.l_margin + w_col, y_before + 4, f"{l2}:")
-        pdf.set_font(FONT_NAME, "", 9)
+        pdf.set_font(FONT_MAIN, "", 9)
         pdf.set_xy(pdf.l_margin + w_col + 22, y_before)
-        pdf.multi_cell(w_col - 25, 5, safe_get(dados, v2), border=0)
+        pdf.multi_cell(w_col - 25, 5, safe_get(dados, v2))
         h2 = pdf.get_y() - y_before
         
         pdf.set_y(y_before + max(h1, h2, 6))
@@ -312,69 +312,62 @@ def gerar_pdf(dados):
     # --- SEÇÃO 1: IDENTIFICAÇÃO ---
     pdf.set_fill_color(240, 240, 240)
     pdf.set_text_color(31, 73, 125)
-    pdf.set_font(FONT_NAME, "B", 10)
+    pdf.set_font(FONT_MAIN, "B", 10)
     pdf.cell(W_TOTAL, 7, " 1. DADOS DE IDENTIFICAÇÃO E ACESSO", ln=1, fill=True)
     pdf.ln(1)
 
     add_compact_row("Empresa", "empresa", "Código", "codigo")
     
-    # Portal em destaque (geralmente é um link longo)
-    pdf.set_xy(pdf.l_margin, pdf.get_y())
-    pdf.set_font(FONT_NAME, "B", 9)
-    pdf.cell(22, 6, "Portal:")
-    pdf.set_font(FONT_NAME, "", 9)
-    pdf.multi_cell(W_TOTAL - 22, 6, safe_get(dados, "site"))
+    # Portal
+    pdf.set_font(FONT_MAIN, "B", 9)
+    pdf.set_text_color(45, 45, 45)
+    pdf.write(6, "  Portal: ")
+    pdf.set_font(FONT_MAIN, "", 9)
+    pdf.multi_cell(W_TOTAL - 25, 6, safe_get(dados, "site"))
     
     add_compact_row("Login", "login", "Senha", "senha")
     add_compact_row("Sistema", "sistema_utilizado", "Retorno", "prazo_retorno")
     pdf.ln(2)
 
-    # --- SEÇÃO 2: CRONOGRAMA (TABELA AJUSTADA) ---
+    # --- SEÇÃO 2: CRONOGRAMA ---
     pdf.set_fill_color(240, 240, 240)
-    pdf.set_font(FONT_NAME, "B", 10)
+    pdf.set_font(FONT_MAIN, "B", 10)
     pdf.cell(W_TOTAL, 7, " 2. CRONOGRAMA E REGRAS TÉCNICAS", ln=1, fill=True)
     pdf.ln(1)
 
-    # Cabeçalho da Tabela
     widths = [35, 25, 35, 20, 65]
     headers = ["Prazo", "Validade", "XML/Versão", "NF", "Fluxo"]
-    pdf.set_font(FONT_NAME, "B", 8)
-    pdf.set_fill_color(250, 250, 250)
+    pdf.set_font(FONT_MAIN, "B", 8)
     for i, h in enumerate(headers):
-        pdf.cell(widths[i], 7, h, border=1, align="C", fill=True)
+        pdf.cell(widths[i], 7, h, border=1, align="C", fill=False)
     pdf.ln()
 
-    # Conteúdo da Tabela com Multi-cell manual para evitar quebras feias
-    pdf.set_font(FONT_NAME, "", 8)
+    pdf.set_font(FONT_MAIN, "", 8)
+    y_tab = pdf.get_y()
     row_vals = [
         safe_get(dados, "envio"),
         f"{safe_get(dados, 'validade')} dias",
-        f"{safe_get(dados, 'xml')}\n{safe_get(dados, 'versao_xml')}",
+        f"{safe_get(dados, 'xml')} / {safe_get(dados, 'versao_xml')}",
         safe_get(dados, "nf"),
         safe_get(dados, "fluxo_nf")
     ]
     
-    # Desenho da linha com altura fixa baseada no conteúdo
-    y_tab = pdf.get_y()
     for i, val in enumerate(row_vals):
         pdf.set_xy(pdf.l_margin + sum(widths[:i]), y_tab)
         pdf.multi_cell(widths[i], 5, val, border=1, align="C")
     
-    pdf.set_y(y_tab + 12) # Espaço fixo após tabela para manter ordem
-    pdf.ln(2)
+    pdf.set_y(y_tab + 10)
+    pdf.ln(4)
 
-    # --- SEÇÃO 3: BLOCOS DE TEXTO (OBSERVAÇÕES) ---
+    # --- SEÇÃO 3: BLOCOS DE TEXTO ---
     def add_text_block(title, key):
         content = safe_get(dados, key)
         if content and content.strip():
-            # Título do bloco
-            pdf.set_font(FONT_NAME, "B", 9)
+            pdf.set_font(FONT_MAIN, "B", 9)
             pdf.set_fill_color(245, 245, 245)
             pdf.set_text_color(31, 73, 125)
             pdf.cell(W_TOTAL, 6, f" {title}", ln=1, fill=True)
-            
-            # Conteúdo
-            pdf.set_font(FONT_NAME, "", 9)
+            pdf.set_font(FONT_MAIN, "", 9)
             pdf.set_text_color(0, 0, 0)
             pdf.multi_cell(W_TOTAL, 5, content, border="LRB")
             pdf.ln(2)
@@ -383,14 +376,13 @@ def gerar_pdf(dados):
     add_text_block("DIGITALIZAÇÃO E DOCUMENTAÇÃO", "doc_digitalizacao")
     add_text_block("OBSERVAÇÕES CRÍTICAS", "observacoes")
 
-    # Rodapé
+    # RODAPÉ (Corrigido para não usar "I")
     pdf.set_y(-15)
-    pdf.set_font(FONT_NAME, "I", 8)
+    pdf.set_font(FONT_MAIN, "", 8)
     pdf.set_text_color(150, 150, 150)
     pdf.cell(W_TOTAL, 10, "Manual de Faturamento — GABMA Consultoria", align="R")
 
     return pdf.output(dest="S").encode("latin-1")
-
 
 # ============================================================
 # 8. COMPONENTES DE INTERFACE (UI COMPONENTS)
