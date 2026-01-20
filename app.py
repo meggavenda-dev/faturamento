@@ -478,7 +478,10 @@ def gerar_pdf(dados):
     pdf.set_text_color(120, 120, 120)
     pdf.cell(0, 10, "Manual de Faturamento — GABMA", align="C")
 
-    return bytes(pdf.output())
+    
+    pdf_bytes = pdf.output(dest="S").encode("latin-1")
+    return pdf_bytes
+
 
 
 
