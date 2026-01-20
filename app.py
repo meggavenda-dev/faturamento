@@ -613,20 +613,6 @@ def ui_block_info(title: str, content: str):
 # ============================================================
 # 9. PÁGINA — CADASTRO / EDIÇÃO DE CONVÊNIOS
 # ============================================================
-
-O problema de os dados não aparecerem quando você seleciona um convênio existente na tela de cadastro ocorre por causa de uma inconsistência na comparação dos IDs e uma pequena redundância no código de salvamento que pode estar limpando o estado do Streamlit.
-
-Abaixo, apresento os blocos corrigidos especificamente para a função page_cadastro.
-
-1. Correção da lógica de Seleção (Busca do ID)
-No seu código, a comparação estava sensível a tipos (String vs Inteiro). Alterei para usar str() em ambos os lados, garantindo que o next encontre o registro.
-
-2. Remoção de Lógica Duplicada
-Havia dois blocos de salvamento (if submit:) no seu código original. Removi a duplicidade para evitar que o app processe o salvamento duas vezes ou limpe os campos indevidamente.
-
-Substitua a sua função page_cadastro por esta:
-Python
-
 def page_cadastro(dados_atuais, sha_atual):
 
     ui_card_start("📝 Cadastro de Convênio")
