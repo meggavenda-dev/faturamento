@@ -19,6 +19,8 @@ import re
 import uuid
 import time
 
+from github_database import GitHubJSON
+
 # ------------------------------------------------------------
 # 2. CONFIGURAÇÃO DE ACESSO (SECRETS)
 # ------------------------------------------------------------
@@ -29,6 +31,16 @@ try:
 except Exception:
     st.error("⚠️ Configure os Secrets: GITHUB_TOKEN, REPO_OWNER e REPO_NAME.")
     st.stop()
+
+
+db = GitHubJSON(
+    token=GITHUB_TOKEN,
+    owner=REPO_OWNER,
+    repo=REPO_NAME,
+    path=FILE_PATH,
+    branch=BRANCH
+)
+
 
 FILE_PATH = "dados.json"
 BRANCH = "main"
@@ -227,81 +239,6 @@ def wrap_text(text, pdf, max_width):
 
     return lines
 
-
-# ============================================================
-# 6. FUNÇÕES GITHUB — CRUD PREMIUM SEGURO (ID + SHA DINÂMICO)
-# ============================================================
-
-def github_get_file():
-    url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{FILE_PATH}?ref={BRANCH}&t={int(time.time())}"
-    headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
-    
-    try:
-        response = requests.get(url, headers=headers)
-        if response.status_code == 200:
-            content = response.json()
-            decoded = base64.b64decode(content["content"]).decode("utf-8")
-            data = json.loads(decoded)
-            
-            # Migração para ID Decimal (Garante que strings virem números)
-            modified = False
-            for i, item in enumerate(data):
-                if "id" not in item or isinstance(item["id"], str):
-                    item["id"] = i + 1
-                    modified = True
-            
-            if modified:
-                github_save_file(data, content["sha"])
-            return data, content["sha"]
-        
-        elif response.status_code == 404:
-            return [], None
-        else:
-            st.error(f"⚠️ Erro GitHub: {response.status_code}")
-            return [], None
-    except Exception as e:
-        st.error(f"❌ Erro ao consultar GitHub: {e}")
-        return [], None
-
-
-def github_save_file(data, previous_sha):
-    """
-    Salva o JSON atualizado no GitHub utilizando o SHA mais recente possível.
-    Evita erros 409 (Conflict) e garante consistência.
-    """
-    # 🔍 Sempre pega o SHA mais recente
-    _, latest_sha = github_get_file()
-    sha_to_use = latest_sha or previous_sha
-
-    url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{FILE_PATH}"
-
-    headers = {
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
-    }
-
-    try:
-        json_string = json.dumps(data, indent=4, ensure_ascii=False)
-        encoded = base64.b64encode(json_string.encode("utf-8")).decode("utf-8")
-
-        payload = {
-            "message": "Update Manual de Faturamento — GABMA",
-            "content": encoded,
-            "branch": BRANCH,
-            "sha": sha_to_use
-        }
-
-        response = requests.put(url, headers=headers, json=payload)
-
-        if response.status_code in (200, 201):
-            return True
-
-        st.error(f"❌ Erro GitHub {response.status_code}: {response.text}")
-        return False
-
-    except Exception as e:
-        st.error(f"❌ Falha ao salvar no GitHub: {e}")
-        return False
 
 
 # ============================================================
@@ -613,7 +550,7 @@ def ui_block_info(title: str, content: str):
 # ============================================================
 # 9. PÁGINA — CADASTRO / EDIÇÃO DE CONVÊNIOS
 # ============================================================
-def page_cadastro(dados_atuais, sha_atual):
+def page_cadastro(dados_atuais):
 
     ui_card_start("📝 Cadastro de Convênio")
 
@@ -722,10 +659,12 @@ def page_cadastro(dados_atuais, sha_atual):
                         dados_atuais[i] = novo_registro
                         break
 
-            if github_save_file(dados_atuais, sha_atual):
-                st.success(f"✔ Convênio {novo_registro['id']} salvo com sucesso!")
-                time.sleep(0.5)
-                st.rerun()
+            
+                if db.save(dados_atuais):
+                    st.success(f"✔ Convênio {novo_registro['id']} salvo com sucesso!")
+                    time.sleep(0.4)
+                    st.rerun()
+
 
     # Botão de PDF (fora do form)
     if dados_conv:
@@ -833,7 +772,7 @@ def main():
     # --------------------------------------------------------
     # CARREGAR BANCO DO GITHUB
     # --------------------------------------------------------
-    dados_atuais, sha_atual = github_get_file()
+    dados_atuais, sha_atual = db.load()
 
     # --------------------------------------------------------
     # SIDEBAR — Navegação
@@ -859,7 +798,7 @@ def main():
     # ROTEAMENTO DAS PÁGINAS
     # --------------------------------------------------------
     if menu == "Cadastrar / Editar":
-        page_cadastro(dados_atuais, sha_atual)
+        page_cadastro(dados_atuais)
 
     elif menu == "Consulta de Convênios":
         page_consulta(dados_atuais)
