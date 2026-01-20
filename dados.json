@@ -132,7 +132,7 @@
         "nome": "ASFUB - INTEGRALIS",
         "codigo": "",
         "empresa": "Integralis",
-        "sistema_utilizado": "Próprio",
+        "sistema_utilizado": "Outros",
         "site": "",
         "login": "",
         "senha": "",
@@ -142,7 +142,7 @@
         "nf": "Sim",
         "fluxo_nf": "Envia NF junto com o lote",
         "xml": "Não",
-        "versao_xml": "4.03.00",
+        "versao_xml": "Não Envia",
         "config_gerador": "",
         "doc_digitalizacao": "",
         "observacoes": "Não passa XML. Só faz o fechamento no Fhasso para tirar a carta de aceite. Data de envio: Primeiro dia útil do mês, vai com NF e pelo Chaguinhas. Validade das guias: 90 dias."
