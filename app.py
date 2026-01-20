@@ -1,6 +1,6 @@
 
 # ============================================================
-#  APP.PY — GABMA Sistema Técnico (Versão Completa)
+#  APP.PY — Manual de faturamento (Versão Completa)
 # ============================================================
 
 import streamlit as st
