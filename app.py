@@ -152,23 +152,21 @@ st.markdown(CSS_GLOBAL, unsafe_allow_html=True)
 # 5. FUNÇÕES UTILITÁRIAS
 # ============================================================
 
+
 def generate_id(dados_atuais):
-    """
-    Gera um ID decimal sequencial baseado no maior ID existente.
-    Se a lista estiver vazia, começa em 1.
-    """
-    if not dados_atuais:
-        return 1
-    
+    """Gera ID sequencial robusto (ignora IDs inválidos ou ausentes)."""
     ids = []
+
     for item in dados_atuais:
         try:
-            # Tenta converter o ID existente para int (caso ainda existam UUIDs antigos)
-            ids.append(int(item.get("id", 0)))
-        except ValueError:
+            id_val = int(item.get("id"))
+            if id_val > 0:
+                ids.append(id_val)
+        except:
             continue
-            
+
     return max(ids) + 1 if ids else 1
+
 
 
 def sanitize_text(text: str) -> str:
@@ -709,9 +707,12 @@ def page_cadastro():
 
                 st.success(f"✔ Convênio {novo_registro['id']} salvo com sucesso!")
 
-                # LIMPA CACHE DO BANCO
+                # LIMPA CACHE DO BANCO                
                 db._cache_data = None
+                db._cache_sha = None
+                db._cache_etag = None
                 db._cache_timestamp = 0
+
 
                 # LIMPA ESTADO DO STREAMLIT (o segredo!)
                 st.session_state.clear()
