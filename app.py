@@ -662,7 +662,7 @@ def page_cadastro(dados_atuais):
                             break
         
                 # --- SALVAR (para novo OU editar) ---
-               if db.save(dados_atuais):
+                if db.save(dados_atuais):
                     st.success(f"✔ Convênio {novo_registro['id']} salvo com sucesso!")
                     # Limpa o cache manual para forçar a leitura do dado novo no próximo load
                     db._cache_data = None 
