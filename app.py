@@ -42,47 +42,43 @@ TEXT_DARK = "#2D2D2D"
 st.markdown(
     f"""
     <style>
-
-        /* Fundo geral */
-        body {{
-            background-color: {BG_LIGHT};
+        /* Ajuste do contêiner principal para dar espaço ao header fixo */
+        .block-container {{
+            padding-top: 4rem !important;
         }}
 
-        /* Títulos */
-        .main-title {{
-            font-size: 36px;
+        .header-premium {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 999999; /* Garante que fique acima de tudo */
+            background-color: white;
+            padding: 15px 20px;
+            border-bottom: 2px solid {PRIMARY_COLOR}22;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }}
+
+        .header-title {{
+            font-size: 26px;
             font-weight: 700;
             color: {PRIMARY_COLOR};
-            padding: 10px 0 20px 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }}
 
-        /* Cards corporativos */
         .card {{
+            transition: all 0.18s ease-in-out;
             background: white;
             padding: 22px;
             border-radius: 12px;
             border: 1px solid {GREY_BORDER};
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
             margin-bottom: 22px;
         }}
-
-        .card-title {{
-            font-size: 22px;
-            font-weight: 700;
-            color: {PRIMARY_COLOR};
-            margin-bottom: 12px;
-        }}
-
-        .info-line {{
-            font-size: 15px;
-            padding: 4px 0;
-            color: {TEXT_DARK};
-        }}
-        .value {{
-            font-weight: 600;
-        }}
-
     </style>
+    
+    <div class="header-premium">
+        <span class="header-title">💼 Manual de faturamento</span>
+    </div>
     """,
     unsafe_allow_html=True
 )
