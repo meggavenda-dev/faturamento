@@ -256,118 +256,182 @@ def wrap_text(text, pdf, max_width):
 # 7. GERAÇÃO DO PDF — VERSÃO ORGANIZADA, PROFISSIONAL E ESTÁVEL
 # ============================================================
 
+
 def gerar_pdf(dados):
     """
-    Versão Premium: Fiel ao modelo visual da imagem (image_d6f786.png).
-    Garante o cabeçalho azul, faixas cinzas e alinhamento em duas colunas.
+    Gera o PDF exatamente no modelo enviado (cabeçalho azul, duas colunas,
+    tabela com cabeçalho cinza, bloco observações, margens e proporções idênticas).
     """
+
     pdf = FPDF()
-    pdf.set_margins(10, 10, 10)
-    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.set_margins(15, 12, 15)
+    pdf.set_auto_page_break(auto=True, margin=12)
     pdf.add_page()
 
-    # Fontes com Fallback
-    try:
-        pdf.add_font("DejaVu", "", "DejaVuSans.ttf", uni=True)
-        pdf.add_font("DejaVu", "B", "DejaVuSans-Bold.ttf", uni=True)
-        FONT_MAIN = "DejaVu"
-    except:
-        FONT_MAIN = "Arial"
+    # --------------------------------------------------------
+    # FONTES
+    # --------------------------------------------------------
+    fonte_normal = "DejaVuSans.ttf"
+    fonte_bold   = "DejaVuSans-Bold.ttf"
 
-    W_TOTAL = pdf.w - 20 
+    global FONT
 
-    # --- CABEÇALHO AZUL (GUIA TÉCNICA) ---
-    pdf.set_fill_color(31, 73, 125) # Azul Marinho 
-    pdf.set_text_color(255, 255, 255)
-    pdf.set_font(FONT_MAIN, "B", 14)
-    pdf.cell(W_TOTAL, 12, f"GUIA TÉCNICA: {safe_get(dados,'nome').upper()}", ln=1, align="C", fill=True)
+    if os.path.exists(fonte_normal):
+        pdf.add_font("DejaVu", "", fonte_normal, uni=True)
+        if os.path.exists(fonte_bold):
+            pdf.add_font("DejaVu", "B", fonte_bold, uni=True)
+        FONT = "DejaVu"
+    else:
+        FONT = "Helvetica"
+
+    CONTENT = pdf.w - pdf.l_margin - pdf.r_margin
+
+    # --------------------------------------------------------
+    # FUNÇÕES AUXILIARES
+    # --------------------------------------------------------
+
+    def cell_label_value(label, value, label_w, col_w, h=6):
+        label = sanitize_text(label)
+        value = sanitize_text(value)
+
+        pdf.set_font(FONT, "B", 10)
+        pdf.cell(label_w, h, f"{label}:")
+
+        pdf.set_font(FONT, "", 10)
+        usable = col_w - label_w - 2
+
+        if pdf.get_string_width(value) <= usable:
+            pdf.cell(usable, h, value, ln=1)
+        else:
+            lines = wrap_text(value, pdf, usable)
+            pdf.cell(usable, h, lines[0], ln=1)
+            for ln in lines[1:]:
+                pdf.set_x(pdf.l_margin + label_w)
+                pdf.cell(usable, h, ln, ln=1)
+
+    def two_cols_fixed(label1, val1, label2, val2, h=6):
+        col_w = (CONTENT - 10) / 2
+        x0 = pdf.get_x()
+        y0 = pdf.get_y()
+
+        # esquerda
+        cell_label_value(label1, val1, 25, col_w, h)
+        h_left = pdf.get_y() - y0
+
+        # direita
+        pdf.set_xy(x0 + col_w + 10, y0)
+        cell_label_value(label2, val2, 25, col_w, h)
+        h_right = pdf.get_y() - y0
+
+        pdf.set_y(y0 + max(h_left, h_right))
+
+    def table_row(widths, values, h=6):
+        processed = [wrap_text(v, pdf, widths[i] - 3) for i, v in enumerate(values)]
+        max_lines = max(len(x) for x in processed)
+        row_h = max_lines * h
+
+        if pdf.get_y() + row_h > pdf.page_break_trigger:
+            pdf.add_page()
+
+        x = pdf.get_x()
+        y = pdf.get_y()
+
+        for i, width in enumerate(widths):
+            pdf.rect(x, y, width, row_h)
+            for j, line in enumerate(processed[i]):
+                pdf.set_xy(x + 1, y + j * h)
+                pdf.cell(width - 2, h, line)
+            x += width
+
+        pdf.set_y(y + row_h)
+
+    # --------------------------------------------------------
+    # CABEÇALHO (idêntico à imagem)
+    # --------------------------------------------------------
+    pdf.set_fill_color(31, 73, 125)
+    pdf.set_text_color(255,255,255)
+    pdf.set_font(FONT, "B", 18)
+    pdf.cell(0, 14, f"GUIA TÉCNICA: {safe_get(dados,'nome').upper()}", ln=1, align="C", fill=True)
+    pdf.ln(4)
+    pdf.set_text_color(0,0,0)
+
+    # --------------------------------------------------------
+    # SEÇÃO 1 — IDENTIFICAÇÃO
+    # --------------------------------------------------------
+    pdf.set_fill_color(230,230,230)
+    pdf.set_font(FONT,"B",12)
+    pdf.cell(0, 8, " 1. DADOS DE IDENTIFICAÇÃO E ACESSO", ln=1, fill=True)
     pdf.ln(2)
 
-    # --- SEÇÃO 1: DADOS DE IDENTIFICAÇÃO (FAIXA CINZA) ---
-    pdf.set_fill_color(230, 230, 230) # Cinza claro [cite: 184]
-    pdf.set_text_color(0, 0, 0)
-    pdf.set_font(FONT_MAIN, "B", 11)
-    pdf.cell(W_TOTAL, 8, " 1. DADOS DE IDENTIFICAÇÃO E ACESSO", ln=1, fill=True)
+    pdf.set_font(FONT,"",10)
+
+    two_cols_fixed(
+        "Empresa", safe_get(dados,"empresa"),
+        "Código",  safe_get(dados,"codigo")
+    )
+
+    cell_label_value("Portal", safe_get(dados,"site"), 25, CONTENT)
+    pdf.ln(1)
+
+    two_cols_fixed(
+        "Login", safe_get(dados,"login"),
+        "Senha", safe_get(dados,"senha")
+    )
+
+    two_cols_fixed(
+        "Sistema", safe_get(dados,"sistema_utilizado"),
+        "Retorno", safe_get(dados,"prazo_retorno")
+    )
+
+    pdf.ln(3)
+
+    # --------------------------------------------------------
+    # SEÇÃO 2 — TABELA TÉCNICA
+    # --------------------------------------------------------
+    pdf.set_fill_color(230,230,230)
+    pdf.set_font(FONT,"B",12)
+    pdf.cell(0, 8, " 2. CRONOGRAMA E REGRAS TÉCNICAS", ln=1, fill=True)
     pdf.ln(2)
 
-    # Dados em duas colunas [cite: 185, 186, 187, 188, 192, 193, 194]
-    def draw_access_line(l1, v1, l2, v2):
-        pdf.set_font(FONT_MAIN, "B", 10)
-        pdf.cell(25, 7, l1)
-        pdf.set_font(FONT_MAIN, "", 10)
-        pdf.cell(W_TOTAL/2 - 25, 7, v1)
-        
-        pdf.set_font(FONT_MAIN, "B", 10)
-        pdf.cell(25, 7, l2)
-        pdf.set_font(FONT_MAIN, "", 10)
-        pdf.cell(W_TOTAL/2 - 25, 7, v2, ln=1)
+    # larguras idênticas ao modelo
+    widths = [40, 36, 40, 26, 48]
 
-    draw_access_line("Empresa:", safe_get(dados, "empresa"), "Código:", safe_get(dados, "codigo"))
-    draw_access_line("Portal:", safe_get(dados, "site"), "Senha:", safe_get(dados, "senha"))
-    draw_access_line("Login:", safe_get(dados, "login"), "Retorno:", safe_get(dados, "prazo_retorno"))
-    
-    # Sistema (Linha única para manter o padrão) [cite: 188]
-    pdf.set_font(FONT_MAIN, "B", 10)
-    pdf.cell(25, 7, "Sistema:")
-    pdf.set_font(FONT_MAIN, "", 10)
-    pdf.cell(0, 7, safe_get(dados, "sistema_utilizado"), ln=1)
+    pdf.set_font(FONT,"B",10)
+    table_row(widths, ["Prazo Envio", "Validade Guia", "XML / Versão", "Nota Fiscal", "Fluxo NF"])
+
+    pdf.set_font(FONT,"",10)
+    table_row(widths, [
+        safe_get(dados,"envio"),
+        safe_get(dados,"validade") + " dias" if safe_get(dados,"validade") else "—",
+        f"{safe_get(dados,'xml')} / {safe_get(dados,'versao_xml')}",
+        safe_get(dados,"nf"),
+        safe_get(dados,"fluxo_nf"),
+    ])
+
+    pdf.ln(3)
+
+    # --------------------------------------------------------
+    # SEÇÃO 3 — OBSERVAÇÕES (modelo idêntico)
+    # --------------------------------------------------------
+    pdf.set_fill_color(230,230,230)
+    pdf.set_font(FONT,"B",12)
+    pdf.cell(0, 8, " OBSERVAÇÕES CRÍTICAS", ln=1, fill=True)
+
+    pdf.set_font(FONT,"",10)
+    texto = safe_get(dados,"observacoes")
+    pdf.multi_cell(0,6, texto, border=1)
     pdf.ln(2)
 
-    # --- SEÇÃO 2: CRONOGRAMA (FAIXA CINZA) ---
-    pdf.set_fill_color(230, 230, 230)
-    pdf.set_font(FONT_MAIN, "B", 11)
-    pdf.cell(W_TOTAL, 8, " 2. CRONOGRAMA E REGRAS TÉCNICAS", ln=1, fill=True)
-    pdf.ln(2)
-
-    # Tabela de Regras [cite: 195]
-    widths = [38, 32, 38, 25, 57]
-    headers = ["Prazo Envio", "Validade Guia", "XML / Versão", "Nota Fiscal", "Fluxo NF"]
-    
-    pdf.set_font(FONT_MAIN, "B", 9)
-    for i, h in enumerate(headers):
-        pdf.cell(widths[i], 8, h, border=1, align="C")
-    pdf.ln()
-
-    pdf.set_font(FONT_MAIN, "", 9)
-    y_tab = pdf.get_y()
-    row_vals = [
-        safe_get(dados, "envio"),
-        f"{safe_get(dados, 'validade')} dias",
-        f"{safe_get(dados, 'xml')} / {safe_get(dados, 'versao_xml')}",
-        safe_get(dados, "nf"),
-        safe_get(dados, "fluxo_nf")
-    ]
-    
-    # Desenho das células com multi_cell para evitar quebras feias [cite: 195]
-    max_h = 10
-    for i, val in enumerate(row_vals):
-        pdf.set_xy(10 + sum(widths[:i]), y_tab)
-        pdf.multi_cell(widths[i], 5, val, border=1, align="C")
-    
-    pdf.set_y(y_tab + max_h + 5)
-
-    # --- SEÇÃO 3: OBSERVAÇÕES (FAIXA CINZA + BOX) ---
-    def add_boxed_section(title, key):
-        content = safe_get(dados, key)
-        if content and content.strip():
-            pdf.set_fill_color(230, 230, 230)
-            pdf.set_font(FONT_MAIN, "B", 11)
-            pdf.cell(W_TOTAL, 8, f" {title}", ln=1, fill=True)
-            pdf.set_font(FONT_MAIN, "", 10)
-            # Caixa de texto para as observações [cite: 196, 197, 198, 199]
-            pdf.multi_cell(W_TOTAL, 6, content, border=1)
-            pdf.ln(4)
-
-    add_boxed_section("OBSERVAÇÕES CRÍTICAS", "observacoes")
-    add_boxed_section("DIGITALIZAÇÃO E DOCUMENTAÇÃO", "doc_digitalizacao")
-
-    # Rodapé Invisível para manter o Manual de Faturamento GABMA no fim [cite: 200]
+    # --------------------------------------------------------
+    # RODAPÉ
+    # --------------------------------------------------------
     pdf.set_y(-15)
-    pdf.set_font(FONT_MAIN, "", 8)
-    pdf.set_text_color(150, 150, 150)
-    pdf.cell(W_TOTAL, 10, "Manual de Faturamento GABMA", align="C")
+    pdf.set_font(FONT,"",8)
+    pdf.set_text_color(120,120,120)
+    pdf.cell(0,8,"Manual de Faturamento — GABMA", align="C")
 
     return pdf.output(dest="S").encode("latin-1")
+
 
 # ============================================================
 # 8. COMPONENTES DE INTERFACE (UI COMPONENTS)
