@@ -647,22 +647,23 @@ def page_cadastro(dados_atuais):
                 "observacoes": observacoes,
             }
 
+            
             if conv_id is None:
                 novo_registro["id"] = generate_id(dados_atuais)
                 dados_atuais.append(novo_registro)
             else:
                 novo_registro["id"] = int(conv_id)
-                # Atualiza o item na lista original
                 for i, c in enumerate(dados_atuais):
                     if str(c.get("id")) == str(conv_id):
                         dados_atuais[i] = novo_registro
                         break
-
             
-                if db.save(dados_atuais):
-                    st.success(f"✔ Convênio {novo_registro['id']} salvo com sucesso!")
-                    time.sleep(0.4)
-                    st.rerun()
+            # --- SALVAR (para novo OU editado) ---
+            if db.save(dados_atuais):
+                st.success(f"✔ Convênio {novo_registro['id']} salvo com sucesso!")
+                time.sleep(0.4)
+                st.rerun()
+
 
 
     # Botão de PDF (fora do form)
