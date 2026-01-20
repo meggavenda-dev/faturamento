@@ -4,6 +4,7 @@ import base64
 import json
 import re
 from fpdf import FPDF
+import unicodedata
 
 # --- CONFIGURAÇÕES DE ACESSO (Secrets) ---
 try:
@@ -77,15 +78,28 @@ def extrair_dados_manual(texto_manual):
 
 # --- GERADOR DE PDF ---
 def gerar_pdf(dados):
-    # Inicializa o PDF com suporte a UTF-8 (nativo na fpdf2)
+    # Inicializa o PDF
     pdf = FPDF()
     pdf.add_page()
     
-    # Usamos fontes padrão que suportam acentos (Helvetica/Arial)
-    pdf.set_font("Helvetica", "B", 16)
+    # IMPORTANTE: Para evitar o erro de Unicode, usamos a fonte DejaVu que suporta UTF-8
+    # A fpdf2 já traz essas fontes, basta carregar ou usar o fallback
+    pdf.set_fallback_fonts(["DejaVuSans", "Arial"]) 
     
-    # Cabeçalho Centralizado
-    pdf.cell(0, 10, f"Formulário de Faturamento: {dados['nome']}", new_x="LMARGIN", new_y="NEXT", align='C')
+    # Se você preferir usar a fonte padrão sem carregar arquivos externos:
+    # Vamos tratar a string para garantir que ela seja compatível com fontes comuns
+    def tratar_texto_unicode(texto):
+        if not texto: return ""
+        # Normaliza o texto (troca caracteres especiais por similares simples)
+        # Ex: Troca aspas curvas por retas, traços longos por hífens
+        texto = texto.replace('\u2013', '-').replace('\u2014', '-').replace('\u201c', '"').replace('\u201d', '"')
+        # Remove caracteres que não podem ser representados em latin-1 (solução de segurança)
+        return unicodedata.normalize('NFKD', texto).encode('ascii', 'ignore').decode('ascii')
+
+    # Cabeçalho
+    pdf.set_font("Helvetica", "B", 16)
+    nome_limpo = tratar_texto_unicode(dados['nome'])
+    pdf.cell(0, 10, f"Formulário de Faturamento: {nome_limpo}", new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.ln(10)
     
     # Seção 1: Dados de Acesso
@@ -93,7 +107,7 @@ def gerar_pdf(dados):
     pdf.cell(0, 10, "1. Acesso e Portal", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 10)
     
-    info_acesso = (
+    info_acesso = tratar_texto_unicode(
         f"Site: {dados['site']}\n"
         f"Login: {dados['login']} | Senha: {dados['senha']}\n"
         f"XML: {dados['xml']} | Envio: {dados['envio']}\n"
@@ -107,14 +121,11 @@ def gerar_pdf(dados):
     pdf.cell(0, 10, "2. Regras Extraídas do Manual", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 10)
     
-    # O fpdf2 lida bem com UTF-8, mas caso existam caracteres "invisíveis" problemáticos,
-    # fazemos uma limpeza leve para garantir a renderização
-    obs_texto = dados['observacoes'].replace('\u2013', '-').replace('\u2014', '-')
-    
-    # Multi_cell para permitir que o texto quebre linhas automaticamente
+    # Tratamos o bloco de observações que é o mais problemático
+    obs_texto = tratar_texto_unicode(dados['observacoes'])
     pdf.multi_cell(0, 6, obs_texto)
     
-    # Gera os bytes do PDF diretamente (dest='S' agora retorna bytes no fpdf2)
+    # Retorna os bytes do PDF
     return pdf.output()
 
 # --- INTERFACE STREAMLIT ---
