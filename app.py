@@ -129,11 +129,25 @@ def salvar_dados_github(novos_dados, sha):
 # -----------------------------------------
 #     GERADOR DE PDF — LAYOUT PREMIUM
 # -----------------------------------------
+
+# -----------------------------------------
+#      GERADOR DE PDF — LAYOUT PREMIUM CORRIGIDO
+#      (quebras de linha + tabela sem corte)
+# -----------------------------------------
 def gerar_pdf(dados):
+    from fpdf import FPDF
+    import os
+    import math
+
     pdf = FPDF()
+    # Margens + quebra automática de página
+    pdf.set_margins(10, 10, 10)
+    pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
-    # Fontes UTF‑8
+    # -----------------------------
+    #  Fonte UTF-8 (DejaVu)
+    # -----------------------------
     fonte_normal = "DejaVuSans.ttf"
     fonte_bold = "DejaVuSans-Bold.ttf"
 
@@ -146,17 +160,139 @@ def gerar_pdf(dados):
         else:
             estilo_b = ""
     else:
+        # fallback
         fonte_principal = "Helvetica"
         estilo_b = "B"
 
-    # Cabeçalho
+    # -----------------------------
+    #  Helpers para tabela robusta
+    # -----------------------------
+
+    def check_page_break(h):
+        """Quebra de página manual para linhas de tabela mais altas."""
+        if pdf.get_y() + h > pdf.page_break_trigger:
+            pdf.add_page()
+
+    def chunk_long_word(text, max_width):
+        """
+        Quebra palavras MUITO longas (URLs, tokens) por tamanho de caractere aproximado.
+        Evita estouro quando não há espaços.
+        """
+        txt = str(text or "")
+        if not txt:
+            return [""]
+        # cálculo aproximado de caracteres por linha
+        # usando a largura do 'M' como referência (caractere largo)
+        char_w = max(pdf.get_string_width("M"), 0.01)
+        max_chars = max(int((max_width - 2) / char_w), 1)
+        lines = []
+        for i in range(0, len(txt), max_chars):
+            lines.append(txt[i:i+max_chars])
+        return lines
+
+    def wrap_text(text, max_width):
+        """
+        Quebra o texto por palavras respeitando a largura máxima.
+        Usa fallback de corte por caracteres para palavras gigantes.
+        """
+        txt = str(text or "")
+        if not txt.strip():
+            return [""]
+
+        words = txt.split(" ")
+        lines = []
+        current = ""
+
+        for w in words:
+            if not current:
+                # Se a palavra isolada já estoura a largura, quebrar por caracteres
+                if pdf.get_string_width(w) > (max_width - 2):
+                    lines.extend(chunk_long_word(w, max_width))
+                else:
+                    current = w
+            else:
+                candidate = f"{current} {w}"
+                if pdf.get_string_width(candidate) <= (max_width - 2):
+                    current = candidate
+                else:
+                    # fecha a linha atual
+                    lines.append(current)
+                    # inicia a próxima linha; se a nova palavra for gigante, corta por chars
+                    if pdf.get_string_width(w) > (max_width - 2):
+                        lines.extend(chunk_long_word(w, max_width))
+                        current = ""
+                    else:
+                        current = w
+
+        if current:
+            lines.append(current)
+
+        return lines
+
+    def draw_row(col_widths, data, aligns=None, line_h=6, pad=1):
+        """
+        Desenha uma linha de tabela com ALTURA UNIFORME entre as colunas,
+        quebrando texto por coluna sem cortar nada.
+
+        col_widths: lista com larguras (ex.: [45, 30, 25, 25, 65])
+        data: lista de strings (uma por coluna)
+        aligns: lista de alinhamentos ('L', 'C', 'R')
+        line_h: altura de cada linha de texto por célula
+        pad: padding interno esquerdo
+        """
+        aligns = aligns or ["L"] * len(col_widths)
+
+        # 1) Quebrar cada coluna em linhas
+        col_lines = []
+        for i, txt in enumerate(data):
+            col_lines.append(wrap_text(txt, col_widths[i]))
+
+        # 2) Numero máximo de linhas entre as colunas
+        max_lines = max(len(lines) for lines in col_lines)
+        row_h = max_lines * line_h
+
+        # 3) Quebra de página se necessário
+        check_page_break(row_h)
+
+        # 4) Posição inicial da linha
+        x0 = pdf.get_x()
+        y0 = pdf.get_y()
+
+        # 5) Desenhar borda de cada célula + texto linha a linha
+        for i, w in enumerate(col_widths):
+            x = pdf.get_x()
+            y = pdf.get_y()
+
+            # borda da célula (altura total da linha)
+            pdf.rect(x, y, w, row_h)
+
+            # imprimir as linhas daquela coluna
+            lines = col_lines[i]
+            for j, line in enumerate(lines):
+                pdf.set_xy(x + pad, y + j * line_h)
+                # largura útil menos padding nos dois lados:
+                usable_w = w - pad * 2
+                align = aligns[i] if i < len(aligns) else "L"
+                pdf.cell(usable_w, line_h, line, border=0, ln=0, align=align)
+
+            # avança para próxima célula na mesma linha
+            pdf.set_xy(x + w, y)
+
+        # 6) Move o cursor para o início da próxima linha
+        pdf.set_xy(x0, y0 + row_h)
+
+    # -----------------------------
+    #  Cabeçalho
+    # -----------------------------
     pdf.set_fill_color(31, 73, 125)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font(fonte_principal, estilo_b, 16)
-    pdf.cell(0, 15, f"GUIA TÉCNICA: {dados['nome'].upper()}", ln=True, align='C', fill=True)
+    pdf.cell(0, 15, f"GUIA TÉCNICA: {str(dados.get('nome','')).upper()}", ln=True, align='C', fill=True)
     pdf.ln(5)
 
-    # Seção 1 – Identificação
+    # -----------------------------
+    #  Seção 1 – Identificação
+    # -----------------------------
     pdf.set_text_color(0, 0, 0)
     pdf.set_fill_color(230, 230, 230)
     pdf.set_font(fonte_principal, estilo_b, 11)
@@ -164,55 +300,72 @@ def gerar_pdf(dados):
 
     pdf.set_font(fonte_principal, "", 10)
     pdf.ln(2)
-    pdf.write(7, f"Empresa: {dados.get('empresa','N/A')} | Código: {dados.get('codigo','N/A')}\n")
-    pdf.write(7, f"Portal: {dados['site']}\n")
-    pdf.write(7, f"Login: {dados['login']}  |  Senha: {dados['senha']}\n")
-    pdf.write(7, f"Sistema: {dados.get('sistema_utilizado','N/A')} | Retorno: {dados.get('prazo_retorno','N/A')}\n")
+    # multi_cell evita cortes e respeita margens
+    pdf.multi_cell(0, 7, f"Empresa: {str(dados.get('empresa','N/A'))} | Código: {str(dados.get('codigo','N/A'))}")
+    pdf.multi_cell(0, 7, f"Portal: {str(dados.get('site',''))}")
+    pdf.multi_cell(0, 7, f"Login: {str(dados.get('login',''))}  |  Senha: {str(dados.get('senha',''))}")
+    pdf.multi_cell(0, 7, f"Sistema: {str(dados.get('sistema_utilizado','N/A'))} | Retorno: {str(dados.get('prazo_retorno','N/A'))}")
     pdf.ln(5)
 
-    # Seção 2 – Tabela TISS
+    # -----------------------------
+    #  Seção 2 – Tabela TISS
+    # -----------------------------
     pdf.set_fill_color(230, 230, 230)
     pdf.set_font(fonte_principal, estilo_b, 11)
     pdf.cell(0, 8, " 2. CRONOGRAMA E REGRAS TÉCNICAS", ln=True, fill=True)
     pdf.ln(2)
 
+    # Cabeçalho da Tabela
     pdf.set_font(fonte_principal, estilo_b, 8)
-    pdf.cell(50, 8, "Prazo Envio", 1, 0, 'C')
-    pdf.cell(30, 8, "Validade Guia", 1, 0, 'C')
-    pdf.cell(25, 8, "XML / Versão", 1, 0, 'C')
-    pdf.cell(25, 8, "Nota Fiscal", 1, 0, 'C')
-    pdf.cell(60, 8, "Fluxo NF", 1, 1, 'C')
+    col_w = [45, 30, 25, 25, 65]
+    aligns = ['C', 'C', 'C', 'C', 'C']
+    draw_row(col_w, ["Prazo Envio", "Validade Guia", "XML / Versão", "Nota Fiscal", "Fluxo NF"], aligns=aligns, line_h=7)
 
+    # Linha de dados (com texto grande sem cortes)
     pdf.set_font(fonte_principal, "", 8)
-    pdf.cell(50, 8, dados["envio"][:30], 1, 0, 'C')
-    pdf.cell(30, 8, f"{dados['validade']} dias", 1, 0, 'C')
-    pdf.cell(25, 8, f"{dados['xml']} / {dados.get('versao_xml','-')}", 1, 0, 'C')
-    pdf.cell(25, 8, dados['nf'], 1, 0, 'C')
-    pdf.cell(60, 8, dados.get('fluxo_nf','N/A')[:35], 1, 1, 'C')
+    draw_row(
+        col_w,
+        [
+            str(dados.get("envio","")),
+            f"{str(dados.get('validade',''))} dias",
+            f"{str(dados.get('xml',''))} / {str(dados.get('versao_xml','-'))}",
+            str(dados.get("nf","")),
+            str(dados.get("fluxo_nf","N/A"))
+        ],
+        aligns=aligns,
+        line_h=7
+    )
     pdf.ln(5)
 
-    # Blocos extras
+    # -----------------------------
+    #  Seção 3 – Blocos (multi_cell)
+    # -----------------------------
     def bloco(titulo, conteudo):
-        if conteudo:
-            pdf.set_font(fonte_principal, estilo_b, 11)
-            pdf.set_fill_color(240, 240, 240)
-            pdf.cell(0, 7, f" {titulo}", ln=True, fill=True)
+        txt = str(conteudo or "").strip()
+        if not txt:
+            return
+        pdf.set_font(fonte_principal, estilo_b, 11)
+        pdf.set_fill_color(240, 240, 240)
+        pdf.cell(0, 7, f" {titulo}", ln=True, fill=True)
 
-            pdf.set_font(fonte_principal, "", 9)
-            pdf.multi_cell(0, 5, conteudo, border=1)
-            pdf.ln(3)
+        pdf.set_font(fonte_principal, "", 9)
+        pdf.multi_cell(0, 5, txt, border=1)
+        pdf.ln(3)
 
-    bloco("CONFIGURAÇÃO DO GERADOR XML", dados.get("config_gerador",""))
-    bloco("DIGITALIZAÇÃO E DOCUMENTAÇÃO", dados.get("doc_digitalizacao",""))
-    bloco("OBSERVAÇÕES CRÍTICAS", dados["observacoes"])
+    bloco("CONFIGURAÇÃO DO GERADOR XML", dados.get("config_gerador", ""))
+    bloco("DIGITALIZAÇÃO E DOCUMENTAÇÃO", dados.get("doc_digitalizacao", ""))
+    bloco("OBSERVAÇÕES CRÍTICAS", dados.get("observacoes", ""))
 
-    # Rodapé
+    # -----------------------------
+    #  Rodapé
+    # -----------------------------
     pdf.set_y(-20)
-    pdf.set_text_color(120,120,120)
+    pdf.set_text_color(120, 120, 120)
     pdf.set_font(fonte_principal, "", 8)
     pdf.cell(0, 10, "GABMA Consultoria - Sistema Técnico de Convênios", align='C')
 
     return bytes(pdf.output())
+
 
 
 # -----------------------------------------
