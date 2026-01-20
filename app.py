@@ -209,8 +209,27 @@ if menu == "Cadastrar / Editar":
             nf = st.radio("Exige NF?", ["Sim", "Não"], index=0 if not dados_conv or dados_conv["nf"] == "Sim" else 1)
 
         st.divider()
-        col_a, col_b = st.columns(2)
-        v_xml = col_a.text_input("Versão XML", value=dados_conv.get("versao_xml", "") if dados_conv else "")
+        col_a, col_b = st.columns(2)        
+        # Lista FINAL das versões TISS (oficiais, históricas e vigentes)
+        VERSOES_TISS = [
+            "4.03.00",
+            "4.02.00",
+            "4.01.00",
+            "01.06.00",
+            "3.05.00",
+            "3.04.01"
+        ]
+        
+        # Selectbox das versões TISS
+        v_xml = col_a.selectbox(
+            "Versão XML (Padrão TISS)",
+            VERSOES_TISS,
+            index=(
+                VERSOES_TISS.index(dados_conv.get("versao_xml"))
+                if dados_conv and dados_conv.get("versao_xml") in VERSOES_TISS
+                else 0
+            )
+        )
         fluxo_nf = col_b.selectbox("Fluxo Nota", ["Envia XML sem nota", "Envia NF junto com o lote"])
 
         config_gerador = st.text_area("Configuração Gerador XML", value=dados_conv.get("config_gerador", "") if dados_conv else "")
