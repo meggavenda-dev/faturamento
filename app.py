@@ -432,28 +432,30 @@ elif menu == "Consulta de Convênios":
         st.markdown("</div>", unsafe_allow_html=True)
 
     
-        if dados.get("observacoes"):
-            st.markdown("<div class='card'>", unsafe_allow_html=True)
-            st.markdown("<div class='card-title'>⚠️ Observações Críticas</div>", unsafe_allow_html=True)
-        
-            st.markdown(
-                f"""
-                <div style="
-                    background-color: white;
-                    color: {TEXT_DARK};
-                    border-left: 4px solid {PRIMARY_COLOR};
-                    padding: 12px 16px;
-                    border-radius: 6px;
-                    font-size: 15px;
-                    line-height: 1.5;
-                ">
-                    {dados["observacoes"]}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+       
+    if dados.get("observacoes"):
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
+        st.markdown("<div class='card-title'>⚠️ Observações Críticas</div>", unsafe_allow_html=True)
+    
+        st.markdown(
+            f"""
+            <div style="
+                background-color: white;
+                color: {TEXT_DARK};
+                border-left: 4px solid {PRIMARY_COLOR};
+                padding: 12px 16px;
+                border-radius: 6px;
+                font-size: 15px;
+                line-height: 1.5;
+            ">
+                {dados["observacoes"]}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    
+        st.markdown("</div>", unsafe_allow_html=True)
 
-            st.markdown("</div>", unsafe_allow_html=True)
 
 
     st.caption("GABMA Consultoria — Visualização Premium")
