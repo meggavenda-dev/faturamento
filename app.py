@@ -243,7 +243,7 @@ def github_get_file():
             decoded = base64.b64decode(content["content"]).decode("utf-8")
             data = json.loads(decoded)
             
-            # Migração para ID Decimal
+            # Migração para ID Decimal (Garante que strings virem números)
             modified = False
             for i, item in enumerate(data):
                 if "id" not in item or isinstance(item["id"], str):
@@ -744,17 +744,18 @@ def page_cadastro(dados_atuais, sha_atual):
             }
             
             if conv_id is None:
-                # 🔥 Usa a nova função sequencial
                 novo_registro["id"] = generate_id(dados_atuais)
                 dados_atuais.append(novo_registro)
             else:
-                # Mantém o ID decimal como inteiro
                 novo_registro["id"] = int(conv_id)
-                idx = next(i for i, c in enumerate(dados_atuais) if int(c["id"]) == int(conv_id))
+                # Localiza e atualiza o registro existente
+                idx = next(i for i, c in enumerate(dados_atuais) if str(c["id"]) == str(conv_id))
                 dados_atuais[idx] = novo_registro
 
+            # Salva no GitHub uma única vez
             if github_save_file(dados_atuais, sha_atual):
                 st.success(f"✔ Convênio {novo_registro['id']} salvo com sucesso!")
+                time.sleep(0.5)
                 st.rerun()
 
             # 🔥 Novo convênio → gera ID
