@@ -258,91 +258,62 @@ def wrap_text(text, pdf, max_width):
 
 def gerar_pdf(dados):
     """
-    Versão Estável: Corrigido erro de fonte indefinida e otimização de layout.
+    Versão Fiel ao Modelo ASTE: Layout limpo, minimalista e 
+    com posicionamento preciso dos campos de acesso.
     """
     pdf = FPDF()
     pdf.set_margins(15, 15, 15)
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
-    # Configuração de Fontes com Fallback Seguro
+    # Fontes com Fallback
     try:
-        # Tenta carregar as fontes personalizadas
         pdf.add_font("DejaVu", "", "DejaVuSans.ttf", uni=True)
         pdf.add_font("DejaVu", "B", "DejaVuSans-Bold.ttf", uni=True)
         FONT_MAIN = "DejaVu"
     except:
-        # Se falhar (arquivo ausente), usa Arial que é padrão
         FONT_MAIN = "Arial"
 
     W_TOTAL = pdf.w - 30 
 
-    # --- CABEÇALHO ---
-    pdf.set_fill_color(31, 73, 125)
-    pdf.set_text_color(255, 255, 255)
+    # --- TÍTULO PRINCIPAL ---
     pdf.set_font(FONT_MAIN, "B", 14)
-    pdf.cell(W_TOTAL, 12, f"GUIA TÉCNICA: {safe_get(dados,'nome').upper()}", ln=1, align="C", fill=True)
-    pdf.ln(4)
+    pdf.cell(W_TOTAL, 10, f"GUIA TÉCNICA: {safe_get(dados,'nome').upper()}", ln=1, align="L")
+    pdf.ln(5)
 
-    # --- HELPER: LINHA DE DUAS COLUNAS ---
-    def add_compact_row(l1, v1, l2, v2):
-        pdf.set_text_color(45, 45, 45)
-        w_col = W_TOTAL / 2
-        y_before = pdf.get_y()
-        
-        # Coluna 1
-        pdf.set_font(FONT_MAIN, "B", 9)
-        pdf.text(pdf.l_margin, y_before + 4, f"{l1}:")
-        pdf.set_font(FONT_MAIN, "", 9)
-        pdf.set_xy(pdf.l_margin + 22, y_before)
-        pdf.multi_cell(w_col - 25, 5, safe_get(dados, v1))
-        h1 = pdf.get_y() - y_before
-        
-        # Coluna 2
-        pdf.set_xy(pdf.l_margin + w_col, y_before)
-        pdf.set_font(FONT_MAIN, "B", 9)
-        pdf.text(pdf.l_margin + w_col, y_before + 4, f"{l2}:")
-        pdf.set_font(FONT_MAIN, "", 9)
-        pdf.set_xy(pdf.l_margin + w_col + 22, y_before)
-        pdf.multi_cell(w_col - 25, 5, safe_get(dados, v2))
-        h2 = pdf.get_y() - y_before
-        
-        pdf.set_y(y_before + max(h1, h2, 6))
-
-    # --- SEÇÃO 1: IDENTIFICAÇÃO ---
-    pdf.set_fill_color(240, 240, 240)
-    pdf.set_text_color(31, 73, 125)
-    pdf.set_font(FONT_MAIN, "B", 10)
-    pdf.cell(W_TOTAL, 7, " 1. DADOS DE IDENTIFICAÇÃO E ACESSO", ln=1, fill=True)
-    pdf.ln(1)
-
-    add_compact_row("Empresa", "empresa", "Código", "codigo")
+    # --- 1. DADOS DE IDENTIFICAÇÃO E ACESSO ---
+    pdf.set_font(FONT_MAIN, "B", 11)
+    pdf.cell(W_TOTAL, 8, "1. DADOS DE IDENTIFICAÇÃO E ACESSO", ln=1)
+    pdf.ln(2)
     
-    # Portal
-    pdf.set_font(FONT_MAIN, "B", 9)
-    pdf.set_text_color(45, 45, 45)
-    pdf.write(6, "  Portal: ")
-    pdf.set_font(FONT_MAIN, "", 9)
-    pdf.multi_cell(W_TOTAL - 25, 6, safe_get(dados, "site"))
-    
-    add_compact_row("Login", "login", "Senha", "senha")
-    add_compact_row("Sistema", "sistema_utilizado", "Retorno", "prazo_retorno")
+    # Grid de Identificação (Limpo)
+    def add_line(label, value):
+        pdf.set_font(FONT_MAIN, "B", 10)
+        pdf.cell(20, 7, label, border=0)
+        pdf.set_font(FONT_MAIN, "", 10)
+        pdf.cell(W_TOTAL - 20, 7, value, ln=1)
+
+    add_line("Empresa:", safe_get(dados, "empresa"))
+    add_line("Portal:", safe_get(dados, "site"))
+    add_line("Login:", safe_get(dados, "login"))
+    add_line("Sistema:", safe_get(dados, "sistema_utilizado"))
+    pdf.ln(5)
+
+    # --- 2. CRONOGRAMA E REGRAS TÉCNICAS ---
+    pdf.set_font(FONT_MAIN, "B", 11)
+    pdf.cell(W_TOTAL, 8, "2. CRONOGRAMA E REGRAS TÉCNICAS", ln=1)
     pdf.ln(2)
 
-    # --- SEÇÃO 2: CRONOGRAMA ---
-    pdf.set_fill_color(240, 240, 240)
-    pdf.set_font(FONT_MAIN, "B", 10)
-    pdf.cell(W_TOTAL, 7, " 2. CRONOGRAMA E REGRAS TÉCNICAS", ln=1, fill=True)
-    pdf.ln(1)
-
-    widths = [35, 25, 35, 20, 65]
-    headers = ["Prazo", "Validade", "XML/Versão", "NF", "Fluxo"]
-    pdf.set_font(FONT_MAIN, "B", 8)
+    # Tabela (Linhas Pretas Finas)
+    widths = [35, 30, 40, 25, 50]
+    headers = ["Prazo Envio", "Validade Guia", "XML/Versão", "Nota Fiscal", "Fluxo NF"]
+    
+    pdf.set_font(FONT_MAIN, "B", 9)
     for i, h in enumerate(headers):
-        pdf.cell(widths[i], 7, h, border=1, align="C", fill=False)
+        pdf.cell(widths[i], 8, h, border=1, align="C")
     pdf.ln()
 
-    pdf.set_font(FONT_MAIN, "", 8)
+    pdf.set_font(FONT_MAIN, "", 9)
     y_tab = pdf.get_y()
     row_vals = [
         safe_get(dados, "envio"),
@@ -354,33 +325,48 @@ def gerar_pdf(dados):
     
     for i, val in enumerate(row_vals):
         pdf.set_xy(pdf.l_margin + sum(widths[:i]), y_tab)
-        pdf.multi_cell(widths[i], 5, val, border=1, align="C")
+        pdf.multi_cell(widths[i], 6, val, border=1, align="C")
     
-    pdf.set_y(y_tab + 10)
-    pdf.ln(4)
+    # Espaçamento após tabela
+    pdf.set_y(y_tab + 15)
 
-    # --- SEÇÃO 3: BLOCOS DE TEXTO ---
-    def add_text_block(title, key):
+    # --- CAMPOS ABAIXO DA TABELA (Exatamente como no PDF da ASTE) ---
+    pdf.set_font(FONT_MAIN, "B", 10)
+    pdf.write(7, "Código: ")
+    pdf.set_font(FONT_MAIN, "", 10)
+    pdf.write(7, safe_get(dados, "codigo"))
+    pdf.ln(7)
+
+    pdf.set_font(FONT_MAIN, "B", 10)
+    pdf.write(7, "Senha: ")
+    pdf.set_font(FONT_MAIN, "", 10)
+    pdf.write(7, safe_get(dados, "senha"))
+    pdf.ln(7)
+
+    pdf.set_font(FONT_MAIN, "B", 10)
+    pdf.write(7, "Retorno: ")
+    pdf.set_font(FONT_MAIN, "", 10)
+    pdf.write(7, safe_get(dados, "prazo_retorno"))
+    pdf.ln(12)
+
+    # --- SEÇÕES DE TEXTO ---
+    def add_simple_section(title, key):
         content = safe_get(dados, key)
         if content and content.strip():
-            pdf.set_font(FONT_MAIN, "B", 9)
-            pdf.set_fill_color(245, 245, 245)
-            pdf.set_text_color(31, 73, 125)
-            pdf.cell(W_TOTAL, 6, f" {title}", ln=1, fill=True)
-            pdf.set_font(FONT_MAIN, "", 9)
-            pdf.set_text_color(0, 0, 0)
-            pdf.multi_cell(W_TOTAL, 5, content, border="LRB")
-            pdf.ln(2)
+            pdf.set_font(FONT_MAIN, "B", 11)
+            pdf.cell(W_TOTAL, 8, title, ln=1)
+            pdf.ln(1)
+            pdf.set_font(FONT_MAIN, "", 10)
+            pdf.multi_cell(W_TOTAL, 6, content)
+            pdf.ln(6)
 
-    add_text_block("CONFIGURAÇÃO DO GERADOR XML", "config_gerador")
-    add_text_block("DIGITALIZAÇÃO E DOCUMENTAÇÃO", "doc_digitalizacao")
-    add_text_block("OBSERVAÇÕES CRÍTICAS", "observacoes")
+    add_simple_section("OBSERVAÇÕES CRÍTICAS", "observacoes")
+    add_simple_section("DIGITALIZAÇÃO E DOCUMENTAÇÃO", "doc_digitalizacao")
 
-    # RODAPÉ (Corrigido para não usar "I")
-    pdf.set_y(-15)
-    pdf.set_font(FONT_MAIN, "", 8)
-    pdf.set_text_color(150, 150, 150)
-    pdf.cell(W_TOTAL, 10, "Manual de Faturamento — GABMA Consultoria", align="R")
+    # RODAPÉ - Centralizado e Simples
+    pdf.set_y(-20)
+    pdf.set_font(FONT_MAIN, "", 10)
+    pdf.cell(W_TOTAL, 10, "Manual de Faturamento GABMA", align="C")
 
     return pdf.output(dest="S").encode("latin-1")
 
