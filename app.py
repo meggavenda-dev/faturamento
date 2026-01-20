@@ -78,18 +78,6 @@ def extrair_dados_manual(texto_manual):
     return dados_extraidos
 
 # --- GERADOR DE PDF ---
-O erro FileNotFoundError ocorre porque o código está tentando carregar o arquivo DejaVuSans-Bold.ttf para aplicar negrito no novo layout, mas esse arquivo não existe na pasta do seu projeto no GitHub.
-
-Como você está usando o Streamlit Cloud, o sistema só "enxerga" o que você subiu no repositório.
-
-Como Corrigir Agora
-Para que o código funcione imediatamente (mesmo sem você subir novos arquivos de fonte agora), vamos ajustar a função para ser mais "segura": ela só tentará carregar o negrito se o arquivo realmente estiver lá. Caso contrário, usará a fonte normal.
-
-Substitua a sua função # --- GERADOR DE PDF --- por esta versão corrigida:
-
-Python
-
-# --- GERADOR DE PDF (CORREÇÃO DE FONTE) ---
 def gerar_pdf(dados):
     pdf = FPDF()
     pdf.add_page()
