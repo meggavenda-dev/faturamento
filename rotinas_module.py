@@ -222,6 +222,7 @@ class RotinasModule:
         # ============================================================
         st.markdown("##### 🖋️ Descrição Detalhada da Rotina")
 
+        
         descricao_html = st_quill(
             value=self.safe_get(dados_rotina, "descricao"),
             placeholder="Digite o passo a passo completo da rotina...",
@@ -236,6 +237,7 @@ class RotinasModule:
                 ]
             },
         )
+
 
         # ============================================================
         # SALVAR
