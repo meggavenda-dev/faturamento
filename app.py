@@ -22,6 +22,8 @@ import requests
 import pandas as pd
 from fpdf import FPDF
 import streamlit as st
+from rotinas_module import RotinasModule
+
 
 # ------------------------------------------------------------
 # 2. GITHUB DATABASE (Incluído no módulo — sem import externo)
@@ -167,6 +169,18 @@ db = GitHubJSON(
     owner=REPO_OWNER,
     repo=REPO_NAME,
     path=FILE_PATH,
+    branch=BRANCH
+)
+
+# ------------------------------------------------------------
+
+ROTINAS_FILE_PATH = "rotinas.json"
+
+db_rotinas = GitHubJSON(
+    token=GITHUB_TOKEN,
+    owner=REPO_OWNER,
+    repo=REPO_NAME,
+    path=ROTINAS_FILE_PATH,
     branch=BRANCH
 )
 
@@ -1017,6 +1031,18 @@ def page_visualizar_banco(dados_atuais):
         st.info("⚠️ Banco vazio.")
     ui_card_end()
 
+
+# >>>>>>>>>>>>> INSTÂNCIA DO MÓDULO DE ROTINAS <<<<<<<<<<<<
+rotinas_module = RotinasModule(
+    db_rotinas=db_rotinas,
+    sanitize_text=sanitize_text,
+    build_wrapped_lines=build_wrapped_lines,
+    _pdf_set_fonts=_pdf_set_fonts,
+    generate_id=generate_id,
+    safe_get=safe_get,
+    primary_color=PRIMARY_COLOR,
+)
+
 # ============================================================
 # 13. MAIN — set_page_config vem ANTES de qualquer render
 # ============================================================
@@ -1028,20 +1054,25 @@ def main():
     dados_atuais, _ = db.load()
 
     st.sidebar.title("📚 Navegação")
+    
     menu = st.sidebar.radio(
-        "Selecione a página:", ["Cadastrar / Editar", "Consulta de Convênios", "Visualizar Banco"]
+        "Selecione a página:",
+        ["Cadastrar / Editar", "Consulta de Convênios", "Visualizar Banco", "Rotinas do Setor"]
     )
+
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 🔄 Atualizar Sistema")
     if st.sidebar.button("Recarregar"):
         st.rerun()
-
+    
     if menu == "Cadastrar / Editar":
         page_cadastro()
     elif menu == "Consulta de Convênios":
         page_consulta(dados_atuais)
     elif menu == "Visualizar Banco":
         page_visualizar_banco(dados_atuais)
+    elif menu == "Rotinas do Setor":
+        rotinas_module.page()
 
     st.markdown(
         """
