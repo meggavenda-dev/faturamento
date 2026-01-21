@@ -477,7 +477,7 @@ def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
     lines_out = []
     if not text: return []
 
-   text = sanitize_text(text)  # ✅ UMA ÚNICA VEZ
+    text = sanitize_text(text)  # ✅ UMA ÚNICA VEZ
 
     paragraphs = text.split('\n')
     bullet_re = re.compile(r"^\s*(?:[\u2022•\-–—\*]|->|→)\s*(.*)$")
