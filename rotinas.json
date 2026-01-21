@@ -1,1 +1,8 @@
-[]
+[
+    {
+        "nome": "Guilherme Teste",
+        "setor": "Apoio e Controle",
+        "descricao": "Teste de cadastro de rotina",
+        "id": 1
+    }
+]
