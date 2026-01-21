@@ -19,6 +19,8 @@ import re
 import uuid
 import time
 
+from github_database import GitHubJSON
+
 # ------------------------------------------------------------
 # 2. CONFIGURAÇÃO DE ACESSO (SECRETS)
 # ------------------------------------------------------------
@@ -32,6 +34,15 @@ except Exception:
 
 FILE_PATH = "dados.json"
 BRANCH = "main"
+
+db = GitHubJSON(
+    token=GITHUB_TOKEN,
+    owner=REPO_OWNER,
+    repo=REPO_NAME,
+    path=FILE_PATH,
+    branch=BRANCH
+)
+
 
 # ------------------------------------------------------------
 # 3. CONSTANTES / PALETA
@@ -55,6 +66,13 @@ VERSOES_TISS = [
 EMPRESAS_FATURAMENTO = ["Integralis", "AMHP", "Outros"]
 
 SISTEMAS = ["Outros", "Orizon", "Benner", "Maida", "Facil", "Visual TISS", "Próprio"]
+
+
+# Opções oficiais (validação estrita)
+OPCOES_XML = ["Sim", "Não"]
+OPCOES_NF = ["Sim", "Não"]
+OPCOES_FLUXO_NF = ["Envia XML sem nota", "Envia NF junto com o lote"]
+
 
 # ------------------------------------------------------------
 # 4. CSS GLOBAL + HEADER FIXO
@@ -141,23 +159,26 @@ st.markdown(CSS_GLOBAL, unsafe_allow_html=True)
 # 5. FUNÇÕES UTILITÁRIAS
 # ============================================================
 
+def normalize(value):
+    if not value:
+        return ""
+    return sanitize_text(value).strip().lower()
+
+
 def generate_id(dados_atuais):
-    """
-    Gera um ID decimal sequencial baseado no maior ID existente.
-    Se a lista estiver vazia, começa em 1.
-    """
-    if not dados_atuais:
-        return 1
-    
+    """Gera ID sequencial robusto (ignora IDs inválidos ou ausentes)."""
     ids = []
+
     for item in dados_atuais:
         try:
-            # Tenta converter o ID existente para int (caso ainda existam UUIDs antigos)
-            ids.append(int(item.get("id", 0)))
-        except ValueError:
+            id_val = int(item.get("id"))
+            if id_val > 0:
+                ids.append(id_val)
+        except:
             continue
-            
+
     return max(ids) + 1 if ids else 1
+
 
 
 def sanitize_text(text: str) -> str:
@@ -190,16 +211,16 @@ def safe_get(d: dict, key: str, default=""):
 
 def chunk_text(text, size):
     """
-    Divide palavras extremamente longas (sem espaços) para PDF.
+    Divide palavras extremamente longas para PDF.
+    Garante que o 'size' seja sempre um inteiro para o range.
     """
     text = sanitize_text(text or "")
-    return [text[i:i+size] for i in range(0, len(text), size)]
+    # Garante que o passo do range seja int e no mínimo 1
+    safe_size = int(size) if size >= 1 else 1 
+    return [text[i:i+safe_size] for i in range(0, len(text), safe_size)]
 
 
 def wrap_text(text, pdf, max_width):
-    """
-    Quebra texto para PDF respeitando o limite de largura real.
-    """
     text = sanitize_text(text)
     if not text:
         return [""]
@@ -212,7 +233,10 @@ def wrap_text(text, pdf, max_width):
             if current:
                 lines.append(current)
                 current = ""
-            lines.extend(chunk_text(w, max_width // 3))
+            
+            # Força a divisão para inteiro
+            size = int(max(1, max_width // 3)) 
+            lines.extend(chunk_text(w, size))
             continue
 
         candidate = f"{current} {w}".strip() if current else w
@@ -229,105 +253,32 @@ def wrap_text(text, pdf, max_width):
 
 
 # ============================================================
-# 6. FUNÇÕES GITHUB — CRUD PREMIUM SEGURO (ID + SHA DINÂMICO)
-# ============================================================
-
-def github_get_file():
-    url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{FILE_PATH}?ref={BRANCH}&t={int(time.time())}"
-    headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
-    
-    try:
-        response = requests.get(url, headers=headers)
-        if response.status_code == 200:
-            content = response.json()
-            decoded = base64.b64decode(content["content"]).decode("utf-8")
-            data = json.loads(decoded)
-            
-            # Migração para ID Decimal (Garante que strings virem números)
-            modified = False
-            for i, item in enumerate(data):
-                if "id" not in item or isinstance(item["id"], str):
-                    item["id"] = i + 1
-                    modified = True
-            
-            if modified:
-                github_save_file(data, content["sha"])
-            return data, content["sha"]
-        
-        elif response.status_code == 404:
-            return [], None
-        else:
-            st.error(f"⚠️ Erro GitHub: {response.status_code}")
-            return [], None
-    except Exception as e:
-        st.error(f"❌ Erro ao consultar GitHub: {e}")
-        return [], None
-
-
-def github_save_file(data, previous_sha):
-    """
-    Salva o JSON atualizado no GitHub utilizando o SHA mais recente possível.
-    Evita erros 409 (Conflict) e garante consistência.
-    """
-    # 🔍 Sempre pega o SHA mais recente
-    _, latest_sha = github_get_file()
-    sha_to_use = latest_sha or previous_sha
-
-    url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{FILE_PATH}"
-
-    headers = {
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
-    }
-
-    try:
-        json_string = json.dumps(data, indent=4, ensure_ascii=False)
-        encoded = base64.b64encode(json_string.encode("utf-8")).decode("utf-8")
-
-        payload = {
-            "message": "Update Manual de Faturamento — GABMA",
-            "content": encoded,
-            "branch": BRANCH,
-            "sha": sha_to_use
-        }
-
-        response = requests.put(url, headers=headers, json=payload)
-
-        if response.status_code in (200, 201):
-            return True
-
-        st.error(f"❌ Erro GitHub {response.status_code}: {response.text}")
-        return False
-
-    except Exception as e:
-        st.error(f"❌ Falha ao salvar no GitHub: {e}")
-        return False
-
-
-# ============================================================
 # 7. GERAÇÃO DO PDF — VERSÃO ORGANIZADA, PROFISSIONAL E ESTÁVEL
 # ============================================================
 
+
 def gerar_pdf(dados):
     """
-    Gera PDF técnico detalhado do convênio utilizando FPDF.
-    Inclui seções, tabelas, quebras inteligentes e layout corporativo.
+    Layout idêntico ao modelo: barra azul de título, Seção 1 (duas colunas),
+    Seção 2 (tabela 5 colunas) e 'OBSERVAÇÕES CRÍTICAS' com caixa multipágina.
     """
 
-    pdf = FPDF()
-    pdf.set_margins(10, 10, 10)
+    pdf = FPDF(orientation="P", unit="mm", format="A4")
+    pdf.set_margins(15, 12, 15)
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
-    # --------------------------------------------------------
-    # CONFIGURAÇÃO DE FONTES
-    # --------------------------------------------------------
+    # --- Paleta ---
+    BLUE = (31, 73, 125)
+    GREY_BAR = (230, 230, 230)
+    TEXT = (0, 0, 0)
+    CONTENT_W = pdf.w - pdf.l_margin - pdf.r_margin
+
+    # --- Fontes ---
     fonte_normal = "DejaVuSans.ttf"
     fonte_bold = "DejaVuSans-Bold.ttf"
-
     has_normal = os.path.exists(fonte_normal)
     has_bold = os.path.exists(fonte_bold)
-
     if has_normal:
         pdf.add_font("DejaVu", "", fonte_normal, uni=True)
         if has_bold:
@@ -343,193 +294,242 @@ def gerar_pdf(dados):
         except:
             pdf.set_font("Helvetica", style, size)
 
-    CONTENT_WIDTH = pdf.w - pdf.l_margin - pdf.r_margin
+    # ---------- Helpers de layout ----------
+    def bar_title(texto, top_margin=2, height=8):
+        pdf.ln(top_margin)
+        pdf.set_fill_color(*GREY_BAR)
+        set_font(12, True)
+        pdf.cell(0, height, f" {sanitize_text(texto).upper()}", ln=1, fill=True)
+        pdf.ln(1)
 
-    # --------------------------------------------------------
-    # FUNÇÕES AUXILIARES DO PDF
-    # --------------------------------------------------------
-
-    def cell_label_value(label, value, label_w=40, h=7):
-        """Linha 'Label: Valor' com quebra automática."""
+    def label_value_heights(col_x, base_y, label, value, label_w, col_w, line_h=7, val_size=10):
+        """
+        Mede e desenha UMA linha de 'Label: Valor' (quebra valor em múltiplas linhas).
+        Retorna a altura total usada. Garante que não ultrapasse a página.
+        """
         label = sanitize_text(label)
         value = sanitize_text(value)
+        usable = col_w - label_w
 
-        set_font(9, True)
-        pdf.cell(label_w, h, f"{label}:")
-        set_font(9, False)
+        # calcula linhas do valor
+        set_font(val_size, False)
+        lines = wrap_text(value, pdf, max(1, usable))
+        needed_h = max(1, len(lines)) * line_h
 
-        usable = CONTENT_WIDTH - label_w
-
-        if pdf.get_string_width(value) <= usable:
-            pdf.cell(usable, h, value, ln=1)
-        else:
-            lines = wrap_text(value, pdf, usable)
-            pdf.cell(usable, h, lines[0], ln=1)
-            for ln_text in lines[1:]:
-                pdf.set_x(pdf.l_margin + label_w)
-                pdf.cell(usable, h, ln_text, ln=1)
-
-    def two_cols(label1, val1, label2, val2, label_w=38, gap=6, h=7):
-        """Duas colunas lado a lado com quebra automática."""
-        col_width = (CONTENT_WIDTH - gap) / 2
-
-        val1 = sanitize_text(val1)
-        val2 = sanitize_text(val2)
-
-        lines_left = wrap_text(val1, pdf, col_width - label_w)
-        lines_right = wrap_text(val2, pdf, col_width - label_w)
-        max_lines = max(len(lines_left), len(lines_right))
-        row_h = max_lines * h
-
-        if pdf.get_y() + row_h > pdf.page_break_trigger:
+        # quebra de página preventiva
+        if base_y + needed_h > pdf.page_break_trigger:
             pdf.add_page()
+            base_y = pdf.get_y()
 
-        y_start = pdf.get_y()
+        # desenha
+        set_font(10, True)
+        pdf.set_xy(col_x, base_y)
+        pdf.cell(label_w, line_h, f"{label}:")
+        set_font(val_size, False)
 
-        # Coluna esquerda
-        set_font(9, True)
-        pdf.set_xy(pdf.l_margin, y_start)
-        pdf.cell(label_w, h, f"{label1}:")
-        set_font(9, False)
-        x_start_left = pdf.get_x()
-        for i, txt in enumerate(lines_left):
-            pdf.set_xy(x_start_left, y_start + i * h)
-            pdf.cell(col_width - label_w, h, txt)
+        pdf.set_xy(col_x + label_w, base_y)
+        pdf.cell(usable, line_h, lines[0])
+        for i in range(1, len(lines)):
+            pdf.set_xy(col_x + label_w, base_y + i * line_h)
+            pdf.cell(usable, line_h, lines[i])
 
-        # Coluna direita
-        x_right = pdf.l_margin + col_width + gap
-        set_font(9, True)
-        pdf.set_xy(x_right, y_start)
-        pdf.cell(label_w, h, f"{label2}:")
-        set_font(9, False)
-        x_start_right = pdf.get_x()
-        for i, txt in enumerate(lines_right):
-            pdf.set_xy(x_start_right, y_start + i * h)
-            pdf.cell(col_width - label_w, h, txt)
+        return needed_h
 
-        pdf.set_y(y_start + row_h)
+    def two_column_info(pares_esq, pares_dir, gap=10, label_w=28, line_h=7):
+        col_w = (CONTENT_W - gap) / 2
+        xL = pdf.l_margin
+        xR = pdf.l_margin + col_w + gap
+        y = pdf.get_y()
 
-    def table_row(widths, values, aligns=None, h=6):
-        """Linha de tabela com bordas, múltiplas linhas e altura uniforme."""
-        aligns = aligns or ["L"] * len(widths)
+        max_rows = max(len(pares_esq), len(pares_dir))
+        for i in range(max_rows):
+            lblL, valL = pares_esq[i] if i < len(pares_esq) else ("", "")
+            lblR, valR = pares_dir[i] if i < len(pares_dir) else ("", "")
 
-        processed = [wrap_text(v, pdf, widths[i] - 2) for i, v in enumerate(values)]
-        max_lines = max(len(col) for col in processed)
-        row_h = max_lines * h
+            # mede cada lado (cada um pode pedir altura diferente)
+            hL = label_value_heights(xL, y, lblL, valL, label_w, col_w, line_h=line_h)
+            hR = label_value_heights(xR, y, lblR, valR, label_w, col_w, line_h=line_h)
+            y = max(pdf.get_y(), y + max(hL, hR))
 
-        if pdf.get_y() + row_h > pdf.page_break_trigger:
-            pdf.add_page()
+        pdf.set_y(y)  # cursor final
 
+    def table(headers, rows, widths, header_h=8, cell_h=7):
+        # Cabeçalho
+        set_font(10, True)
         x0 = pdf.get_x()
         y0 = pdf.get_y()
+        for i, head in enumerate(headers):
+            pdf.set_xy(x0 + sum(widths[:i]), y0)
+            pdf.cell(widths[i], header_h, sanitize_text(head), border=1, align="C")
+        pdf.ln(header_h)
 
-        for i, width in enumerate(widths):
-            x = pdf.get_x()
-            pdf.rect(x, y0, width, row_h)
-            for j, line in enumerate(processed[i]):
-                pdf.set_xy(x + 1, y0 + j * h)
-                pdf.cell(width - 2, h, line, align=aligns[i])
-            pdf.set_x(x + width)
+        # Linhas
+        set_font(10, False)
+        for row in rows:
+            wrapped_cols = []
+            max_lines = 1
+            for i, val in enumerate(row):
+                val = sanitize_text(val)
+                lines = wrap_text(val, pdf, max(1, widths[i]-2))
+                wrapped_cols.append(lines)
+                max_lines = max(max_lines, len(lines))
+            row_h = max_lines * cell_h
 
-        pdf.set_xy(x0, y0 + row_h)
+            # quebra de página com redesenho de cabeçalho
+            if pdf.get_y() + row_h > pdf.page_break_trigger:
+                pdf.add_page()
+                set_font(10, True)
+                xh = pdf.get_x()
+                yh = pdf.get_y()
+                for i, head in enumerate(headers):
+                    pdf.set_xy(xh + sum(widths[:i]), yh)
+                    pdf.cell(widths[i], header_h, sanitize_text(head), border=1, align="C")
+                pdf.ln(header_h)
+                set_font(10, False)
 
-    # --------------------------------------------------------
-    # CABEÇALHO PRINCIPAL
-    # --------------------------------------------------------
-    pdf.set_fill_color(31, 73, 125)
-    pdf.set_text_color(255, 255, 255)
-    set_font(16, True)
+            x_row = pdf.get_x()
+            y_row = pdf.get_y()
+            for i, lines in enumerate(wrapped_cols):
+                x_cell = x_row + sum(widths[:i])
+                pdf.rect(x_cell, y_row, widths[i], row_h)
+                for j, ln in enumerate(lines):
+                    pdf.set_xy(x_cell + 1, y_row + j * cell_h)
+                    pdf.cell(widths[i]-2, cell_h, ln)
+            pdf.ln(row_h)
 
-    nome_conv = safe_get(dados, "nome").upper()
-    pdf.cell(0, 15, f"GUIA TÉCNICA: {nome_conv}", ln=True, align="C", fill=True)
-
-    pdf.ln(4)
-    pdf.set_text_color(0, 0, 0)
-
-    # --------------------------------------------------------
-    # SEÇÃO 1 — IDENTIFICAÇÃO
-    # --------------------------------------------------------
-    pdf.set_fill_color(230, 230, 230)
-    set_font(11, True)
-    pdf.cell(0, 8, " 1. DADOS DE IDENTIFICAÇÃO E ACESSO", ln=True, fill=True)
-    pdf.ln(2)
-
-    two_cols("Empresa", safe_get(dados, "empresa"),
-             "Código", safe_get(dados, "codigo"))
-
-    cell_label_value("Portal", safe_get(dados, "site"))
-
-    two_cols("Login", safe_get(dados, "login"),
-             "Senha", safe_get(dados, "senha"))
-
-    two_cols("Sistema", safe_get(dados, "sistema_utilizado"),
-             "Retorno", safe_get(dados, "prazo_retorno"))
-
-    pdf.ln(4)
-
-    # --------------------------------------------------------
-    # SEÇÃO 2 — REGRAS TÉCNICAS (TABELA)
-    # --------------------------------------------------------
-    pdf.set_fill_color(230, 230, 230)
-    set_font(11, True)
-    pdf.cell(0, 8, " 2. CRONOGRAMA E REGRAS TÉCNICAS", ln=True, fill=True)
-    pdf.ln(2)
-
-    headers = ["Prazo Envio", "Validade Guia", "XML / Versão", "Nota Fiscal", "Fluxo NF"]
-    widths = [40, 30, 32, 30, 60]
-    aligns = ["C"] * 5
-
-    set_font(9, True)
-    table_row(widths, headers, aligns=aligns, h=7)
-
-    set_font(9, False)
-    xml_flag = safe_get(dados, "xml")
-    xml_ver = safe_get(dados, "versao_xml")
-
-    table_row(
-        widths,
-        [
-            safe_get(dados, "envio"),
-            f"{safe_get(dados, 'validade')} dias" if safe_get(dados, "validade") else "—",
-            f"{xml_flag} / {xml_ver}",
-            safe_get(dados, "nf"),
-            safe_get(dados, "fluxo_nf")
-        ],
-        aligns=aligns,
-        h=7
-    )
-
-    pdf.ln(5)
-
-    # --------------------------------------------------------
-    # SEÇÃO 3 — BLOCOS EXTRAS
-    # --------------------------------------------------------
-    def bloco(titulo, campo):
-        texto = safe_get(dados, campo)
-        if not texto:
+    def draw_multipage_box(text, left_margin, width, line_h=6.5, padding=1.5):
+        """
+        Desenha um bloco de texto com borda que pode ocupar várias páginas.
+        Mantém as bordas corretamente em cada página.
+        """
+        text = sanitize_text(text or "")
+        if text == "":
+            # desenha uma caixa vazia com altura mínima
+            y = pdf.get_y()
+            min_h = line_h + 2 * padding
+            if y + min_h > pdf.page_break_trigger:
+                pdf.add_page()
+                y = pdf.get_y()
+            pdf.rect(left_margin, y, width, min_h)
+            pdf.ln(min_h)
             return
 
-        pdf.set_fill_color(240, 240, 240)
-        set_font(11, True)
-        pdf.cell(0, 7, f" {titulo}", ln=True, fill=True)
+        # Constrói linhas a partir da largura disponível (considerando padding)
+        usable_w = width - 2 * padding
+        set_font(10, False)
+        lines = wrap_text(text, pdf, usable_w)
 
-        set_font(9, False)
-        pdf.multi_cell(0, 5, texto, border=1)
-        pdf.ln(3)
+        # Fluxo de paginação
+        i = 0
+        while i < len(lines):
+            y_top = pdf.get_y()
+            # espaço útil na página (até o gatilho de quebra)
+            space = pdf.page_break_trigger - y_top
+            # altura disponível para conteúdo do box nesta página (tirando bordas/padding)
+            # vamos reservar 2*padding + 1px extra para borda visual
+            avail_h = max(0.0, space - 2 * padding - 0.5)
 
-    bloco("CONFIGURAÇÃO DO GERADOR XML", "config_gerador")
-    bloco("DIGITALIZAÇÃO E DOCUMENTAÇÃO", "doc_digitalizacao")
-    bloco("OBSERVAÇÕES CRÍTICAS", "observacoes")
+            # quantas linhas cabem nesta página?
+            lines_per_page = int(avail_h // line_h) if avail_h > 0 else 0
+            if lines_per_page <= 0:
+                pdf.add_page()
+                continue
 
-    # --------------------------------------------------------
-    # RODAPÉ
-    # --------------------------------------------------------
-    pdf.set_y(-20)
-    set_font(8, False)
-    pdf.set_text_color(120, 120, 120)
-    pdf.cell(0, 10, "Manual de Faturamento — GABMA", align="C")
+            # fatia de linhas a renderizar nesta página
+            end = min(len(lines), i + lines_per_page)
+            slice_lines = lines[i:end]
 
-    return bytes(pdf.output())
+            # altura real da caixa nesta página
+            box_h = 2 * padding + len(slice_lines) * line_h
+
+            # desenha borda da caixa
+            pdf.rect(left_margin, y_top, width, box_h)
+
+            # desenha as linhas com padding
+            x_text = left_margin + padding
+            y_text = y_top + padding
+            for ln in slice_lines:
+                pdf.set_xy(x_text, y_text)
+                pdf.cell(usable_w, line_h, ln)
+                y_text += line_h
+
+            # atualiza ponteiros
+            pdf.set_y(y_top + box_h)
+            i = end
+
+            # se ainda restam linhas, começamos nova página automaticamente
+            if i < len(lines) and pdf.get_y() + line_h > pdf.page_break_trigger:
+                pdf.add_page()
+
+    # --------------------------
+    # Título (barra azul)
+    # --------------------------
+    titulo_nome = sanitize_text(safe_get(dados, "nome")).upper()
+    titulo_emp  = sanitize_text(safe_get(dados, "empresa")).upper()
+    titulo_full = f"GUIA TÉCNICA: {titulo_nome}" + (f" - {titulo_emp}" if titulo_emp else "")
+
+    pdf.set_fill_color(*BLUE)
+    pdf.set_text_color(255, 255, 255)
+    set_font(18, True)
+    pdf.cell(0, 14, titulo_full, ln=1, align="C", fill=True)
+    pdf.ln(2)
+    pdf.set_text_color(*TEXT)
+
+    # --------------------------
+    # Seção 1
+    # --------------------------
+    bar_title("1. Dados de Identificação e Acesso")
+
+    pares_esq = [
+        ("Empresa", safe_get(dados, "empresa")),
+        ("Portal",  safe_get(dados, "site")),
+        ("Login",   safe_get(dados, "login")),
+        ("Sistema", safe_get(dados, "sistema_utilizado")),
+    ]
+    pares_dir = [
+        ("Código",  safe_get(dados, "codigo")),
+        ("Senha",   safe_get(dados, "senha")),
+        ("Retorno", safe_get(dados, "prazo_retorno")),
+    ]
+    two_column_info(pares_esq, pares_dir, gap=10, label_w=28, line_h=7)
+    pdf.ln(2)
+
+    # --------------------------
+    # Seção 2 — Tabela
+    # --------------------------
+    bar_title("2. Cronograma e Regras Técnicas")
+
+    w1 = 52
+    w2 = 35
+    w3 = 35
+    w4 = 30
+    w5 = CONTENT_W - (w1 + w2 + w3 + w4)
+    widths = [w1, w2, w3, w4, w5]
+
+    headers = ["Prazo Envio", "Validade Guia", "XML / Versão", "Nota Fiscal", "Fluxo NF"]
+
+    xml_flag = safe_get(dados, "xml") or "—"
+    xml_ver  = safe_get(dados, "versao_xml") or "—"
+    xml_composto = f"{xml_flag} / {xml_ver}"
+
+    row = [
+        safe_get(dados, "envio"),
+        safe_get(dados, "validade"),
+        xml_composto,
+        safe_get(dados, "nf"),
+        safe_get(dados, "fluxo_nf"),
+    ]
+    table(headers, [row], widths, header_h=8, cell_h=7)
+    pdf.ln(2)
+
+    # --------------------------
+    # Observações Críticas — multipágina
+    # --------------------------
+    bar_title("Observações Críticas")
+    obs_text = safe_get(dados, "observacoes")
+    draw_multipage_box(obs_text, left_margin=pdf.l_margin, width=CONTENT_W, line_h=6.5, padding=1.8)
+
+    return pdf.output(dest="S").encode("latin-1")
 
 
 # ============================================================
@@ -614,142 +614,220 @@ def ui_block_info(title: str, content: str):
 # 9. PÁGINA — CADASTRO / EDIÇÃO DE CONVÊNIOS
 # ============================================================
 
-O problema de os dados não aparecerem quando você seleciona um convênio existente na tela de cadastro ocorre por causa de uma inconsistência na comparação dos IDs e uma pequena redundância no código de salvamento que pode estar limpando o estado do Streamlit.
+def page_cadastro():
+    """
+    Página de cadastro totalmente corrigida:
+    - Sempre recarrega do GitHub (nunca usa lista mutável da sessão)
+    - Usa cópia real dos dados
+    - Salva com atomicidade
+    - Atualiza imediatamente as telas
+    """
 
-Abaixo, apresento os blocos corrigidos especificamente para a função page_cadastro.
-
-1. Correção da lógica de Seleção (Busca do ID)
-No seu código, a comparação estava sensível a tipos (String vs Inteiro). Alterei para usar str() em ambos os lados, garantindo que o next encontre o registro.
-
-2. Remoção de Lógica Duplicada
-Havia dois blocos de salvamento (if submit:) no seu código original. Removi a duplicidade para evitar que o app processe o salvamento duas vezes ou limpe os campos indevidamente.
-
-Substitua a sua função page_cadastro por esta:
-Python
-
-def page_cadastro(dados_atuais, sha_atual):
+    # 🔥 Recarrega sempre dados frescos do GitHub
+    dados_atuais, _ = db.load(force=True)
+    dados_atuais = list(dados_atuais)  # segurança contra mutação
 
     ui_card_start("📝 Cadastro de Convênio")
 
-    # Lista com ID + Nome para garantir segurança
+    # Lista com ID + Nome
     opcoes = ["+ Novo Convênio"] + [
         f"{c.get('id')} — {safe_get(c, 'nome')}" for c in dados_atuais
     ]
 
     escolha = st.selectbox("Selecione um convênio para editar:", opcoes)
 
-    # Determina ID real escolhido
     if escolha == "+ Novo Convênio":
         conv_id = None
         dados_conv = None
     else:
-        # Extrai o ID antes do travessão
         conv_id = escolha.split(" — ")[0]
-        # Busca o convênio garantindo que a comparação seja entre Strings
-        dados_conv = next((c for c in dados_atuais if str(c.get("id")) == str(conv_id)), None)
+        dados_conv = next(
+            (c for c in dados_atuais if str(c.get("id")) == str(conv_id)),
+            None
+        )
 
     ui_card_end()
 
-    # --------------------------------------------------------
-    # FORMULÁRIO COMPLETO
-    # --------------------------------------------------------
-    with st.form("form_cadastro"):
+    # --------------------------------------------
+    # FORMULÁRIO
+    # --------------------------------------------
+    form_key = f"form_{conv_id}" if conv_id else "form_novo"
+
+    with st.form(key=form_key):
+
 
         col1, col2, col3 = st.columns(3)
 
-        # ---------------------- COLUNA 1 ----------------------
+        # COLUNA 1
         with col1:
             nome = st.text_input("Nome do Convênio", value=safe_get(dados_conv, "nome"))
             codigo = st.text_input("Código", value=safe_get(dados_conv, "codigo"))
 
-            idx_empresa = 0
-            if dados_conv and safe_get(dados_conv, "empresa") in EMPRESAS_FATURAMENTO:
-                idx_empresa = EMPRESAS_FATURAMENTO.index(safe_get(dados_conv, "empresa"))
+            
+            valor_empresa = safe_get(dados_conv, "empresa")
+            if valor_empresa not in EMPRESAS_FATURAMENTO:
+                valor_empresa = EMPRESAS_FATURAMENTO[0]
+            
+            empresa = st.selectbox(
+                "Empresa Faturamento",
+                EMPRESAS_FATURAMENTO,
+                index=EMPRESAS_FATURAMENTO.index(valor_empresa)
+            )
 
-            empresa = st.selectbox("Empresa Faturamento", EMPRESAS_FATURAMENTO, index=idx_empresa)
 
-            idx_sistema = 0
-            if dados_conv and safe_get(dados_conv, "sistema_utilizado") in SISTEMAS:
-                idx_sistema = SISTEMAS.index(safe_get(dados_conv, "sistema_utilizado"))
+            
+            valor_sistema = safe_get(dados_conv, "sistema_utilizado")
+            if valor_sistema not in SISTEMAS:
+                valor_sistema = SISTEMAS[0]
+            
+            sistema = st.selectbox(
+                "Sistema",
+                SISTEMAS,
+                index=SISTEMAS.index(valor_sistema)
+            )
 
-            sistema = st.selectbox("Sistema", SISTEMAS, index=idx_sistema)
 
-        # ---------------------- COLUNA 2 ----------------------
+        # COLUNA 2
         with col2:
             site = st.text_input("Site/Portal", value=safe_get(dados_conv, "site"))
             login = st.text_input("Login", value=safe_get(dados_conv, "login"))
             senha = st.text_input("Senha", value=safe_get(dados_conv, "senha"))
             retorno = st.text_input("Prazo Retorno", value=safe_get(dados_conv, "prazo_retorno"))
 
-        # ---------------------- COLUNA 3 ----------------------
+        # COLUNA 3
         with col3:
             envio = st.text_input("Prazo Envio", value=safe_get(dados_conv, "envio"))
             validade = st.text_input("Validade da Guia", value=safe_get(dados_conv, "validade"))
 
-            xml = st.radio("Envia XML?", ["Sim", "Não"], 
-                           index=0 if safe_get(dados_conv, "xml") != "Não" else 1)
+            
+            valor_xml = safe_get(dados_conv, "xml")
+            if valor_xml not in OPCOES_XML:
+                valor_xml = "Sim"
+            
+            xml = st.radio(
+                "Envia XML?",
+                OPCOES_XML,
+                index=OPCOES_XML.index(valor_xml)
+            )
 
-            nf = st.radio("Exige Nota Fiscal?", ["Sim", "Não"], 
-                          index=0 if safe_get(dados_conv, "nf") != "Não" else 1)
 
-        # ---------------------- BLOCO XML + NF ------------------
+            
+            valor_nf = safe_get(dados_conv, "nf")
+            if valor_nf not in OPCOES_NF:
+                valor_nf = "Sim"
+            
+            nf = st.radio(
+                "Exige Nota Fiscal?",
+                OPCOES_NF,
+                index=OPCOES_NF.index(valor_nf)
+            )
+
+
+        # XML/NF
         colA, colB = st.columns(2)
 
         with colA:
-            idx_tiss = 0
-            if dados_conv and safe_get(dados_conv, "versao_xml") in VERSOES_TISS:
-                idx_tiss = VERSOES_TISS.index(safe_get(dados_conv, "versao_xml"))
-            versao_xml = st.selectbox("Versão XML (TISS)", VERSOES_TISS, index=idx_tiss)
-
-        with colB:
-            fluxo_nf = st.selectbox(
-                "Fluxo da Nota",
-                ["Envia XML sem nota", "Envia NF junto com o lote"],
-                index=0 if safe_get(dados_conv, "fluxo_nf") == "Envia XML sem nota" else 1
+            
+            valor_versao = safe_get(dados_conv, "versao_xml")
+            if valor_versao not in VERSOES_TISS:
+                valor_versao = VERSOES_TISS[0]
+            
+            versao_xml = st.selectbox(
+                "Versão XML (TISS)",
+                VERSOES_TISS,
+                index=VERSOES_TISS.index(valor_versao)
             )
 
-        config_gerador = st.text_area("Configuração do Gerador XML", value=safe_get(dados_conv, "config_gerador"))
-        doc_digitalizacao = st.text_area("Digitalização e Documentação", value=safe_get(dados_conv, "doc_digitalizacao"))
-        observacoes = st.text_area("Observações Críticas", value=safe_get(dados_conv, "observacoes"))
+
+        with colB:
+            
+            valor_fluxo = safe_get(dados_conv, "fluxo_nf")
+            if valor_fluxo not in OPCOES_FLUXO_NF:
+                valor_fluxo = OPCOES_FLUXO_NF[0]
+            
+            fluxo_nf = st.selectbox(
+                "Fluxo da Nota",
+                OPCOES_FLUXO_NF,
+                index=OPCOES_FLUXO_NF.index(valor_fluxo)
+            )
+
+        config_gerador = st.text_area(
+            "Configuração do Gerador XML",
+            value=safe_get(dados_conv, "config_gerador"),
+        )
+        doc_digitalizacao = st.text_area(
+            "Digitalização e Documentação",
+            value=safe_get(dados_conv, "doc_digitalizacao"),
+        )
+        observacoes = st.text_area(
+            "Observações Críticas",
+            value=safe_get(dados_conv, "observacoes"),
+        )
 
         submit = st.form_submit_button("💾 Salvar Dados")
 
         if submit:
+
+            # MONTA REGISTRO
             novo_registro = {
-                "nome": nome, "codigo": codigo, "empresa": empresa,
-                "sistema_utilizado": sistema, "site": site, "login": login,
-                "senha": senha, "prazo_retorno": retorno, "envio": envio,
-                "validade": validade, "xml": xml, "nf": nf,
-                "versao_xml": versao_xml, "fluxo_nf": fluxo_nf,
-                "config_gerador": config_gerador, "doc_digitalizacao": doc_digitalizacao,
+                "nome": nome,
+                "codigo": codigo,
+                "empresa": empresa,
+                "sistema_utilizado": sistema,
+                "site": site,
+                "login": login,
+                "senha": senha,
+                "prazo_retorno": retorno,
+                "envio": envio,
+                "validade": validade,
+                "xml": xml,
+                "nf": nf,
+                "versao_xml": versao_xml,
+                "fluxo_nf": fluxo_nf,
+                "config_gerador": config_gerador,
+                "doc_digitalizacao": doc_digitalizacao,
                 "observacoes": observacoes,
             }
 
+            # NOVO OU EXISTENTE
             if conv_id is None:
                 novo_registro["id"] = generate_id(dados_atuais)
                 dados_atuais.append(novo_registro)
+
             else:
                 novo_registro["id"] = int(conv_id)
-                # Atualiza o item na lista original
                 for i, c in enumerate(dados_atuais):
                     if str(c.get("id")) == str(conv_id):
                         dados_atuais[i] = novo_registro
                         break
 
-            if github_save_file(dados_atuais, sha_atual):
+            # SALVAR NO GITHUB
+            if db.save(dados_atuais):
+
                 st.success(f"✔ Convênio {novo_registro['id']} salvo com sucesso!")
-                time.sleep(0.5)
+
+                # LIMPA CACHE DO BANCO                
+                db._cache_data = None
+                db._cache_sha = None
+                db._cache_etag = None
+                db._cache_timestamp = 0
+
+
+                # LIMPA ESTADO DO STREAMLIT (o segredo!)
+                st.session_state.clear()
+
+                time.sleep(1)
                 st.rerun()
 
-    # Botão de PDF (fora do form)
+    # BOTÃO PDF
     if dados_conv:
         st.download_button(
             "📥 Baixar PDF do Convênio",
             gerar_pdf(dados_conv),
-            file_name=f"Manual_{safe_get(dados_conv, 'nome')}.pdf",
+            file_name=f"Manual_{safe_get(dados_conv,'nome')}.pdf",
             mime="application/pdf"
         )
-
+              
 
 # ============================================================
 # 10. PÁGINA — CONSULTA DE CONVÊNIOS
@@ -847,7 +925,7 @@ def main():
     # --------------------------------------------------------
     # CARREGAR BANCO DO GITHUB
     # --------------------------------------------------------
-    dados_atuais, sha_atual = github_get_file()
+    dados_atuais, sha_atual = db.load()
 
     # --------------------------------------------------------
     # SIDEBAR — Navegação
@@ -873,7 +951,7 @@ def main():
     # ROTEAMENTO DAS PÁGINAS
     # --------------------------------------------------------
     if menu == "Cadastrar / Editar":
-        page_cadastro(dados_atuais, sha_atual)
+        page_cadastro()
 
     elif menu == "Consulta de Convênios":
         page_consulta(dados_atuais)
