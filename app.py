@@ -554,7 +554,7 @@ def gerar_pdf(dados):
     wrapped_lines = build_wrapped_lines(obs_text, pdf, usable_w, line_h, bullet_indent=bullet_indent)
 
     # ---------- Helpers ----------
-   def apply_font(size=10, bold=False):
+    def apply_font(size=10, bold=False):
         style = "B" if bold else ""
         try:
             pdf.set_font(FONT_FAMILY, style, size)
