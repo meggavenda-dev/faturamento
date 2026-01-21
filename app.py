@@ -2,7 +2,7 @@
 # ============================================================
 #  APP.PY — MANUAL DE FATURAMENTO (VERSÃO PREMIUM)
 #  ORGANIZADO • OTIMIZADO • SEGURO • COM ID ÚNICO
-#  COM CORREÇÕES DE PDF (UNICODE + ENCODING + QUEBRAS)
+#  CORRIGIDO: QUEBRA DE URL SEM ESPAÇOS + UNICODE + ESPAÇAMENTO
 # ============================================================
 
 # ------------------------------------------------------------
@@ -191,7 +191,6 @@ VERSOES_TISS = [
 EMPRESAS_FATURAMENTO = ["Integralis", "AMHP", "Outros"]
 SISTEMAS = ["Outros", "Orizon", "Benner", "Maida", "Facil", "Visual TISS", "Próprio"]
 
-# Opções oficiais (validação estrita)
 OPCOES_XML = ["Sim", "Não"]
 OPCOES_NF = ["Sim", "Não"]
 OPCOES_FLUXO_NF = ["Envia XML sem nota", "Envia NF junto com o lote"]
@@ -201,85 +200,57 @@ OPCOES_FLUXO_NF = ["Envia XML sem nota", "Envia NF junto com o lote"]
 # ------------------------------------------------------------
 CSS_GLOBAL = f"""
 <style>
-
-    /* Ajuste geral */
     .block-container {{
         padding-top: 6rem !important;
         max-width: 1200px !important;
     }}
-
-    /* HEADER */
     .header-premium {{
-        position: fixed;
-        top: 0; left: 0;
+        position: fixed; top: 0; left: 0;
         width: 100%; height: 70px;
         background: rgba(255,255,255,0.85);
         backdrop-filter: blur(10px);
         border-bottom: 1px solid {PRIMARY_COLOR}33;
         display: flex; align-items: center;
-        padding: 0 40px;
-        z-index: 999;
+        padding: 0 40px; z-index: 999;
         box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     }}
-
     .header-title {{
-        font-size: 24px;
-        font-weight: 700;
+        font-size: 24px; font-weight: 700;
         color: {PRIMARY_COLOR};
         letter-spacing: -0.5px;
         display: flex; align-items: center; gap: 10px;
     }}
-
-    /* Cards estilo Microsoft */
     .card {{
-        background: #ffffff;
-        padding: 24px;
-        border-radius: 8px;
-        border: 1px solid #e1e4e8;
+        background: #ffffff; padding: 24px;
+        border-radius: 8px; border: 1px solid #e1e4e8;
         box-shadow: 0 4px 6px rgba(0,0,0,0.03);
         margin-bottom: 24px;
         transition: transform 0.15s, box-shadow 0.15s;
     }}
-
     .card:hover {{
         transform: translateY(-2px);
         box-shadow: 0 6px 14px rgba(0,0,0,0.06);
     }}
-
     .card-title {{
-        font-size: 20px;
-        font-weight: 700;
-        margin-bottom: 15px;
-        color: {PRIMARY_COLOR};
+        font-size: 20px; font-weight: 700; margin-bottom: 15px; color: {PRIMARY_COLOR};
     }}
-
-    /* Botões */
     .stButton > button {{
         background-color: {PRIMARY_COLOR} !important;
-        color: white !important;
-        border-radius: 6px !important;
-        padding: 8px 18px !important;
-        font-weight: 600 !important;
+        color: white !important; border-radius: 6px !important;
+        padding: 8px 18px !important; font-weight: 600 !important;
         border: none !important;
     }}
-
-    .stButton > button:hover {{
-        background-color: #16375E !important;
-    }}
-
+    .stButton > button:hover {{ background-color: #16375E !important; }}
 </style>
-
 <div class="header-premium">
     <span class="header-title">💼 Manual de Faturamento</span>
 </div>
 """
-
 st.markdown(CSS_GLOBAL, unsafe_allow_html=True)
 
 # ============================================================
-# 6. FUNÇÕES UTILITÁRIAS (com correções de Unicode/URLs)
+# 6. FUNÇÕES UTILITÁRIAS (Unicode + quebra de URL sem espaços)
 # ============================================================
-
 def sanitize_text(text: str) -> str:
     """
     Normaliza para NFC (caracteres compostos, ideal p/ PDF),
@@ -287,26 +258,18 @@ def sanitize_text(text: str) -> str:
     """
     if text is None:
         return ""
-
-    txt = str(text)
-    # ⚠️ NFC evita decomposição (NFKD) que "solta" diacríticos no PDF
-    txt = unicodedata.normalize("NFC", txt)
-
+    txt = unicodedata.normalize("NFC", str(text))
     # Remove zero-width e controles
     txt = re.sub(r"[\u200B-\u200F\u202A-\u202E\u2060-\u206F]", "", txt)
     txt = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", "", txt)
-
     return txt.replace("\r", "").strip()
-
 
 def normalize(value):
     if not value:
         return ""
     return sanitize_text(value).strip().lower()
 
-
 def generate_id(dados_atuais):
-    """Gera ID sequencial robusto (ignora IDs inválidos ou ausentes)."""
     ids = []
     for item in dados_atuais:
         try:
@@ -317,58 +280,119 @@ def generate_id(dados_atuais):
             continue
     return max(ids) + 1 if ids else 1
 
-
 def safe_get(d: dict, key: str, default=""):
-    """
-    Acesso seguro a dicionários.
-    Evita erros quando dados estão faltando ou o convênio é novo.
-    """
     if not isinstance(d, dict):
         return default
     return sanitize_text(d.get(key, default))
 
-
 def chunk_text(text, size):
-    """
-    Divide palavras extremamente longas para PDF.
-    Garante que o 'size' seja sempre um inteiro >= 1.
-    """
     text = sanitize_text(text or "")
     safe_size = int(size) if size and size >= 1 else 1
     return [text[i:i+safe_size] for i in range(0, len(text), safe_size)]
 
+def _split_token_preserving_delims(token: str):
+    """
+    Para tokens tipo URL/caminho, quebra por delimitadores mantendo-os
+    NO FIM do segmento (sem inserir espaços).
+    Ex.: 'https://a/b?x=1' -> ['https://a/', 'b?', 'x=', '1']
+    """
+    parts = re.split(r"([/?&=._-])", token)
+    segs = []
+    i = 0
+    while i < len(parts):
+        seg = parts[i]
+        if seg == "":
+            i += 1
+            continue
+        if i + 1 < len(parts) and re.fullmatch(r"[/?&=._-]", parts[i+1] or ""):
+            seg += parts[i+1]   # anexa o delimitador ao final
+            i += 2
+        else:
+            i += 1
+        segs.append(seg)
+    return segs
 
 def wrap_text(text, pdf, max_width):
     """
-    Quebra linhas respeitando largura; melhora URLs
-    (permite quebra após / ? & = ).
+    Quebra texto respeitando largura. Para palavras longas (URLs etc.),
+    quebra por delimitadores SEM inserir espaços visíveis.
     """
     text = sanitize_text(text)
     if not text:
         return [""]
 
-    # Ajuda URLs/paths a quebrarem em pontos naturais
-    text = re.sub(r"([/?&=])", r"\1 ", text)
-
     words = text.split(" ")
     lines, current = [], ""
 
+    def width(s): return pdf.get_string_width(s)
+
     for w in words:
-        if pdf.get_string_width(w) > max_width:
-            if current:
-                lines.append(current)
+        if not w:
+            # múltiplos espaços consecutivos -> força espaço normal
+            candidate = (current + " ") if current else " "
+            if width(candidate) <= max_width:
+                current = candidate
+            else:
+                if current:
+                    lines.append(current)
                 current = ""
-            size = int(max(1, max_width // 3))
-            lines.extend(chunk_text(w, size))
             continue
 
+        # Se for "palavra" longa com delimitadores, quebrar em segmentos sem espaço
+        if any(ch in w for ch in "/?&=._-"):
+            segments = _split_token_preserving_delims(w)
+            for seg in segments:
+                if current == "":
+                    # primeira adição na linha
+                    if width(seg) <= max_width:
+                        current = seg
+                    else:
+                        # seg ainda é maior que a linha: corta por tamanho
+                        for piece in chunk_text(seg, max_width // 3 or 1):
+                            if width(piece) > max_width and len(piece) > 1:
+                                # fallback brute: garante caber
+                                piece = piece[:1]
+                            if current:
+                                lines.append(current)
+                            current = piece
+                        # não adiciona espaço após segmento de URL
+                else:
+                    candidate = current + seg  # sem espaço
+                    if width(candidate) <= max_width:
+                        current = candidate
+                    else:
+                        # quebra de linha antes do segmento
+                        lines.append(current)
+                        # se segmento ainda maior que a largura, corta
+                        if width(seg) <= max_width:
+                            current = seg
+                        else:
+                            for piece in chunk_text(seg, max_width // 3 or 1):
+                                if width(piece) > max_width and len(piece) > 1:
+                                    piece = piece[:1]
+                                if current:
+                                    lines.append(current)
+                                current = piece
+            # após processar a "palavra" tipo URL, adiciona espaço se o token original tinha espaço
+            # mas como o separador é o espaço do loop, só adicionaremos no próximo token
+            continue
+
+        # Palavra comum: usa espaço
         candidate = f"{current} {w}".strip() if current else w
-        if pdf.get_string_width(candidate) <= max_width:
+        if width(candidate) <= max_width:
             current = candidate
         else:
             if current:
                 lines.append(current)
-            current = w
+            # se a nova palavra não coube sozinha, fatia
+            if width(w) <= max_width:
+                current = w
+            else:
+                pieces = chunk_text(w, max_width // 3 or 1)
+                current = pieces[0]
+                for piece in pieces[1:]:
+                    lines.append(current)
+                    current = piece
 
     if current:
         lines.append(current)
@@ -376,9 +400,8 @@ def wrap_text(text, pdf, max_width):
     return lines
 
 # ============================================================
-# 7. GERAÇÃO DO PDF — (Unicode + encoding corrigidos)
+# 7. GERAÇÃO DO PDF — (Unicode + encoding + espaçamento)
 # ============================================================
-
 def _pdf_set_fonts(pdf: FPDF) -> str:
     """
     Tenta usar DejaVu (Unicode). Se não achar, cai em Helvetica.
@@ -396,31 +419,26 @@ def _pdf_set_fonts(pdf: FPDF) -> str:
                 pdf.add_font("DejaVu", "B", fonte_bold, uni=True)
             return "DejaVu"
         except Exception:
-            pass  # fallback abaixo
+            pass  # fallback
 
     return "Helvetica"
-
 
 def gerar_pdf(dados):
     """
     Layout: barra azul de título, Seção 1 (duas colunas),
     Seção 2 (tabela 5 colunas) e 'OBSERVAÇÕES CRÍTICAS' multipágina.
     """
-
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.set_margins(15, 12, 15)
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
-    # Paleta
     BLUE = (31, 73, 125)
     GREY_BAR = (230, 230, 230)
     TEXT = (0, 0, 0)
     CONTENT_W = pdf.w - pdf.l_margin - pdf.r_margin
 
-    # Fontes
     FONT = _pdf_set_fonts(pdf)
-
     def set_font(size=10, bold=False):
         style = "B" if bold else ""
         try:
@@ -428,13 +446,13 @@ def gerar_pdf(dados):
         except Exception:
             pdf.set_font("Helvetica", style, size)
 
-    # ---------- Helpers de layout ----------
-    def bar_title(texto, top_margin=2, height=8):
+    # ---------- Helpers ----------
+    def bar_title(texto, top_margin=3, height=8):
         pdf.ln(top_margin)
         pdf.set_fill_color(*GREY_BAR)
         set_font(12, True)
         pdf.cell(0, height, f" {sanitize_text(texto).upper()}", ln=1, fill=True)
-        pdf.ln(1)
+        pdf.ln(1.5)
 
     def label_value_heights(col_x, base_y, label, value, label_w, col_w, line_h=7, val_size=10):
         label = sanitize_text(label)
@@ -462,7 +480,7 @@ def gerar_pdf(dados):
 
         return needed_h
 
-    def two_column_info(pares_esq, pares_dir, gap=10, label_w=28, line_h=7):
+    def two_column_info(pares_esq, pares_dir, gap=10, label_w=30, line_h=6.8):
         col_w = (CONTENT_W - gap) / 2
         xL = pdf.l_margin
         xR = pdf.l_margin + col_w + gap
@@ -520,14 +538,13 @@ def gerar_pdf(dados):
                     pdf.cell(widths[i]-2, cell_h, ln)
             pdf.ln(row_h)
 
-    def draw_multipage_box(text, left_margin, width, line_h=6.5, padding=1.5):
+    def draw_multipage_box(text, left_margin, width, line_h=6.6, padding=1.8):
         text = sanitize_text(text or "")
         if text == "":
             y = pdf.get_y()
             min_h = line_h + 2 * padding
             if y + min_h > pdf.page_break_trigger:
-                pdf.add_page()
-                y = pdf.get_y()
+                pdf.add_page(); y = pdf.get_y()
             pdf.rect(left_margin, y, width, min_h)
             pdf.ln(min_h)
             return
@@ -577,7 +594,7 @@ def gerar_pdf(dados):
     set_font(18, True)
     pdf.cell(0, 14, titulo_full, ln=1, align="C", fill=True)
     pdf.set_text_color(*TEXT)
-    pdf.ln(4)  # folga maior
+    pdf.ln(5)  # folga maior após o título
 
     # --------------------------
     # Seção 1
@@ -595,8 +612,8 @@ def gerar_pdf(dados):
         ("Senha",   safe_get(dados, "senha")),
         ("Retorno", safe_get(dados, "prazo_retorno")),
     ]
-    two_column_info(pares_esq, pares_dir, gap=10, label_w=28, line_h=7)
-    pdf.ln(2)
+    two_column_info(pares_esq, pares_dir, gap=10, label_w=30, line_h=6.8)
+    pdf.ln(2.5)
 
     # --------------------------
     # Seção 2 — Tabela
@@ -607,7 +624,7 @@ def gerar_pdf(dados):
     w2 = 35
     w3 = 35
     w4 = 30
-    w5 = CONTENT_W - (w1 + w2 + w3 + w4)
+    w5 = (pdf.w - pdf.l_margin - pdf.r_margin) - (w1 + w2 + w3 + w4)
     widths = [w1, w2, w3, w4, w5]
 
     headers = ["Prazo Envio", "Validade Guia", "XML / Versão", "Nota Fiscal", "Fluxo NF"]
@@ -624,21 +641,21 @@ def gerar_pdf(dados):
         safe_get(dados, "fluxo_nf"),
     ]
     table(headers, [row], widths, header_h=8, cell_h=7)
-    pdf.ln(2)
+    pdf.ln(2.5)
 
     # --------------------------
     # Observações Críticas — multipágina
     # --------------------------
     bar_title("Observações Críticas")
     obs_text = safe_get(dados, "observacoes")
-    draw_multipage_box(obs_text, left_margin=pdf.l_margin, width=CONTENT_W, line_h=6.5, padding=1.8)
+    draw_multipage_box(obs_text, left_margin=pdf.l_margin, width=(pdf.w - pdf.l_margin - pdf.r_margin),
+                       line_h=6.6, padding=1.8)
 
     # --------------------------
     # Retorno seguro (bytes)
     # --------------------------
     result = pdf.output(dest="S")
-    # FPDF 1.x retorna str (latin-1); fpdf2 retorna bytes
-    if isinstance(result, str):
+    if isinstance(result, str):        # FPDF 1.x
         try:
             result = result.encode("latin-1")
         except Exception:
@@ -646,9 +663,8 @@ def gerar_pdf(dados):
     return result
 
 # ============================================================
-# 8. COMPONENTES DE INTERFACE (UI COMPONENTS)
+# 8. COMPONENTES DE INTERFACE (UI)
 # ============================================================
-
 def ui_card_start(title: str):
     st.markdown(f"""
         <div class='card'>
@@ -713,18 +729,9 @@ def ui_block_info(title: str, content: str):
 # ============================================================
 # 9. PÁGINA — CADASTRO / EDIÇÃO DE CONVÊNIOS
 # ============================================================
-
 def page_cadastro():
-    """
-    Página de cadastro:
-    - Recarrega sempre do GitHub (fresh)
-    - Usa cópia real dos dados
-    - Salva com atomicidade
-    - Atualiza imediatamente as telas
-    """
-
     dados_atuais, _ = db.load(force=True)
-    dados_atuais = list(dados_atuais)  # segurança contra mutação
+    dados_atuais = list(dados_atuais)
 
     ui_card_start("📝 Cadastro de Convênio")
 
@@ -746,15 +753,11 @@ def page_cadastro():
 
     ui_card_end()
 
-    # --------------------------------------------
-    # FORMULÁRIO
-    # --------------------------------------------
     form_key = f"form_{conv_id}" if conv_id else "form_novo"
 
     with st.form(key=form_key):
         col1, col2, col3 = st.columns(3)
 
-        # COLUNA 1
         with col1:
             nome = st.text_input("Nome do Convênio", value=safe_get(dados_conv, "nome"))
             codigo = st.text_input("Código", value=safe_get(dados_conv, "codigo"))
@@ -777,14 +780,12 @@ def page_cadastro():
                 index=SISTEMAS.index(valor_sistema)
             )
 
-        # COLUNA 2
         with col2:
             site = st.text_input("Site/Portal", value=safe_get(dados_conv, "site"))
             login = st.text_input("Login", value=safe_get(dados_conv, "login"))
             senha = st.text_input("Senha", value=safe_get(dados_conv, "senha"))
             retorno = st.text_input("Prazo Retorno", value=safe_get(dados_conv, "prazo_retorno"))
 
-        # COLUNA 3
         with col3:
             envio = st.text_input("Prazo Envio", value=safe_get(dados_conv, "envio"))
             validade = st.text_input("Validade da Guia", value=safe_get(dados_conv, "validade"))
@@ -792,56 +793,30 @@ def page_cadastro():
             valor_xml = safe_get(dados_conv, "xml")
             if valor_xml not in OPCOES_XML:
                 valor_xml = "Sim"
-            xml = st.radio(
-                "Envia XML?",
-                OPCOES_XML,
-                index=OPCOES_XML.index(valor_xml)
-            )
+            xml = st.radio("Envia XML?", OPCOES_XML, index=OPCOES_XML.index(valor_xml))
 
             valor_nf = safe_get(dados_conv, "nf")
             if valor_nf not in OPCOES_NF:
                 valor_nf = "Sim"
-            nf = st.radio(
-                "Exige Nota Fiscal?",
-                OPCOES_NF,
-                index=OPCOES_NF.index(valor_nf)
-            )
+            nf = st.radio("Exige Nota Fiscal?", OPCOES_NF, index=OPCOES_NF.index(valor_nf))
 
-        # XML/NF
         colA, colB = st.columns(2)
-
         with colA:
             valor_versao = safe_get(dados_conv, "versao_xml")
             if valor_versao not in VERSOES_TISS:
                 valor_versao = VERSOES_TISS[0]
-            versao_xml = st.selectbox(
-                "Versão XML (TISS)",
-                VERSOES_TISS,
-                index=VERSOES_TISS.index(valor_versao)
-            )
-
+            versao_xml = st.selectbox("Versão XML (TISS)", VERSOES_TISS,
+                                      index=VERSOES_TISS.index(valor_versao))
         with colB:
             valor_fluxo = safe_get(dados_conv, "fluxo_nf")
             if valor_fluxo not in OPCOES_FLUXO_NF:
                 valor_fluxo = OPCOES_FLUXO_NF[0]
-            fluxo_nf = st.selectbox(
-                "Fluxo da Nota",
-                OPCOES_FLUXO_NF,
-                index=OPCOES_FLUXO_NF.index(valor_fluxo)
-            )
+            fluxo_nf = st.selectbox("Fluxo da Nota", OPCOES_FLUXO_NF,
+                                    index=OPCOES_FLUXO_NF.index(valor_fluxo))
 
-        config_gerador = st.text_area(
-            "Configuração do Gerador XML",
-            value=safe_get(dados_conv, "config_gerador"),
-        )
-        doc_digitalizacao = st.text_area(
-            "Digitalização e Documentação",
-            value=safe_get(dados_conv, "doc_digitalizacao"),
-        )
-        observacoes = st.text_area(
-            "Observações Críticas",
-            value=safe_get(dados_conv, "observacoes"),
-        )
+        config_gerador = st.text_area("Configuração do Gerador XML", value=safe_get(dados_conv, "config_gerador"))
+        doc_digitalizacao = st.text_area("Digitalização e Documentação", value=safe_get(dados_conv, "doc_digitalizacao"))
+        observacoes = st.text_area("Observações Críticas", value=safe_get(dados_conv, "observacoes"))
 
         submit = st.form_submit_button("💾 Salvar Dados")
 
@@ -876,22 +851,17 @@ def page_cadastro():
                         dados_atuais[i] = novo_registro
                         break
 
-            # SALVAR NO GITHUB
             if db.save(dados_atuais):
                 st.success(f"✔ Convênio {novo_registro['id']} salvo com sucesso!")
 
-                # LIMPA CACHE DO BANCO (atributos existentes)
                 db._cache_data = None
                 db._cache_sha = None
                 db._cache_time = 0.0
 
-                # LIMPA ESTADO DO STREAMLIT
                 st.session_state.clear()
-
                 time.sleep(1)
                 st.rerun()
 
-    # BOTÃO PDF
     if dados_conv:
         st.download_button(
             "📥 Baixar PDF do Convênio",
@@ -903,17 +873,12 @@ def page_cadastro():
 # ============================================================
 # 10. PÁGINA — CONSULTA DE CONVÊNIOS
 # ============================================================
-
 def page_consulta(dados_atuais):
     if not dados_atuais:
         st.info("Nenhum convênio cadastrado.")
         return
 
-    opcoes = sorted([
-        f"{safe_get(c,'id')} || {safe_get(c,'nome')}"
-        for c in dados_atuais
-    ])
-
+    opcoes = sorted([f"{safe_get(c,'id')} || {safe_get(c,'nome')}" for c in dados_atuais])
     escolha = st.selectbox("Selecione o convênio:", opcoes)
     conv_id = escolha.split(" || ")[0]
 
@@ -955,7 +920,6 @@ def page_consulta(dados_atuais):
 # ============================================================
 # 11. PÁGINA — VISUALIZAR TODO O BANCO
 # ============================================================
-
 def page_visualizar_banco(dados_atuais):
     ui_card_start("📋 Banco de Dados Completo")
     if dados_atuais:
@@ -968,32 +932,21 @@ def page_visualizar_banco(dados_atuais):
 # ============================================================
 # 12. MAIN APP — ROTEAMENTO, CARREGAMENTO E ESTRUTURA FINAL
 # ============================================================
-
 def main():
-    st.set_page_config(
-        page_title="💼 Manual de Faturamento",
-        layout="wide"
-    )
+    st.set_page_config(page_title="💼 Manual de Faturamento", layout="wide")
 
-    # Carregar banco do GitHub
     dados_atuais, _ = db.load()
 
-    # Sidebar — Navegação
     st.sidebar.title("📚 Navegação")
     menu = st.sidebar.radio(
         "Selecione a página:",
-        [
-            "Cadastrar / Editar",
-            "Consulta de Convênios",
-            "Visualizar Banco"
-        ]
+        ["Cadastrar / Editar", "Consulta de Convênios", "Visualizar Banco"]
     )
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 🔄 Atualizar Sistema")
     if st.sidebar.button("Recarregar"):
         st.rerun()
 
-    # Roteamento
     if menu == "Cadastrar / Editar":
         page_cadastro()
     elif menu == "Consulta de Convênios":
@@ -1001,7 +954,6 @@ def main():
     elif menu == "Visualizar Banco":
         page_visualizar_banco(dados_atuais)
 
-    # Rodapé
     st.markdown(
         """
         <br><br>
@@ -1013,6 +965,5 @@ def main():
         unsafe_allow_html=True
     )
 
-# Executar aplicação
 if __name__ == "__main__":
     main()
