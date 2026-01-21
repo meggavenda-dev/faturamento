@@ -282,6 +282,9 @@ def fix_technical_spacing(txt: str) -> str:
     # 5️⃣ Sigla → palavra
     txt = re.sub(r"([A-Z]{2,})([a-záéíóúãõç])", r"\1 \2", txt)
 
+    # 6.6️⃣ Tempo colado (às12:00)
+    txt = re.sub(r"(às)(\d)", r"\1 \2", txt, flags=re.IGNORECASE)
+
     # 6️⃣ Palavra → sigla
     txt = re.sub(r"([a-záéíóúãõç])([A-Z]{2,})", r"\1 \2", txt)
 
@@ -520,7 +523,7 @@ def gerar_pdf(dados):
         pdf.ln(top_margin)
         pdf.set_fill_color(*GREY_BAR)
         set_font(12, True)
-        pdf.cell(0, height, f" {sanitize_text(texto).upper()}", ln=1, fill=True)
+        pdf.cell(0, height, f" {texto.upper()}", ln=1, fill=True)
         pdf.ln(1.5)
 
     # === COLUNA ÚNICA: label à esquerda (largura fixa) + valor à direita (wrap) ===
@@ -768,7 +771,7 @@ def gerar_pdf(dados):
 def ui_card_start(title: str):
     st.markdown(f"""
         <div class='card'>
-            <div class='card-title'>{sanitize_text(title)}</div>
+            <div class='card-title'>{ui_text(title)}</div>
     """, unsafe_allow_html=True)
 
 def ui_card_end():
