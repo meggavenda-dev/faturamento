@@ -97,7 +97,7 @@ class GitHubJSON:
             ).decode("utf-8")
 
             payload = {
-                "message": "Atualização Manual Faturamento — GABMA",
+                "message": "Atualização Manual Faturamento",
                 "content": encoded,
                 "sha": sha,
                 "branch": self.branch,
@@ -253,77 +253,77 @@ CSS_GLOBAL = f"""
 def ui_text(value):
     if not value:
         return ""
-    return sanitize_text(value)
-    
+    return sanitize_text(value)   
+
+
+
+
 def fix_technical_spacing(txt: str) -> str:
     if not txt:
         return ""
 
     urls = {}
-
     def _url_replacer(match):
         key = f"\u0000{len(urls)}\u0000"
         urls[key] = match.group(0)
         return key
 
-    # 1️⃣ PROTEGE URLs (AGORA FUNCIONA)
+    # 1) Protege URLs para não inserir espaços no meio delas
     txt = re.sub(r"https?://[^\s<>\"']+", _url_replacer, txt)
 
-    # 2️⃣ número + palavra (90dias → 90 dias)
-    txt = re.sub(r"(\d)([a-záéíóúãõç])", r"\1 \2", txt, flags=re.IGNORECASE)
+    # 2) Espaço entre Números e Letras (ex: 90dias -> 90 dias)
+    txt = re.sub(r"(\d)([A-Za-zÁÉÍÓÚÂÊÔÃÕÀÇáéíóúâêôãõàç])", r"\1 \2", txt)
+    txt = re.sub(r"([A-Za-zÁÉÍÓÚÂÊÔÃÕÀÇáéíóúâêôãõàç])(\d)", r"\1 \2", txt)
 
-    # 3️⃣ palavra + número (DAS12 → DAS 12)
-    txt = re.sub(r"([a-záéíóúãõç])(\d)", r"\1 \2", txt, flags=re.IGNORECASE)
+    # 3) Espaço após pontuação se estiver colado (ex: fechar.> -> fechar. >)
+    # Ignora pontos decimais em números
+    txt = re.sub(r"(?<!\d)\.(?=[^\s\d])", ". ", txt)
+    txt = re.sub(r":(?!\s)", ": ", txt)
+    txt = re.sub(r";(?!\s)", "; ", txt)
 
-    # 4️⃣ casos reais conhecidos (ANTES das genéricas)
+    # 4) Espaços ao redor de operadores e delimitadores técnicos
+    txt = re.sub(r"\s*>\s*", " > ", txt)
+    txt = re.sub(r"\s*/\s*", " / ", txt)
+    
+    # 5) Correções específicas de colagem comuns em faturamento
     correcoes = {
-        r"\bPELASMARTKIDS\b": "PELA SMARTKIDS",
-        r"\bserpediatria\b": "ser pediatria",
-        r"\bdepacote\b": "de pacote",
-        r"\bdiasútil\b": "dias útil",
-        r"\bdiasuteis\b": "dias úteis",
-        r"\bDAS\s?(\d+)": r"DAS \1",
+        r"PELASMARTKIDS": "PELA SMARTKIDS",
+        r"serpediatria": "ser pediatria",
+        r"depacote": "de pacote",
+        r"diasútil": "dias útil",
+        r"às12:00": "às 12:00",
+        r"sófechar": "só fechar",
+        r"gera oXML": "gera o XML",
+        r"noSisAmil": "no SisAmil"
     }
-
     for erro, certo in correcoes.items():
         txt = re.sub(erro, certo, txt, flags=re.IGNORECASE)
 
-    # 5️⃣ sigla + palavra (XMLenvio)
-    txt = re.sub(r"([A-Z]{2,})([a-záéíóúãõç])", r"\1 \2", txt)
+    # 6) Bullets coladas (•Texto -> • Texto)
+    txt = re.sub(r"([•\-–—\*→])([^\s])", r"\1 \2", txt)
 
-    # 6️⃣ palavra + sigla (arquivoXML)
-    txt = re.sub(r"([a-záéíóúãõç])([A-Z]{2,})", r"\1 \2", txt)
-
-    # 7️⃣ bullets
-    txt = re.sub(r"([•\-–—])([^\s])", r"\1 \2", txt)
-
-    # 8️⃣ RESTAURA URLs
+    # 7) Restaura URLs
     for k, v in urls.items():
         txt = txt.replace(k, v)
 
     return txt
-    
+
+
 def sanitize_text(text: str) -> str:
     if not text:
         return ""
-
     txt = str(text)
-
-    # 1️⃣ Normalização Unicode CORRETA
+    # Normalização e remoção de caracteres invisíveis que causam colagem
     txt = unicodedata.normalize("NFKC", txt)
-
-    # 2️⃣ Converte espaços Unicode e invisíveis
-    txt = re.sub(r"[\u00A0\u1680\u180E\u2000-\u200A\u202F\u205F\u3000]", " ", txt)
-    txt = re.sub(r"[\u200B-\u200F\u202A-\u202E\u2060-\u206F]", "", txt)
-    txt = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", "", txt)
-
-    # 3️⃣ Correção semântica e espaçamento técnico (ÚNICO lugar)
+    txt = re.sub(r"[\u00A0\u200B-\u200F\uFEFF]", " ", txt) 
+    
+    # Aplica correções de espaçamento
     txt = fix_technical_spacing(txt)
-
-    # 4️⃣ Normalização de espaços
+    
+    # Remove espaços duplos
     txt = re.sub(r"[ \t]+", " ", txt)
+    return txt.strip()
 
-    return txt.replace("\r", "").strip()
     
 def normalize(value):
     if not value: return ""
@@ -373,79 +373,40 @@ def _split_token_preserving_delims(token: str):
     return segs
 
 def wrap_text(text, pdf, max_width):
-    """
-    Quebra texto respeitando largura. Para tokens longos (URLs etc.),
-    quebra por delimitadores SEM inserir espaços visíveis.
-    """
     if not text:
         return [""]
 
+    # Divide por espaços preservando a intenção original
     words = text.split(" ")
     lines, current = [], ""
 
     def width(s): return pdf.get_string_width(s)
 
     for w in words:
-        if w == "":
-            candidate = (current + " ") if current else " "
-            if width(candidate) <= max_width:
-                current = candidate
-            else:
-                if current:
-                    lines.append(current)
-                current = ""
-            continue
-
-        # Palavra longa com delimitadores
-        if any(ch in w for ch in "/?&=._-"):
+        if not w: continue
+        
+        # Se for uma URL ou texto com delimitadores, usamos a lógica de quebra por caractere
+        if any(ch in w for ch in "/?&=._-") and width(w) > max_width:
             segments = _split_token_preserving_delims(w)
             for seg in segments:
-                if current == "":
-                    if width(seg) <= max_width:
-                        current = seg
-                    else:
-                        for piece in chunk_text(seg, max_width // 3 or 1):
-                            if width(piece) > max_width and len(piece) > 1:
-                                piece = piece[:1]
-                            if current:
-                                lines.append(current)
-                            current = piece
+                candidate = current + seg
+                if width(candidate) <= max_width:
+                    current = candidate
                 else:
-                    candidate = current + seg  # sem espaço
-                    if width(candidate) <= max_width:
-                        current = candidate
-                    else:
-                        lines.append(current)
-                        if width(seg) <= max_width:
-                            current = seg
-                        else:
-                            for piece in chunk_text(seg, max_width // 3 or 1):
-                                if width(piece) > max_width and len(piece) > 1:
-                                    piece = piece[:1]
-                                if current:
-                                    lines.append(current)
-                                current = piece
+                    if current: lines.append(current)
+                    current = seg
             continue
 
-        # Palavra comum: usa espaço
+        # Palavra normal
         candidate = f"{current} {w}".strip() if current else w
         if width(candidate) <= max_width:
             current = candidate
         else:
-            if current:
-                lines.append(current)
-            if width(w) <= max_width:
-                current = w
-            else:
-                pieces = chunk_text(w, max_width // 3 or 1)
-                current = pieces[0]
-                for piece in pieces[1:]:
-                    lines.append(current)
-                    current = piece
+            if current: lines.append(current)
+            current = w
 
     if current:
         lines.append(current)
-
     return lines
 
 # ============================================================
@@ -587,7 +548,7 @@ def gerar_pdf(dados):
     # Título (barra azul) — SOMENTE NOME DO CONVÊNIO
     # --------------------------
     nome_conv = sanitize_text(safe_get(dados, "nome")).upper()
-    titulo_full = f"GUIA TÉCNICA: {nome_conv}" if nome_conv else "GUIA TÉCNICA"
+    titulo_full = f"MANUAL: {nome_conv}" if nome_conv else "GUIA TÉCNICA"
 
     pdf.set_fill_color(*BLUE)
     pdf.set_text_color(255, 255, 255)
@@ -705,9 +666,12 @@ def gerar_pdf(dados):
 
     headers = ["Prazo Envio", "Validade Guia", "XML / Versão", "Nota Fiscal", "Fluxo NF"]
 
+    
     xml_flag = safe_get(dados, "xml") or "—"
     xml_ver  = safe_get(dados, "versao_xml") or "—"
     xml_composto = f"{xml_flag} / {xml_ver}"
+    xml_composto = re.sub(r"(?<=\w)/(?!\s)", " / ", xml_composto)
+
 
     row = [
         safe_get(dados, "envio"),      # ex. "Data de envio: 01 ao 05 dias útil"
@@ -1083,7 +1047,7 @@ def main():
         """
         <br><br>
         <div style='text-align:center; color:#777; font-size:13px; padding:10px;'>
-            © 2026 — Manual de Faturamento GABMA<br>
+            © 2026 — Manual de Faturamento<br>
             Desenvolvido com design corporativo Microsoft/MV
         </div>
         """,
