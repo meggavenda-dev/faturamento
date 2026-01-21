@@ -1,5 +1,6 @@
 streamlit>=1.35.0
 streamlit-quill==0.0.3
+streamlit-paste-button
 requests==2.32.3
 beautifulsoup4==4.12.3
 Pillow>=10.0.0
