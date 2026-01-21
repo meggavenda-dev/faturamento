@@ -250,6 +250,53 @@ CSS_GLOBAL = f"""
 # ============================================================
 # 6. UTILITÁRIAS — Unicode + correção forte de espaços
 # ============================================================
+def fix_technical_spacing(txt: str) -> str:
+    """
+    Insere espaços em padrões colados (ex: 90dias -> 90 dias) 
+    e termos técnicos específicos da AMIL.
+    """
+    if not txt: return ""
+    
+    # 1. Separa Número de Letra (Ex: 90dias -> 90 dias | DAS12:00 -> DAS 12:00)
+    txt = re.sub(r"(\d)([A-Za-zÀ-ÖØ-öø-ÿ])", r"\1 \2", txt)
+    txt = re.sub(r"([A-Za-zÀ-ÖØ-öø-ÿ])(\d)", r"\1 \2", txt)
+    
+    # 2. Corrige palavras grudadas específicas identificadas no seu PDF
+    correcoes = {
+        r"serpediatria": "ser pediatria",
+        r"depacote": "de pacote",
+        r"maisatualizadas": "mais atualizadas",
+        r"ordemalfabética": "ordem alfabética",
+        r"paraenviar": "para enviar",
+        r"epesquisa": "e pesquisa",
+        r"deuerro": "deu erro",
+        r"sófechar": "só fechar",
+        r"noSisAmil": "no SisAmil",
+        r"ofaturamento": "o faturamento",
+        r"ofinanceiro": "o financeiro",
+        r"protocolosaparecerão": "protocolos aparecerão",
+        r"Finalizarfaturamento": "Finalizar faturamento",
+        r"PELASMARTKIDS": "PELA SMARTKIDS"
+    }
+    
+    for erro, corrigido in correcoes.items():
+        txt = re.sub(erro, corrigido, txt, flags=re.IGNORECASE)
+        
+    return txt
+
+def sanitize_text(text: str) -> str:
+    if text is None: return ""
+    # Normaliza e remove lixo Unicode
+    txt = unicodedata.normalize("NFC", str(text))
+    txt = re.sub(r"[\u00A0\u1680\u180E\u2000-\u200A\u202F\u205F\u3000]", " ", txt)
+    txt = re.sub(r"[\u200B-\u200F\u202A-\u202E\u2060-\u206F]", "", txt)
+    
+    # Aplica a correção de espaçamento técnico
+    txt = fix_technical_spacing(txt)
+    
+    # Colapsa múltiplos espaços em um só
+    txt = re.sub(r"[ \t]+", " ", txt)
+    return txt.strip()
 
 def sanitize_text(text: str) -> str:
     """
@@ -470,29 +517,30 @@ def _pdf_set_fonts(pdf: FPDF) -> str:
 
 def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
     lines_out = []
-    if not text:
-        return []
+    if not text: return []
 
-    text = sanitize_text(text)
-    paragraphs = text.split('\n')
+    # Higieniza o texto completo
+    raw_text = sanitize_text(text)
+    
+    # Divide por linhas mantendo parágrafos
+    raw_lines = raw_text.split("\n")
     bullet_re = re.compile(r"^\s*(?:[\u2022•\-–—\*]|->|→)\s*(.*)$")
 
-    for p in paragraphs:
-        if not p.strip():
+    for raw in raw_lines:
+        clean = raw.strip()
+        if not clean:
             lines_out.append(("", 0.0))
             continue
-        
-        # AQUI CHAMAMOS A FUNÇÃO DE CORREÇÃO DE ESPAÇOS
-        p_corrigido = fix_common_spacing_heuristics(p)
-        
-        m = bullet_re.match(p_corrigido)
+
+        # Verifica se é lista (bullet)
+        m = bullet_re.match(clean)
         if m:
             content = m.group(1).strip()
             wrapped = wrap_text("• " + content, pdf, usable_w - bullet_indent)
             for wline in wrapped:
                 lines_out.append((wline, bullet_indent))
         else:
-            wrapped = wrap_text(p_corrigido, pdf, usable_w)
+            wrapped = wrap_text(clean, pdf, usable_w)
             for wline in wrapped:
                 lines_out.append((wline, 0.0))
 
