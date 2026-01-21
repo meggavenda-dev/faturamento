@@ -2,7 +2,9 @@
 # ============================================================
 #  APP.PY — MANUAL DE FATURAMENTO (VERSÃO PREMIUM)
 #  ORGANIZADO • OTIMIZADO • SEGURO • COM ID ÚNICO
-#  CORRIGIDO: OBSERVAÇÕES CRÍTICAS (parágrafos + bullets)
+#  - PDF Unicode (DejaVu)
+#  - "2. CRONOGRAMA..." igual ao print (header cinza + padding)
+#  - Observações Críticas com parágrafos + bullets
 # ============================================================
 
 # ------------------------------------------------------------
@@ -19,11 +21,11 @@ import unicodedata
 import requests
 import pandas as pd
 from fpdf import FPDF
-
 import streamlit as st
 
 # ------------------------------------------------------------
 # 2. GITHUB DATABASE (Incluído no módulo — sem import externo)
+#    Seguro | Atômico | Anti-race | SHA locking | Cache curto
 # ------------------------------------------------------------
 class GitHubJSON:
     API_URL = "https://api.github.com/repos/{owner}/{repo}/contents/{path}"
@@ -47,6 +49,9 @@ class GitHubJSON:
             "Accept": "application/vnd.github.v3+json",
         }
 
+    # ============================
+    # LOAD — Leitura segura (200ms)
+    # ============================
     def load(self, force=False):
         now = time.time()
         if not force and self._cache_data is not None:
@@ -57,6 +62,7 @@ class GitHubJSON:
         r = requests.get(url, headers=self.headers, params={"ref": self.branch})
 
         if r.status_code == 404:
+            # Arquivo não existe — retorna base vazia
             self._cache_data = []
             self._cache_sha = None
             self._cache_time = now
@@ -77,8 +83,12 @@ class GitHubJSON:
 
         return data, sha
 
+    # ============================================
+    # SAVE — Salvamento atômico com SHA locking
+    # ============================================
     def save(self, new_data, retries=8):
         for attempt in range(retries):
+            # SHA sempre atualizado
             _, sha = self.load(force=True)
 
             url = self.API_URL.format(owner=self.owner, repo=self.repo, path=self.path)
@@ -95,18 +105,23 @@ class GitHubJSON:
 
             r = requests.put(url, headers=self.headers, json=payload)
 
+            # SALVO COM SUCESSO
             if r.status_code in (200, 201):
                 body = r.json()
                 new_sha = body["content"]["sha"]
+
+                # Atualiza cache
                 self._cache_data = new_data
                 self._cache_sha = new_sha
                 self._cache_time = time.time()
                 return True
 
+            # SHA inválido => arquivo mudou no GitHub => retry exponencial
             if r.status_code == 409:
                 time.sleep((2 ** attempt) * 0.15 + random.random() * 0.2)
                 continue
 
+            # Rate limit
             if r.status_code == 403 and "rate" in r.text.lower():
                 time.sleep(2 + random.random())
                 continue
@@ -115,6 +130,9 @@ class GitHubJSON:
 
         raise TimeoutError("Falha ao salvar após múltiplas tentativas.")
 
+    # =================================================
+    # UPDATE — Carregar, alterar e salvar com atomicidade
+    # =================================================
     def update(self, update_fn):
         for attempt in range(8):
             data, _ = self.load(force=True)
@@ -176,24 +194,57 @@ OPCOES_NF = ["Sim", "Não"]
 OPCOES_FLUXO_NF = ["Envia XML sem nota", "Envia NF junto com o lote"]
 
 # ------------------------------------------------------------
-# 5. CSS + HEADER
+# 5. CSS GLOBAL + HEADER FIXO
 # ------------------------------------------------------------
 CSS_GLOBAL = f"""
 <style>
-  .block-container {{ padding-top: 6rem !important; max-width: 1200px !important; }}
-  .header-premium {{
-    position: fixed; top: 0; left: 0; width: 100%; height: 70px;
-    background: rgba(255,255,255,0.85); backdrop-filter: blur(10px);
-    border-bottom: 1px solid {PRIMARY_COLOR}33; display: flex; align-items: center;
-    padding: 0 40px; z-index: 999; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  .block-container {{
+      padding-top: 6rem !important;
+      max-width: 1200px !important;
   }}
-  .header-title {{ font-size: 24px; font-weight: 700; color: {PRIMARY_COLOR}; letter-spacing: -0.5px; }}
-  .card {{ background: #fff; padding: 24px; border-radius: 8px; border: 1px solid #e1e4e8;
-           box-shadow: 0 4px 6px rgba(0,0,0,0.03); margin-bottom: 24px; }}
-  .card-title {{ font-size: 20px; font-weight: 700; margin-bottom: 15px; color: {PRIMARY_COLOR}; }}
-  .stButton > button {{ background-color: {PRIMARY_COLOR} !important; color: #fff !important; border-radius: 6px !important; }}
+  .header-premium {{
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 70px;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid {PRIMARY_COLOR}33;
+      display: flex; align-items: center;
+      padding: 0 40px; z-index: 999;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  }}
+  .header-title {{
+      font-size: 24px; font-weight: 700;
+      color: {PRIMARY_COLOR};
+      letter-spacing: -0.5px;
+      display: flex; align-items: center; gap: 10px;
+  }}
+  .card {{
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 8px;
+      border: 1px solid #e1e4e8;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.03);
+      margin-bottom: 24px;
+  }}
+  .card-title {{
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 15px;
+      color: {PRIMARY_COLOR};
+  }}
+  .stButton > button {{
+      background-color: {PRIMARY_COLOR} !important;
+      color: white !important;
+      border-radius: 6px !important;
+      padding: 8px 18px !important;
+      font-weight: 600 !important;
+      border: none !important;
+  }}
+  .stButton > button:hover {{ background-color: #16375E !important; }}
 </style>
-<div class="header-premium"><span class="header-title">💼 Manual de Faturamento</span></div>
+<div class="header-premium">
+    <span class="header-title">💼 Manual de Faturamento</span>
+</div>
 """
 st.markdown(CSS_GLOBAL, unsafe_allow_html=True)
 
@@ -201,11 +252,16 @@ st.markdown(CSS_GLOBAL, unsafe_allow_html=True)
 # 6. UTILITÁRIAS (Unicode + sanitização)
 # ============================================================
 def sanitize_text(text: str) -> str:
+    """
+    Normaliza para NFC (caracteres compostos, ideal p/ PDF),
+    remove invisíveis/controle e retorna string segura.
+    """
     if text is None:
         return ""
     txt = unicodedata.normalize("NFC", str(text))
-    txt = re.sub(r"[\u200B-\u200F\u202A-\u202E\u2060-\u206F]", "", txt)  # zero-width/direcionalidade
-    txt = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", "", txt)          # controle ASCII
+    # Remove zero-width e controles
+    txt = re.sub(r"[\u200B-\u200F\u202A-\u202E\u2060-\u206F]", "", txt)
+    txt = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", "", txt)
     return txt.replace("\r", "").strip()
 
 def normalize(value):
@@ -252,7 +308,7 @@ def _split_token_preserving_delims(token: str):
             i += 1
             continue
         if i + 1 < len(parts) and re.fullmatch(r"[/?&=._-]", parts[i+1] or ""):
-            seg += parts[i+1]
+            seg += parts[i+1]   # anexa o delimitador ao final
             i += 2
         else:
             i += 1
@@ -287,6 +343,7 @@ def wrap_text(text, pdf, max_width):
                 current = ""
             continue
 
+        # Palavra longa com delimitadores
         if any(ch in w for ch in "/?&=._-"):
             segments = _split_token_preserving_delims(w)
             for seg in segments:
@@ -294,6 +351,7 @@ def wrap_text(text, pdf, max_width):
                     if width(seg) <= max_width:
                         current = seg
                     else:
+                        # corta segmento grande
                         for piece in chunk_text(seg, max_width // 3 or 1):
                             if width(piece) > max_width and len(piece) > 1:
                                 piece = piece[:1]
@@ -317,6 +375,7 @@ def wrap_text(text, pdf, max_width):
                                 current = piece
             continue
 
+        # Palavra comum: usa espaço
         candidate = f"{current} {w}".strip() if current else w
         if width(candidate) <= max_width:
             current = candidate
@@ -338,9 +397,13 @@ def wrap_text(text, pdf, max_width):
     return lines
 
 # ============================================================
-# 8. PDF — fontes e OBSERVAÇÕES com parágrafos/bullets
+# 8. PDF — fontes, tabela do CRONOGRAMA e OBSERVAÇÕES
 # ============================================================
 def _pdf_set_fonts(pdf: FPDF) -> str:
+    """
+    Tenta usar DejaVu (Unicode). Se não achar, cai em Helvetica.
+    Compatível com FPDF 1.x e fpdf2.
+    """
     fonte_normal = "DejaVuSans.ttf"
     fonte_bold = "DejaVuSans-Bold.ttf"
     has_normal = os.path.exists(fonte_normal)
@@ -363,33 +426,25 @@ def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
     Retorna lista de (linha, indent_mm).
     """
     lines_out = []
-    # Normaliza quebras de linha
     raw_lines = sanitize_text(text or "").split("\n")
-
     bullet_re = re.compile(r"^\s*(?:[\u2022•\-–—\*]|->|→)\s*(.*)$")
 
     for raw in raw_lines:
-        # Linha em branco => separador de parágrafo
         if raw.strip() == "":
-            lines_out.append(("", 0.0))  # blank line para "respiro"
+            lines_out.append(("", 0.0))
             continue
 
-        # Colapsa espaços/tabs internos
         clean = re.sub(r"[ \t]+", " ", raw).strip()
 
-        # Detecta bullet
         m = bullet_re.match(clean)
         if m:
             text_item = m.group(1).strip()
-            # Préfixo bullet desenhado como caractere '• '
             bullet_prefix = "• "
             wrapped = wrap_text(bullet_prefix + text_item, pdf, usable_w - bullet_indent)
-            for idx, wline in enumerate(wrapped):
-                # Todas as linhas do item levam recuo
+            for wline in wrapped:
                 lines_out.append((wline, bullet_indent))
             continue
 
-        # Linha normal (não-bullet)
         wrapped = wrap_text(clean, pdf, usable_w)
         for wline in wrapped:
             lines_out.append((wline, 0.0))
@@ -402,13 +457,18 @@ def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
     return lines_out
 
 def gerar_pdf(dados):
+    """
+    Layout: título azul, Seção 1 (duas colunas),
+    Seção 2 (tabela 5 colunas idêntica ao print),
+    e 'Observações Críticas' multipágina.
+    """
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.set_margins(15, 12, 15)
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
     BLUE = (31, 73, 125)
-    GREY_BAR = (230, 230, 230)
+    GREY_BAR = (230, 230, 230)   # barra de seção
     TEXT = (0, 0, 0)
     CONTENT_W = pdf.w - pdf.l_margin - pdf.r_margin
 
@@ -420,7 +480,7 @@ def gerar_pdf(dados):
         except Exception:
             pdf.set_font("Helvetica", style, size)
 
-    # Helpers
+    # ---------- Helpers ----------
     def bar_title(texto, top_margin=3, height=8):
         pdf.ln(top_margin)
         pdf.set_fill_color(*GREY_BAR)
@@ -471,90 +531,85 @@ def gerar_pdf(dados):
 
         pdf.set_y(y)
 
-    
-def table(headers, rows, widths, header_h=8.0, cell_h=6.0, pad=2.0):
-    """
-    Tabela com:
-    - Cabeçalho cinza claro, textos centralizados
-    - Corpo com padding interno (pad) e quebra suave por coluna
-    - Bordas padrão, redesenha cabeçalho ao quebrar página
-    """
-    # Aparência do cabeçalho (como no print)
-    set_font(10, True)
-    pdf.set_fill_color(242, 242, 242)   # cinza claro do header
-    pdf.set_draw_color(180, 180, 180)   # borda suave
-    pdf.set_line_width(0.2)
-
-    # Desenha cabeçalho
-    x_base = pdf.l_margin
-    y_top  = pdf.get_y()
-    cur_x  = x_base
-
-    for i, head in enumerate(headers):
-        pdf.set_xy(cur_x, y_top)
-        pdf.cell(widths[i], header_h, sanitize_text(head), border=1, align="C", fill=True)
-        cur_x += widths[i]
-    pdf.ln(header_h)
-
-    # Corpo (linhas)
-    set_font(10, False)
-
-    def _draw_header_again():
-        """Redesenha o cabeçalho ao quebrar página (mesma aparência)."""
+    # --------------------------
+    # Tabela "2. CRONOGRAMA..." (igual ao print)
+    # --------------------------
+    def table(headers, rows, widths, header_h=8.0, cell_h=6.0, pad=2.0):
+        """
+        Tabela com:
+        - Cabeçalho cinza claro, textos centralizados
+        - Corpo com padding interno (pad) e quebra suave por coluna
+        - Bordas padrão, redesenha cabeçalho ao quebrar página
+        """
+        # Cabeçalho
         set_font(10, True)
-        pdf.set_fill_color(242, 242, 242)
-        pdf.set_draw_color(180, 180, 180)
+        pdf.set_fill_color(242, 242, 242)   # cinza claro do header (como no print)
+        pdf.set_draw_color(180, 180, 180)   # borda suave
         pdf.set_line_width(0.2)
 
-        xh = pdf.l_margin
-        yh = pdf.get_y()
-        cx = xh
-        for j, h in enumerate(headers):
-            pdf.set_xy(cx, yh)
-            pdf.cell(widths[j], header_h, sanitize_text(h), border=1, align="C", fill=True)
-            cx += widths[j]
+        x_base = pdf.l_margin
+        y_top  = pdf.get_y()
+        cur_x  = x_base
+
+        for i, head in enumerate(headers):
+            pdf.set_xy(cur_x, y_top)
+            pdf.cell(widths[i], header_h, sanitize_text(head), border=1, align="C", fill=True)
+            cur_x += widths[i]
         pdf.ln(header_h)
+
+        # Corpo
         set_font(10, False)
 
-    for row in rows:
-        # wrap por coluna com largura útil considerando o pad interno
-        wrapped_cols = []
-        max_lines = 1
-        for i, val in enumerate(row):
-            content_w = max(1, widths[i] - 2*pad)
-            lines = wrap_text(sanitize_text(val), pdf, content_w)
-            wrapped_cols.append(lines)
-            max_lines = max(max_lines, len(lines))
+        def _draw_header_again():
+            """Redesenha o cabeçalho ao quebrar página (mesma aparência)."""
+            set_font(10, True)
+            pdf.set_fill_color(242, 242, 242)
+            pdf.set_draw_color(180, 180, 180)
+            pdf.set_line_width(0.2)
 
-        row_h = max_lines * cell_h + 2*pad
+            xh = pdf.l_margin
+            yh = pdf.get_y()
+            cx = xh
+            for j, h in enumerate(headers):
+                pdf.set_xy(cx, yh)
+                pdf.cell(widths[j], header_h, sanitize_text(h), border=1, align="C", fill=True)
+                cx += widths[j]
+            pdf.ln(header_h)
+            set_font(10, False)
 
-        # Quebra de página com redesenho do header
-        if pdf.get_y() + row_h > pdf.page_break_trigger:
-            pdf.add_page()
-            _draw_header_again()
+        for row in rows:
+            wrapped_cols = []
+            max_lines = 1
+            for i, val in enumerate(row):
+                content_w = max(1, widths[i] - 2*pad)
+                lines = wrap_text(sanitize_text(val), pdf, content_w)
+                wrapped_cols.append(lines)
+                max_lines = max(max_lines, len(lines))
 
-        # Desenho da linha com padding interno
-        y_row = pdf.get_y()
-        cx = pdf.l_margin
-        for i, lines in enumerate(wrapped_cols):
-            # Moldura da célula
-            pdf.rect(cx, y_row, widths[i], row_h)
+            row_h = max_lines * cell_h + 2*pad
 
-            # Texto: alinhamento à esquerda, com padding (sem grudar na borda)
-            x_text = cx + pad
-            y_text = y_row + pad
-            for ln in lines:
-                pdf.set_xy(x_text, y_text)
-                pdf.cell(widths[i] - 2*pad, cell_h, ln)  # corpo à esquerda
-                y_text += cell_h
+            if pdf.get_y() + row_h > pdf.page_break_trigger:
+                pdf.add_page()
+                _draw_header_again()
 
-            cx += widths[i]
+            y_row = pdf.get_y()
+            cx = pdf.l_margin
+            for i, lines in enumerate(wrapped_cols):
+                pdf.rect(cx, y_row, widths[i], row_h)
 
-        pdf.ln(row_h)
+                x_text = cx + pad
+                y_text = y_row + pad
+                for ln in lines:
+                    pdf.set_xy(x_text, y_text)
+                    pdf.cell(widths[i] - 2*pad, cell_h, ln)  # corpo à esquerda
+                    y_text += cell_h
 
+                cx += widths[i]
+
+            pdf.ln(row_h)
 
     # --------------------------
-    # Título
+    # Título (barra azul)
     # --------------------------
     titulo_nome = sanitize_text(safe_get(dados, "nome")).upper()
     titulo_emp  = sanitize_text(safe_get(dados, "empresa")).upper()
@@ -587,15 +642,16 @@ def table(headers, rows, widths, header_h=8.0, cell_h=6.0, pad=2.0):
     pdf.ln(2.5)
 
     # --------------------------
-    # Seção 2 — Tabela
+    # Seção 2 — Cronograma (tabela como no print)
     # --------------------------
     bar_title("2. Cronograma e Regras Técnicas")
 
-    w1 = 52
-    w2 = 35
-    w3 = 35
-    w4 = 30
-    w5 = (pdf.w - pdf.l_margin - pdf.r_margin) - (w1 + w2 + w3 + w4)
+    # Larguras calibradas p/ quebrar "dias útil" e "sem nota"
+    w1 = 52   # Prazo Envio
+    w2 = 35   # Validade
+    w3 = 35   # XML / Versão
+    w4 = 30   # Nota Fiscal
+    w5 = (pdf.w - pdf.l_margin - pdf.r_margin) - (w1 + w2 + w3 + w4)  # ~ A4 width restante
     widths = [w1, w2, w3, w4, w5]
 
     headers = ["Prazo Envio", "Validade Guia", "XML / Versão", "Nota Fiscal", "Fluxo NF"]
@@ -604,15 +660,19 @@ def table(headers, rows, widths, header_h=8.0, cell_h=6.0, pad=2.0):
     xml_ver  = safe_get(dados, "versao_xml") or "—"
     xml_composto = f"{xml_flag} / {xml_ver}"
 
+    # DICA: se você quiser garantir a quebra "Envia XML" / "sem nota", pode gravar no banco com \n
+    # ex: "Envia XML\nsem nota". A função de wrap respeita quebras explícitas.
     row = [
-        safe_get(dados, "envio"),
-        safe_get(dados, "validade"),
-        xml_composto,
-        safe_get(dados, "nf"),
-        safe_get(dados, "fluxo_nf"),
+        safe_get(dados, "envio"),      # ex. "Data de envio: 01 ao 05 dias útil"
+        safe_get(dados, "validade"),   # "90"
+        xml_composto,                  # "Sim / 4.01.00"
+        safe_get(dados, "nf"),         # "Não"
+        safe_get(dados, "fluxo_nf"),   # "Envia XML sem nota"
     ]
-    table(headers, [row], widths, header_h=8, cell_h=7)
-    pdf.ln(2.5)
+
+    # Aparência: header_h=8, cell_h=6, pad=2 (igual ao print)
+    table(headers, [row], widths, header_h=8.0, cell_h=6.0, pad=2.0)
+    pdf.ln(2.0)
 
     # --------------------------
     # Observações Críticas — multipágina (com parágrafos + bullets)
@@ -629,16 +689,12 @@ def table(headers, rows, widths, header_h=8.0, cell_h=6.0, pad=2.0):
     usable_w = width - 2 * padding
     set_font(10, False)
 
-    # 1) Pré-expande em linhas embrulhadas com indentação
     wrapped_lines = build_wrapped_lines(obs_text, pdf, usable_w, line_h, bullet_indent=bullet_indent)
 
-    # 2) Paginador + desenho de caixa por página
     i = 0
     while i < len(wrapped_lines):
         y_top = pdf.get_y()
-        # espaço útil restante na página
         space = pdf.page_break_trigger - y_top
-        # Altura disponível para conteúdo do box na página (tirando bordas/padding)
         avail_h = max(0.0, space - 2 * padding - 0.5)
         lines_per_page = int(avail_h // line_h) if avail_h > 0 else 0
         if lines_per_page <= 0:
@@ -648,14 +704,11 @@ def table(headers, rows, widths, header_h=8.0, cell_h=6.0, pad=2.0):
         end = min(len(wrapped_lines), i + lines_per_page)
         slice_lines = wrapped_lines[i:end]
 
-        # Altura real do box nesta página
         box_h = 2 * padding + len(slice_lines) * line_h
         pdf.rect(left_margin, y_top, width, box_h)
 
-        # Desenho das linhas com indentação e padding
         x_text_base = left_margin + padding
         y_text = y_top + padding
-
         for (ln_text, indent_mm) in slice_lines:
             pdf.set_xy(x_text_base + indent_mm, y_text)
             pdf.cell(usable_w - indent_mm, line_h, ln_text)
@@ -668,7 +721,7 @@ def table(headers, rows, widths, header_h=8.0, cell_h=6.0, pad=2.0):
             pdf.add_page()
 
     # --------------------------
-    # Retorno seguro de bytes
+    # Retorno seguro (bytes)
     # --------------------------
     result = pdf.output(dest="S")
     if isinstance(result, str):        # FPDF 1.x
@@ -759,7 +812,10 @@ def page_cadastro():
         dados_conv = None
     else:
         conv_id = escolha.split(" — ")[0]
-        dados_conv = next((c for c in dados_atuais if str(c.get("id")) == str(conv_id)), None)
+        dados_conv = next(
+            (c for c in dados_atuais if str(c.get("id")) == str(conv_id)),
+            None
+        )
 
     ui_card_end()
 
@@ -768,6 +824,7 @@ def page_cadastro():
     with st.form(key=form_key):
         col1, col2, col3 = st.columns(3)
 
+        # COLUNA 1
         with col1:
             nome = st.text_input("Nome do Convênio", value=safe_get(dados_conv, "nome"))
             codigo = st.text_input("Código", value=safe_get(dados_conv, "codigo"))
@@ -775,20 +832,29 @@ def page_cadastro():
             valor_empresa = safe_get(dados_conv, "empresa")
             if valor_empresa not in EMPRESAS_FATURAMENTO:
                 valor_empresa = EMPRESAS_FATURAMENTO[0]
-            empresa = st.selectbox("Empresa Faturamento", EMPRESAS_FATURAMENTO,
-                                   index=EMPRESAS_FATURAMENTO.index(valor_empresa))
+            empresa = st.selectbox(
+                "Empresa Faturamento",
+                EMPRESAS_FATURAMENTO,
+                index=EMPRESAS_FATURAMENTO.index(valor_empresa)
+            )
 
             valor_sistema = safe_get(dados_conv, "sistema_utilizado")
             if valor_sistema not in SISTEMAS:
                 valor_sistema = SISTEMAS[0]
-            sistema = st.selectbox("Sistema", SISTEMAS, index=SISTEMAS.index(valor_sistema))
+            sistema = st.selectbox(
+                "Sistema",
+                SISTEMAS,
+                index=SISTEMAS.index(valor_sistema)
+            )
 
+        # COLUNA 2
         with col2:
             site = st.text_input("Site/Portal", value=safe_get(dados_conv, "site"))
             login = st.text_input("Login", value=safe_get(dados_conv, "login"))
             senha = st.text_input("Senha", value=safe_get(dados_conv, "senha"))
             retorno = st.text_input("Prazo Retorno", value=safe_get(dados_conv, "prazo_retorno"))
 
+        # COLUNA 3
         with col3:
             envio = st.text_input("Prazo Envio", value=safe_get(dados_conv, "envio"))
             validade = st.text_input("Validade da Guia", value=safe_get(dados_conv, "validade"))
@@ -803,6 +869,7 @@ def page_cadastro():
                 valor_nf = "Sim"
             nf = st.radio("Exige Nota Fiscal?", OPCOES_NF, index=OPCOES_NF.index(valor_nf))
 
+        # XML/NF
         colA, colB = st.columns(2)
         with colA:
             valor_versao = safe_get(dados_conv, "versao_xml")
@@ -825,11 +892,22 @@ def page_cadastro():
 
         if submit:
             novo_registro = {
-                "nome": nome, "codigo": codigo, "empresa": empresa, "sistema_utilizado": sistema,
-                "site": site, "login": login, "senha": senha, "prazo_retorno": retorno,
-                "envio": envio, "validade": validade, "xml": xml, "nf": nf,
-                "versao_xml": versao_xml, "fluxo_nf": fluxo_nf,
-                "config_gerador": config_gerador, "doc_digitalizacao": doc_digitalizacao,
+                "nome": nome,
+                "codigo": codigo,
+                "empresa": empresa,
+                "sistema_utilizado": sistema,
+                "site": site,
+                "login": login,
+                "senha": senha,
+                "prazo_retorno": retorno,
+                "envio": envio,
+                "validade": validade,
+                "xml": xml,
+                "nf": nf,
+                "versao_xml": versao_xml,
+                "fluxo_nf": fluxo_nf,
+                "config_gerador": config_gerador,
+                "doc_digitalizacao": doc_digitalizacao,
                 "observacoes": observacoes,
             }
 
@@ -843,18 +921,23 @@ def page_cadastro():
                         dados_atuais[i] = novo_registro
                         break
 
+            # SALVAR NO GITHUB
             if db.save(dados_atuais):
                 st.success(f"✔ Convênio {novo_registro['id']} salvo com sucesso!")
 
+                # LIMPA CACHE DO BANCO
                 db._cache_data = None
                 db._cache_sha = None
                 db._cache_time = 0.0
 
+                # LIMPA ESTADO DO STREAMLIT
                 st.session_state.clear()
+
                 time.sleep(1)
                 st.rerun()
 
-    if dados_conv:
+    # BOTÃO PDF
+    if 'dados_conv' in locals() and dados_conv:
         st.download_button(
             "📥 Baixar PDF do Convênio",
             gerar_pdf(dados_conv),
@@ -863,14 +946,17 @@ def page_cadastro():
         )
 
 # ============================================================
-# 11. CONSULTA & VISUALIZAR BANCO
+# 11. PÁGINA — CONSULTA DE CONVÊNIOS
 # ============================================================
 def page_consulta(dados_atuais):
     if not dados_atuais:
         st.info("Nenhum convênio cadastrado.")
         return
 
-    opcoes = sorted([f"{safe_get(c,'id')} || {safe_get(c,'nome')}" for c in dados_atuais])
+    opcoes = sorted([
+        f"{safe_get(c,'id')} || {safe_get(c,'nome')}"
+        for c in dados_atuais
+    ])
     escolha = st.selectbox("Selecione o convênio:", opcoes)
     conv_id = escolha.split(" || ")[0]
 
@@ -909,29 +995,49 @@ def page_consulta(dados_atuais):
 
     st.caption("Manual de Faturamento — Visualização Premium")
 
+# ============================================================
+# 12. PÁGINA — VISUALIZAR TODO O BANCO
+# ============================================================
 def page_visualizar_banco(dados_atuais):
     ui_card_start("📋 Banco de Dados Completo")
+
     if dados_atuais:
         df = pd.DataFrame(dados_atuais)
         st.dataframe(df, use_container_width=True)
     else:
         st.info("⚠️ Banco vazio.")
+
     ui_card_end()
 
 # ============================================================
-# 12. MAIN
+# 13. MAIN APP — ROTEAMENTO, CARREGAMENTO E ESTRUTURA FINAL
 # ============================================================
 def main():
-    st.set_page_config(page_title="💼 Manual de Faturamento", layout="wide")
+    st.set_page_config(
+        page_title="💼 Manual de Faturamento",
+        layout="wide"
+    )
+
+    # Carregar banco do GitHub
     dados_atuais, _ = db.load()
 
+    # Sidebar — Navegação
     st.sidebar.title("📚 Navegação")
-    menu = st.sidebar.radio("Selecione a página:", ["Cadastrar / Editar", "Consulta de Convênios", "Visualizar Banco"])
+    menu = st.sidebar.radio(
+        "Selecione a página:",
+        [
+            "Cadastrar / Editar",
+            "Consulta de Convênios",
+            "Visualizar Banco"
+        ]
+    )
+
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 🔄 Atualizar Sistema")
     if st.sidebar.button("Recarregar"):
         st.rerun()
 
+    # Roteamento
     if menu == "Cadastrar / Editar":
         page_cadastro()
     elif menu == "Consulta de Convênios":
@@ -939,6 +1045,7 @@ def main():
     elif menu == "Visualizar Banco":
         page_visualizar_banco(dados_atuais)
 
+    # Rodapé
     st.markdown(
         """
         <br><br>
@@ -950,5 +1057,6 @@ def main():
         unsafe_allow_html=True
     )
 
+# Executar aplicação
 if __name__ == "__main__":
     main()
