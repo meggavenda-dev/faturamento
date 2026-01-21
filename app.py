@@ -539,26 +539,22 @@ def gerar_pdf(dados):
     GREY_BAR = (230, 230, 230)
     TEXT = (0, 0, 0)
     CONTENT_W = pdf.w - pdf.l_margin - pdf.r_margin
-
-    # 3. CARREGAR E ATIVAR FONTE IMEDIATAMENTE (Essencial para build_wrapped_lines)
-    FONT_FAMILY = _pdf_set_fonts(pdf)
-    pdf.set_font(FONT_FAMILY, '', 10) # <--- Ativa a fonte para cálculos de largura
     
-    # 4. Definições de medidas
+    # 1. ATIVAR FONTE PARA CÁLCULOS
+    FONT_FAMILY = _pdf_set_fonts(pdf)
+    pdf.set_font(FONT_FAMILY, '', 10) 
+    
     line_h = 6.6
     padding = 1.8
     bullet_indent = 4.0
     usable_w = CONTENT_W - 2 * padding
 
-    # 5. Processamento do texto rico (Quill/HTML)
     obs_text_raw = safe_get(dados, "observacoes")
     obs_text = clean_html(obs_text_raw) 
-    
-    # Agora build_wrapped_lines não dará erro porque a fonte está setada no pdf
     wrapped_lines = build_wrapped_lines(obs_text, pdf, usable_w, line_h, bullet_indent=bullet_indent)
 
     # ---------- Helpers ----------
-    def apply_font(size=10, bold=False):
+   def apply_font(size=10, bold=False):
         style = "B" if bold else ""
         try:
             pdf.set_font(FONT_FAMILY, style, size)
@@ -572,52 +568,37 @@ def gerar_pdf(dados):
         pdf.cell(0, height, f" {texto.upper()}", ln=1, fill=True)
         pdf.ln(1.5)
 
-    # === COLUNA ÚNICA: label à esquerda (largura fixa) + valor à direita (wrap) ===
-    def one_column_info(pares, label_w=30, line_h=6.8, gap_y=1.6, val_size=10):
-        """
-        Desenha pares ("Label", "Valor") em UMA coluna:
-        - label com largura fixa (label_w)
-        - valor ocupa (CONTENT_W - label_w)
-        - respeita quebra de página e quebra de linha (wrap_text)
-        """
+    def one_column_info(pares, label_w=30, line_h_val=6.8, gap_y=1.6, val_size=10):
         x = pdf.l_margin
         y = pdf.get_y()
-        col_w = CONTENT_W
-        usable_w = col_w - label_w
+        u_w = CONTENT_W - label_w
 
         for (label, value) in pares:
             label = label or ""
             value = value or ""
-
-            # mede linhas do valor
-            set_font(val_size, False)
+            apply_font(val_size, False) # <--- CORRIGIDO DE set_font PARA apply_font
             value = sanitize_text(value)
-            lines = wrap_text(value, pdf, max(1, usable_w))
-            needed_h = max(1, len(lines)) * line_h
+            lines = wrap_text(value, pdf, max(1, u_w))
+            needed_h = max(1, len(lines)) * line_h_val
 
-            # quebra de página preventiva
             if y + needed_h > pdf.page_break_trigger:
                 pdf.add_page()
+                apply_font(val_size, False)
                 y = pdf.get_y()
 
-            # desenha label
-            set_font(10, True)
+            apply_font(10, True) # <--- CORRIGIDO
             pdf.set_xy(x, y)
-            pdf.cell(label_w, line_h, f"{label}:")
+            pdf.cell(label_w, line_h_val, f"{label}:")
 
-            # desenha primeira linha do valor
-            set_font(val_size, False)
+            apply_font(val_size, False) # <--- CORRIGIDO
             pdf.set_xy(x + label_w, y)
-            pdf.cell(usable_w, line_h, lines[0] if lines else "")
+            pdf.cell(u_w, line_h_val, lines[0] if lines else "")
 
-            # linhas seguintes (se houver)
             for i in range(1, len(lines)):
-                pdf.set_xy(x + label_w, y + i * line_h)
-                pdf.cell(usable_w, line_h, lines[i])
+                pdf.set_xy(x + label_w, y + i * line_h_val)
+                pdf.cell(u_w, line_h_val, lines[i])
 
-            # avança Y
             y = y + needed_h + gap_y
-
         pdf.set_y(y)
 
     # --------------------------
