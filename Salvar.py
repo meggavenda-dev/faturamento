@@ -286,11 +286,27 @@ def fix_technical_spacing(txt: str) -> str:
     # 6️⃣ palavra → sigla
     txt = re.sub(r"([a-záéíóúãõç])([A-Z]{2,})", r"\1 \2", txt)
 
-    # 7️⃣ Casos técnicos
+    
+    # 7️⃣ Casos técnicos (português + domínio)
     txt = re.sub(r"\b(dias)(úteis|útil)\b", r"\1 \2", txt, flags=re.IGNORECASE)
     txt = re.sub(r"\b(sem)(nota|nf)\b", r"\1 \2", txt, flags=re.IGNORECASE)
-    txt = re.sub(r"\b(às|as|das)(\d)", r"\1 \2", txt, flags=re.IGNORECASE)  # ex.: DAS12:00 -> DAS 12:00
+    
+    # 'às/as/das' + hora/minuto -> espaço antes do dígito
+    txt = re.sub(r"\b(às|as|das)(\d)", r"\1 \2", txt, flags=re.IGNORECASE)
+    
+    # número grudado em palavra (ex.: '90dias' -> '90 dias')
+    txt = re.sub(r"(\d)([^\W\d_])", r"\1 \2", txt, flags=re.UNICODE)
+    
+    # palavra grudada em número (ex.: 'às12:00' já coberto acima; aqui cobre 'ex3' etc.)
+    txt = re.sub(r"([^\W\d_])(\d)", r"\1 \2", txt, flags=re.UNICODE)
+    
+    # termos do seu domínio que chegam colados em várias fontes
+    txt = re.sub(r"\bPELASMARTKIDS\b", "PELA SMART KIDS", txt, flags=re.IGNORECASE)
+    txt = re.sub(r"\bserpediatria\b", "ser pediatria", txt, flags=re.IGNORECASE)
+    
+    # 'sitehttps://...' -> 'site https://...'
     txt = re.sub(r"\b(site)(https?://)", r"\1 \2", txt, flags=re.IGNORECASE)
+
 
     # 8️⃣ RESTAURA URLs
     for k, v in urls.items():
@@ -424,20 +440,22 @@ def wrap_text(text, pdf, max_width):
             continue
 
         # Palavra comum: usa espaço
-        candidate = f"{current} {w}".strip() if current else w
-        if width(candidate) <= max_width:
-            current = candidate
+        candidate = f"{current} {w}".strip() if current else w        
+        if width(w) <= max_width:
+            current = w
         else:
-            if current:
-                lines.append(current)
-            if width(w) <= max_width:
-                current = w
-            else:
+            # Evita cortar palavras normais: só chunk se for MUITO longa (provável URL/ID)
+            if len(w) >= 25:
                 pieces = chunk_text(w, max_width // 3 or 1)
                 current = pieces[0]
                 for piece in pieces[1:]:
                     lines.append(current)
                     current = piece
+            else:
+                # força quebra limpa de linha (não partir a palavra)
+                if current:
+                    lines.append(current)
+                current = w  # ficará na próxima linha por si só
 
     if current:
         lines.append(current)
@@ -541,55 +559,55 @@ def gerar_pdf(dados):
         pdf.ln(1.5)
 
     # === COLUNA ÚNICA: label à esquerda (largura fixa) + valor à direita (wrap) ===
-    def one_column_info(pares, label_w=30, line_h=6.8, gap_y=1.6, val_size=10):
-        """
-        Desenha pares ("Label", "Valor") em UMA coluna:
-        - label com largura fixa (label_w)
-        - valor ocupa (CONTENT_W - label_w)
-        - respeita quebra de página e quebra de linha (wrap_text)
-        """
-        x = pdf.l_margin
-        y = pdf.get_y()
-        col_w = CONTENT_W
-        usable_w = col_w - label_w
+   
+def one_column_info(pares, label_w=30, line_h=6.8, gap_y=1.6, val_size=10):
+    """
+    Desenha pares ("Label", "Valor") em UMA coluna:
+    - label com largura fixa (label_w)
+    - valor ocupa (CONTENT_W - label_w)
+    - respeita quebra de página e quebra de linha (wrap_text)
+    - insere NBSP no fim de linhas intermediárias para evitar 'colagem' ao copiar
+    """
+    x = pdf.l_margin
+    y = pdf.get_y()
+    col_w = CONTENT_W
+    usable_w = col_w - label_w
 
-        for (label, value) in pares:
-            label = label or ""
-            value = value or ""
+    for (label, value) in pares:
+        label = label or ""
+        value = sanitize_text(value or "")
 
-            # mede linhas do valor            
-            set_font(val_size, False)
-            pdf.set_xy(x + label_w, y)
-            first = lines[0] + ("\u00A0" if len(lines) > 1 else "")
-            pdf.cell(usable_w, line_h, first)
+        # mede linhas do valor
+        set_font(val_size, False)
+        lines = wrap_text(value, pdf, max(1, usable_w))
+        needed_h = max(1, len(lines)) * line_h
 
-            
+        # quebra de página preventiva
+        if y + needed_h > pdf.page_break_trigger:
+            pdf.add_page()
+            y = pdf.get_y()
 
-            # quebra de página preventiva
-            if y + needed_h > pdf.page_break_trigger:
-                pdf.add_page()
-                y = pdf.get_y()
+        # desenha label
+        set_font(10, True)
+        pdf.set_xy(x, y)
+        pdf.cell(label_w, line_h, f"{label}:")
 
-            # desenha label
-            set_font(10, True)
-            pdf.set_xy(x, y)
-            pdf.cell(label_w, line_h, f"{label}:")
+        # desenha valor (primeira + contínuas com NBSP)
+        set_font(val_size, False)
+        pdf.set_xy(x + label_w, y)
+        first = lines[0] + ("\u00A0" if len(lines) > 1 else "")
+        pdf.cell(usable_w, line_h, first)
 
-            # desenha primeira linha do valor
-            set_font(val_size, False)
-            pdf.set_xy(x + label_w, y)
-            pdf.cell(usable_w, line_h, lines[0] if lines else "")
+        for i in range(1, len(lines)):
+            pdf.set_xy(x + label_w, y + i * line_h)
+            cont = lines[i] + ("\u00A0" if i < len(lines) - 1 else "")
+            pdf.cell(usable_w, line_h, cont)
 
-            # linhas seguintes (se houver)
-            for i in range(1, len(lines)):
-                pdf.set_xy(x + label_w, y + i * line_h)
-                cont = lines[i] + ("\u00A0" if i < len(lines) - 1 else "")
-                pdf.cell(usable_w, line_h, cont)
+        # avança Y
+        y = y + needed_h + gap_y
 
-            # avança Y
-            y = y + needed_h + gap_y
+    pdf.set_y(y)
 
-        pdf.set_y(y)
 
     # --------------------------
     # Título (barra azul) — SOMENTE NOME DO CONVÊNIO
