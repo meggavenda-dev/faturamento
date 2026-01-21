@@ -181,19 +181,20 @@ class RotinasModule:
         )
 
         opcoes = ["+ Nova Rotina"] + [
-            f"{r.get('id')} — {self.safe_get(r, 'nome')}" for r in rotinas_atuais
+            f"{r.get('id')} — {self.safe_get(r, 'nome', 'Sem Nome')}" for r in rotinas_atuais
         ]
 
         escolha = st.selectbox("Selecione uma rotina para editar:", opcoes)
 
+        # Garantimos que dados_rotina seja ao menos um dict vazio para evitar TypeErrors
         if escolha == "+ Nova Rotina":
-            rotina_id = "novo"  # Usar uma string evita problemas de tipagem na key
-            dados_rotina = {}   # Dicionário vazio em vez de None
+            rotina_id = "novo" 
+            dados_rotina = {}
         else:
             rotina_id = escolha.split(" — ")[0]
             dados_rotina = next(
                 (r for r in rotinas_atuais if str(r.get("id")) == str(rotina_id)), 
-                {} # Default para dict vazio se não encontrar
+                {}
             )
 
         st.markdown("</div>", unsafe_allow_html=True)
@@ -223,13 +224,12 @@ class RotinasModule:
         # ============================================================
         st.markdown("##### 🖋️ Descrição Detalhada da Rotina")
 
+        # Buscamos o valor garantindo que o retorno seja string, nunca None
+        desc_inicial = str(self.safe_get(dados_rotina, "descricao", ""))
         
-        
-        # No arquivo rotinas_module.py
         descricao_html = st_quill(
-            # O "or ''" garante que se o safe_get retornar None, o Python use ''
-            value=self.safe_get(dados_rotina, "descricao", "") or "",
-            key=f"quill_rotina_{rotina_id}",
+            value=desc_inicial,
+            key=f"quill_editor_rotina_{rotina_id}", # Key única por ID
             placeholder="Digite o passo a passo completo da rotina...",
             theme="snow",
         )
@@ -240,23 +240,26 @@ class RotinasModule:
         # SALVAR
         # ============================================================
         if st.button("💾 Salvar Rotina", use_container_width=True):
-            if not nome:
-                st.error("O nome da rotina é obrigatório.")
-            else:
-                novo_registro = {
-                    "id": int(rotina_id) if rotina_id else self.generate_id(rotinas_atuais),
-                    "nome": nome,
-                    "setor": setor,
-                    "descricao": descricao_html,
-                }
-
-                if rotina_id is None:
-                    rotinas_atuais.append(novo_registro)
-                else:
-                    for i, r in enumerate(rotinas_atuais):
-                        if str(r.get("id")) == str(rotina_id):
-                            rotinas_atuais[i] = novo_registro
-                            break
+                    if not nome:
+                        st.error("O nome da rotina é obrigatório.")
+                    else:
+                        # Se id for "novo", geramos um novo, senão mantemos o original
+                        id_final = self.generate_id(rotinas_atuais) if rotina_id == "novo" else int(rotina_id)
+                        
+                        novo_registro = {
+                            "id": id_final,
+                            "nome": nome,
+                            "setor": setor,
+                            "descricao": descricao_html,
+                        }
+        
+                        if rotina_id == "novo":
+                            rotinas_atuais.append(novo_registro)
+                        else:
+                            for i, r in enumerate(rotinas_atuais):
+                                if str(r.get("id")) == str(rotina_id):
+                                    rotinas_atuais[i] = novo_registro
+                                    break
 
                 if self.db.save(rotinas_atuais):
                     st.success("✔ Rotina salva com sucesso!")
