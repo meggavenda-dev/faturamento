@@ -255,6 +255,7 @@ def ui_text(value):
         return ""
     return sanitize_text(value)
     
+
 def fix_technical_spacing(txt: str) -> str:
     if not txt:
         return ""
@@ -266,16 +267,25 @@ def fix_technical_spacing(txt: str) -> str:
         urls[key] = match.group(0)
         return key
 
-    # 1️⃣ PROTEGE URLs (AGORA FUNCIONA)
+    # 1) Protege URLs (sem espaços extras)
     txt = re.sub(r"https?://[^\s<>\"']+", _url_replacer, txt)
 
-    # 2️⃣ número + palavra (90dias → 90 dias)
-    txt = re.sub(r"(\d)([a-záéíóúãõç])", r"\1 \2", txt, flags=re.IGNORECASE)
+    # 2) number+word e word+number
+    txt = re.sub(r"(\d)([A-Za-zÁÉÍÓÚÂÊÔÃÕÀÇáéíóúâêôãõàç])", r"\1 \2", txt)
+    txt = re.sub(r"([A-Za-zÁÉÍÓÚÂÊÔÃÕÀÇáéíóúâêôãõàç])(\d)", r"\1 \2", txt)
 
-    # 3️⃣ palavra + número (DAS12 → DAS 12)
-    txt = re.sub(r"([a-záéíóúãõç])(\d)", r"\1 \2", txt, flags=re.IGNORECASE)
+    # 3) acrescenta espaço depois de dois-pontos quando vier colado ao próximo token
+    #    Ex.: "Site:https://..." -> "Site: https://..."
+    txt = re.sub(r":(?!\s)", ": ", txt)
 
-    # 4️⃣ casos reais conhecidos (ANTES das genéricas)
+    # 4) reforça espaços ao redor de barras quando há letras/dígitos dos dois lados
+    #    Ex.: "Sim/4.01.00" -> "Sim / 4.01.00"
+    txt = re.sub(r"(?<=\w)/(?!\s)", " / ", txt)
+    txt = re.sub(r"(?<!\s)/(?!\s)(?=\w)", " / ", txt)
+    # normaliza duplicações " /  / " eventuais
+    txt = re.sub(r"\s*/\s*", " / ", txt)
+
+    # 5) Correções conhecidas (antes das genéricas)
     correcoes = {
         r"\bPELASMARTKIDS\b": "PELA SMARTKIDS",
         r"\bserpediatria\b": "ser pediatria",
@@ -283,47 +293,51 @@ def fix_technical_spacing(txt: str) -> str:
         r"\bdiasútil\b": "dias útil",
         r"\bdiasuteis\b": "dias úteis",
         r"\bDAS\s?(\d+)": r"DAS \1",
+        # Casos vistos no PDF atual:
+        r"\b90dias\b": "90 dias",
+        r"\bàs12:00\b": "às 12:00",
+        r"\bSISAMIL\b": "SISAMIL",   # apenas normalização, caso venha grudado
     }
-
     for erro, certo in correcoes.items():
         txt = re.sub(erro, certo, txt, flags=re.IGNORECASE)
 
-    # 5️⃣ sigla + palavra (XMLenvio)
+    # 6) sigla + palavra / palavra + sigla
     txt = re.sub(r"([A-Z]{2,})([a-záéíóúãõç])", r"\1 \2", txt)
-
-    # 6️⃣ palavra + sigla (arquivoXML)
     txt = re.sub(r"([a-záéíóúãõç])([A-Z]{2,})", r"\1 \2", txt)
 
-    # 7️⃣ bullets
-    txt = re.sub(r"([•\-–—])([^\s])", r"\1 \2", txt)
+    # 7) bullets coladas no conteúdo: "•Texto" -> "• Texto"
+    txt = re.sub(r"([•\-–—\*→])([^\s])", r"\1 \2", txt)
 
-    # 8️⃣ RESTAURA URLs
+    # 8) Restaura URLs
     for k, v in urls.items():
         txt = txt.replace(k, v)
 
     return txt
+
     
-def sanitize_text(text: str) -> str:
+
+ef sanitize_text(text: str) -> str:
     if not text:
         return ""
 
     txt = str(text)
 
-    # 1️⃣ Normalização Unicode CORRETA
+    # 1) Normalização Unicode
     txt = unicodedata.normalize("NFKC", txt)
 
-    # 2️⃣ Converte espaços Unicode e invisíveis
+    # 2) Converte espaços Unicode e invisíveis
     txt = re.sub(r"[\u00A0\u1680\u180E\u2000-\u200A\u202F\u205F\u3000]", " ", txt)
     txt = re.sub(r"[\u200B-\u200F\u202A-\u202E\u2060-\u206F]", "", txt)
     txt = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", "", txt)
 
-    # 3️⃣ Correção semântica e espaçamento técnico (ÚNICO lugar)
+    # 3) Correção semântica e espaçamento técnico
     txt = fix_technical_spacing(txt)
 
-    # 4️⃣ Normalização de espaços
+    # 4) Normalização de espaços (mantém um espaço único)
     txt = re.sub(r"[ \t]+", " ", txt)
 
     return txt.replace("\r", "").strip()
+
     
 def normalize(value):
     if not value: return ""
@@ -708,6 +722,7 @@ def gerar_pdf(dados):
     xml_flag = safe_get(dados, "xml") or "—"
     xml_ver  = safe_get(dados, "versao_xml") or "—"
     xml_composto = f"{xml_flag} / {xml_ver}"
+    xml_composto = re.sub(r"(?<=\w)/(?!\s)", " / ", xml_composto)
 
     row = [
         safe_get(dados, "envio"),      # ex. "Data de envio: 01 ao 05 dias útil"
