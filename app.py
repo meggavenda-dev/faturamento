@@ -261,20 +261,33 @@ def fix_technical_spacing(txt: str) -> str:
         urls[key] = match.group(0)
         return key
 
-    # protege URLs
+    # 1️⃣ Protege URLs
     txt = re.sub(r"https?://\S+", _url_replacer, txt)
 
-    # número → letra
+    # 2️⃣ Número ↔ letra
     txt = re.sub(r"(\d)([^\W\d_])", r"\1 \2", txt, flags=re.UNICODE)
-
-    # letra → número
     txt = re.sub(r"([^\W\d_])(\d)", r"\1 \2", txt, flags=re.UNICODE)
 
+    # 3️⃣ Palavra colada (minúscula → maiúscula)
+    txt = re.sub(r"([a-záéíóúãõç])([A-ZÁÉÍÓÚÃÕÇ])", r"\1 \2", txt)
+
+    # 4️⃣ Palavra colada (acentuada → letra)
+    txt = re.sub(r"([áéíóúãõçÁÉÍÓÚÃÕÇ])([A-Za-z])", r"\1 \2", txt)
+
+    # 5️⃣ Sigla → palavra (XMLnovamente, NFsem, PDFgerado)
+    txt = re.sub(r"([A-Z]{2,})([a-záéíóúãõç])", r"\1 \2", txt)
+
+    # 6️⃣ Palavra → sigla (arquivoXML)
+    txt = re.sub(r"([a-záéíóúãõç])([A-Z]{2,})", r"\1 \2", txt)
+
+    # 7️⃣ Símbolo/bullet → letra
+    txt = re.sub(r"([•\-–—])([A-Za-zÁÉÍÓÚÃÕÇ])", r"\1 \2", txt)
+
+    # 8️⃣ Correções específicas conhecidas (residual)
     correcoes = {
         r"PEL A SMARTKIDS": "PELA SMARTKIDS",
         r"serpediatria": "ser pediatria",
         r"depacote": "de pacote",
-        r"XMLnovamente": "XML novamente",
         r"diasútil": "dias útil",
         r"diasuteis": "dias úteis",
     }
@@ -282,7 +295,7 @@ def fix_technical_spacing(txt: str) -> str:
     for erro, corrigido in correcoes.items():
         txt = re.sub(erro, corrigido, txt, flags=re.IGNORECASE)
 
-    # restaura URLs
+    # 9️⃣ Restaura URLs
     for key, url in urls.items():
         txt = txt.replace(key, url)
 
