@@ -266,9 +266,9 @@ def fix_technical_spacing(txt: str) -> str:
         urls[key] = match.group(0)
         return key
 
-    # 1️⃣ PROTEGE URLs PRIMEIRO
-    re.sub(r"https?://[^\s<>\"']+", _url_replacer, txt)
-    
+    # 1️⃣ PROTEGE URLs (AGORA FUNCIONA)
+    txt = re.sub(r"https?://[^\s<>\"']+", _url_replacer, txt)
+
     # 2️⃣ número + palavra (90dias → 90 dias)
     txt = re.sub(r"(\d)([a-záéíóúãõç])", r"\1 \2", txt, flags=re.IGNORECASE)
 
