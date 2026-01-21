@@ -222,6 +222,17 @@ VERSOES_TISS = [
     "3.04.01"
 ]
 
+# Opções de setor para as Rotinas do Setor
+SETORES_ROTINA = [
+    "Apoio e Controle",
+    "Faturamento - AMHP",
+    "Remessa - AMHP",
+    "Integralis - Faturamento",
+    "Integralis - Remessa",
+    "CTI - Faturamento",
+]
+
+
 EMPRESAS_FATURAMENTO = ["Integralis", "AMHP", "Outros"]
 SISTEMAS = ["Outros", "Orizon", "Benner", "Maida", "Facil", "Visual TISS", "Próprio"]
 
