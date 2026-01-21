@@ -194,7 +194,7 @@ OPCOES_NF = ["Sim", "Não"]
 OPCOES_FLUXO_NF = ["Envia XML sem nota", "Envia NF junto com o lote"]
 
 # ------------------------------------------------------------
-# 5. CSS GLOBAL + HEADER FIXO (aplicado dentro do main())
+# 5. CSS GLOBAL + HEADER FIXO (injetado no main)
 # ------------------------------------------------------------
 CSS_GLOBAL = f"""
 <style>
@@ -248,7 +248,7 @@ CSS_GLOBAL = f"""
 """
 
 # ============================================================
-# 6. UTILITÁRIAS (Unicode + sanitização com correção de espaços)
+# 6. UTILITÁRIAS — Unicode + correção forte de espaços
 # ============================================================
 def sanitize_text(text: str) -> str:
     """
@@ -259,7 +259,7 @@ def sanitize_text(text: str) -> str:
         return ""
     txt = unicodedata.normalize("NFC", str(text))
 
-    # Converte todos os espaços Unicode (categoria Zs) para ' '
+    # Converte TODOS os espaços Unicode (categoria Zs) para ' '
     txt = re.sub(r"[\u00A0\u1680\u180E\u2000-\u200A\u202F\u205F\u3000]", " ", txt)
 
     # Remove zero-width/direcionalidade e controles ASCII
@@ -293,7 +293,7 @@ def safe_get(d: dict, key: str, default=""):
     return sanitize_text(d.get(key, default))
 
 # ============================================================
-# 7. QUEBRA DE TEXTO (URLs, palavras longas)
+# 7. WRAP DE TEXTO (URLs, palavras longas) + utilidades
 # ============================================================
 def chunk_text(text, size):
     text = sanitize_text(text or "")
@@ -403,7 +403,7 @@ def wrap_text(text, pdf, max_width):
     return lines
 
 # ============================================================
-# 8. PDF — fontes, heurísticas e OBSERVAÇÕES com parágrafos/bullets
+# 8. PDF — fontes e OBSERVAÇÕES (parágrafos + bullets + correções de espaço)
 # ============================================================
 def _pdf_set_fonts(pdf: FPDF) -> str:
     """
@@ -428,7 +428,7 @@ def _pdf_set_fonts(pdf: FPDF) -> str:
 def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
     """
     Converte o texto de Observações em lista de (linha, indent_mm), preservando parágrafos
-    e bullets, e aplicando heurísticas mínimas para recuperar espaços tipicamente perdidos.
+    e bullets, e aplicando heurísticas para recuperar espaços tipicamente perdidos.
     """
     lines_out = []
     raw_lines = (sanitize_text(text or "")).split("\n")
@@ -439,7 +439,7 @@ def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
     def fix_common_spacing_heuristics(s: str) -> str:
         s0 = s
 
-        # Linha que é claramente URL
+        # URL inteira? Não altera (só deixa "Site: " fora da URL)
         is_url_line = s0.strip().lower().startswith(("http://", "https://"))
         contains_scheme = "://" in s0
 
@@ -447,13 +447,42 @@ def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
         if not is_url_line:
             s0 = re.sub(r":(?=\S)", ": ", s0)
 
-        # 2) Espaços entre dígito e letra / letra e dígito (ex.: 90dias → 90 dias / DAS12 → DAS 12)
+        # 2) Espaço entre dígito-letra e letra-dígito (90dias → 90 dias / DAS12 → DAS 12)
         if not is_url_line and not contains_scheme:
             s0 = re.sub(r"(\d)([A-Za-zÀ-ÖØ-öø-ÿ])", r"\1 \2", s0)
             s0 = re.sub(r"([A-Za-zÀ-ÖØ-öø-ÿ])(\d)", r"\1 \2", s0)
 
         # 3) Espaço após bullet colado (•DRA. → • DRA.)
         s0 = re.sub(r"(•)(?=\S)", r"\1 ", s0)
+
+        # 4) Split entre minúscula + MAIÚSCULA grudadas (ex.: "daAmil" → "da Amil")
+        if not is_url_line:
+            s0 = re.sub(r"([a-zà-ÿ])([A-ZÁ-Ú])", r"\1 \2", s0)
+
+        # 5) Espaço antes de "TUSS", "SisAmil", "Fhasso" quando grudados
+        if not is_url_line:
+            s0 = re.sub(r"([A-Za-zÀ-ÖØ-öø-ÿ])(?=TUSS\b)", r"\1 ", s0, flags=re.IGNORECASE)
+            s0 = re.sub(r"([A-Za-zÀ-ÖØ-öø-ÿ])(?=SisAmil\b)", r"\1 ", s0, flags=re.IGNORECASE)
+            s0 = re.sub(r"([A-Za-zÀ-ÖØ-öø-ÿ])(?=Fhasso\b)", r"\1 ", s0, flags=re.IGNORECASE)
+
+        # 6) Correções específicas frequentes (case-insensitive), sem afetar URLs
+        if not is_url_line and not contains_scheme:
+            fixes = {
+                r"\bparaenviar\b": "para enviar",
+                r"\bmaisatualizadas\b": "mais atualizadas",
+                r"\bordemalfabética\b": "ordem alfabética",
+                r"\bsófechar\b": "só fechar",
+                r"\bnovapágina\b": "nova página",
+                r"\bdeuerro\b": "deu erro",
+                r"\bofinanceiro\b": "o financeiro",
+                r"\bfinalizarfaturamento\b": "Finalizar faturamento",
+                r"\bprotocolosaparecerão\b": "protocolos aparecerão",
+                r"\bdepacote\b": "de pacote",
+                r"\bdevido problemas\b": "devido a problemas",
+                r"\bpelasmartkids\b": "PELA SMARTKIDS",
+            }
+            for pat, rep in fixes.items():
+                s0 = re.sub(pat, rep, s0, flags=re.IGNORECASE)
 
         return s0
 
@@ -579,10 +608,7 @@ def gerar_pdf(dados):
     # Título (barra azul) — SOMENTE NOME DO CONVÊNIO
     # --------------------------
     nome_conv = sanitize_text(safe_get(dados, "nome")).upper()
-    if nome_conv:
-        titulo_full = f"GUIA TÉCNICA: {nome_conv}"
-    else:
-        titulo_full = "GUIA TÉCNICA"
+    titulo_full = f"GUIA TÉCNICA: {nome_conv}" if nome_conv else "GUIA TÉCNICA"
 
     pdf.set_fill_color(*BLUE)
     pdf.set_text_color(255, 255, 255)
@@ -1086,4 +1112,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
