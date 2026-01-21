@@ -269,27 +269,33 @@ def fix_technical_spacing(txt: str) -> str:
     # 1️⃣ PROTEGE URLs PRIMEIRO
     re.sub(r"https?://[^\s<>\"']+", _url_replacer, txt)
     
-    # 7️⃣ casos técnicos
-    txt = re.sub(r"\b(dias)(úteis|útil)\b", r"\1 \2", txt, flags=re.IGNORECASE)
-    txt = re.sub(r"\b(sem)(nota|nf)\b", r"\1 \2", txt, flags=re.IGNORECASE)
-    txt = re.sub(r"(às)(\d)", r"\1 \2", txt, flags=re.IGNORECASE)
-    
+    # 2️⃣ número + palavra (90dias → 90 dias)
+    txt = re.sub(r"(\d)([a-záéíóúãõç])", r"\1 \2", txt, flags=re.IGNORECASE)
 
-    # 2️⃣ BULLETS
-    txt = re.sub(r"([•\-–—])([^\s])", r"\1 \2", txt)
+    # 3️⃣ palavra + número (DAS12 → DAS 12)
+    txt = re.sub(r"([a-záéíóúãõç])(\d)", r"\1 \2", txt, flags=re.IGNORECASE)
 
-    # 3️⃣ Número ↔ letra
-    txt = re.sub(r"(\d)([^\W\d_])", r"\1 \2", txt, flags=re.UNICODE)
-    txt = re.sub(r"([^\W\d_])(\d)", r"\1 \2", txt, flags=re.UNICODE)
+    # 4️⃣ casos reais conhecidos (ANTES das genéricas)
+    correcoes = {
+        r"\bPELASMARTKIDS\b": "PELA SMARTKIDS",
+        r"\bserpediatria\b": "ser pediatria",
+        r"\bdepacote\b": "de pacote",
+        r"\bdiasútil\b": "dias útil",
+        r"\bdiasuteis\b": "dias úteis",
+        r"\bDAS\s?(\d+)": r"DAS \1",
+    }
 
-    # 4️⃣ minúscula → Maiúscula
-    txt = re.sub(r"([a-záéíóúãõç])([A-ZÁÉÍÓÚÃÕÇ])", r"\1 \2", txt)
+    for erro, certo in correcoes.items():
+        txt = re.sub(erro, certo, txt, flags=re.IGNORECASE)
 
-    # 5️⃣ sigla → palavra
+    # 5️⃣ sigla + palavra (XMLenvio)
     txt = re.sub(r"([A-Z]{2,})([a-záéíóúãõç])", r"\1 \2", txt)
 
-    # 6️⃣ palavra → sigla
+    # 6️⃣ palavra + sigla (arquivoXML)
     txt = re.sub(r"([a-záéíóúãõç])([A-Z]{2,})", r"\1 \2", txt)
+
+    # 7️⃣ bullets
+    txt = re.sub(r"([•\-–—])([^\s])", r"\1 \2", txt)
 
     # 8️⃣ RESTAURA URLs
     for k, v in urls.items():
