@@ -118,5 +118,25 @@
         "doc_digitalizacao": "",
         "observacoes": "Listagem em ordem alfabética. Conferir sempre se a guia está digitada para a pessoa correta (dependente e titular tem a mesma carteirinha, então, as vezes o atendimento foi para o titular e é digitada para outro dependente por falta de atenção). A guia tem que ser emitida em guia própria, ou quando isso não acontece, eles ligam no convênio e põe a senha e o nome da pessoa que autorizou. Medcei sempre faz certo. Se atentar para as guias da CEO. É obrigatório a xerox do documento frente e VERSO e carteirinha do paciente. E se quem assinou a guia não for o paciente, tem que ter o documento frente e verso de quem assinou a guia. A assinatura tem que está exatamente igual, qualquer assinatura diferente é para devolver. \nNão passa o XML. Faz o fechamento no Fhasso para tirar a carta de aceite. Data de envio: do dia 25 ao dia 05. Envio pelo Chagas, Validade: conferir no contrato, cada clínica tem validade diferente.\n",
         "id": 6
+    },
+    {
+        "nome": "BENECAP - INTEGRALIS",
+        "codigo": "",
+        "empresa": "Integralis",
+        "sistema_utilizado": "Outros",
+        "site": "",
+        "login": "",
+        "senha": "",
+        "prazo_retorno": "",
+        "envio": "Até 05º dia útil",
+        "validade": "90",
+        "xml": "Não",
+        "nf": "Sim",
+        "versao_xml": "Não Envia",
+        "fluxo_nf": "Envia NF junto com o lote",
+        "config_gerador": "",
+        "doc_digitalizacao": "",
+        "observacoes": "Separar os 02 tipos de Benecap. Não passa XML. Só faz o fechamento no Fhasso para tirar a carta de aceite.\n \nData de envio: até 05º dia útil, Vai com NF (pedir as notas separadamente para as 2 Benecaps) e pelo Chaguinhas. \n\nValidade das guias: 90 dias.\n",
+        "id": 7
     }
 ]
