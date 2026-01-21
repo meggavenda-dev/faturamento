@@ -430,114 +430,52 @@ def _pdf_set_fonts(pdf: FPDF) -> str:
 
 def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
     """
-    Converte o texto de Observações em lista de (linha, indent_mm), preservando parágrafos
-    e bullets, e aplicando heurísticas de espaçamento e pontuação sem mexer em URLs.
+    Melhoria na formatação:
+    1. Preserva parágrafos (quebras de linha duplas).
+    2. Adiciona espaço após pontuação se estiver grudado.
+    3. Trata marcadores (bullets) com indentação correta.
     """
     lines_out = []
-    raw_lines = (sanitize_text(text or "")).split("\n")
+    if not text:
+        return []
+
+    # Normalização inicial: remove espaços Unicode problemáticos
+    text = sanitize_text(text)
+    
+    # Divide por parágrafos reais
+    paragraphs = text.split('\n')
 
     bullet_re = re.compile(r"^\s*(?:[\u2022•\-–—\*]|->|→)\s*(.*)$")
 
-    def fix_common_spacing_heuristics(s: str) -> str:
-        s0 = s
+    def fix_spacing(s: str) -> str:
+        # Garante espaço após ':' e ',' (exceto em URLs/Horários)
+        s = re.sub(r"([,;])(?!\s)", r"\1 ", s)
+        # Corrige palavras grudadas em números (ex: 90dias -> 90 dias)
+        s = re.sub(r"(\d)([A-Za-zÀ-ÿ])", r"\1 \2", s)
+        s = re.sub(r"([A-Za-zÀ-ÿ])(\d)", r"\1 \2", s)
+        # Remove espaços duplos
+        s = re.sub(r"\s{2,}", " ", s)
+        return s.strip()
 
-        # Linha que é claramente URL? (não altera nada nela)
-        is_url_line = s0.strip().lower().startswith(("http://", "https://"))
-        contains_scheme = "://" in s0  # linha contém uma URL em algum ponto
-
-        # 1) ":" grudado após rótulos → ": "
-        if not is_url_line:
-            s0 = re.sub(r":(?=\S)", ": ", s0)
-
-        # 2) Tempo "22: 00" → "22:00"
-        if not is_url_line:
-            s0 = re.sub(r"(\d)\s*:\s*(\d{2})(?!\d)", r"\1:\2", s0)
-
-        # 3) Remover espaço antes de pontuação e garantir 1 espaço após , ;
-        if not is_url_line:
-            s0 = re.sub(r"\s+([,.;:!?])", r"\1", s0)      # ... espaço antes de ,.;:!? → remove
-            s0 = re.sub(r"([,;])(?!\s)", r"\1 ", s0)      # vírgula/; seguidos de letra → adiciona espaço
-
-        # 4) Espaços ao redor de "/" (fora de URL): "a/b" ou "a  /  b" → "a / b"
-        if not is_url_line and not contains_scheme:
-            s0 = re.sub(r"\s*/\s*", " / ", s0)
-
-        # 5) Inserir espaço em casos colados comuns (fora de URL)
-        if not is_url_line and not contains_scheme:
-            # dígito+letra e letra+dígito
-            s0 = re.sub(r"(\d)([A-Za-zÀ-ÖØ-öø-ÿ])", r"\1 \2", s0)  # 90dias → 90 dias
-            s0 = re.sub(r"([A-Za-zÀ-ÖØ-öø-ÿ])(\d)", r"\1 \2", s0)  # DAS12 → DAS 12
-
-            # minúscula seguida de MAIÚSCULA (daAmil → da Amil)
-            s0 = re.sub(r"([a-zà-ÿ])([A-ZÁ-Ú])", r"\1 \2", s0)
-
-            # palavras‑chave que costumam grudar
-            keywords = ["XML", "TUSS", "SisAmil", "Fhasso", "Faturamento", "Amil", "SMARTKIDS", "OK"]
-            s0 = re.sub(r"([A-Za-zÀ-ÖØ-öø-ÿ])(?=(" + "|".join(keywords) + r")\b)", r"\1 ", s0)
-
-            # "DRA.MADIA" → "DRA. MADIA"
-            s0 = re.sub(r"\b(DRA\.)\s*(?=[A-Za-zÀ-ÖØ-öø-ÿ])", r"\1 ", s0, flags=re.IGNORECASE)
-
-            # Correções pontuais (case-insensitive)
-            fixes = {
-                r"\bserpediatria\b": "ser pediatria",
-                r"\bdepacote\b": "de pacote",
-                r"\bPRAELA\b": "PRA ELA",
-                r"\bmaisatualizadas\b": "mais atualizadas",
-                r"\bordemalfabética\b": "ordem alfabética",
-                r"\bparaenviar\b": "para enviar",
-                r"\bXMLnovamente\b": "XML novamente",
-                r"\bdofaturamento\b": "do faturamento",
-                r"\bdoprotocolo\b": "do protocolo",
-                r"\bepesquisa\b": "e pesquisa",
-                r"\bacrítica\b": "a crítica",
-                r"\bofaturamento\b": "o faturamento",
-                r"\bofinanceiro\b": "o financeiro",
-                r"\bASFATURAS\b": "AS FATURAS",
-                r"\bnovapágina\b": "nova página",
-                r"\bACESSARSISAMIL\b": "ACESSAR SISAMIL",
-                r"\bsófechar\b": "só fechar",
-                r"\bdeuerro\b": "deu erro",
-                r"\bprotocolosaparecerão\b": "protocolos aparecerão",
-                r"\bFinalizarfaturamento\b": "Finalizar faturamento",
-            }
-            for pat, rep in fixes.items():
-                s0 = re.sub(pat, rep, s0, flags=re.IGNORECASE)
-
-        # 6) Comprimir espaços repetidos que possam ter surgido
-        s0 = re.sub(r"\s{2,}", " ", s0)
-        return s0
-
-    for raw in raw_lines:
-        # Linha em branco → mantém parágrafo
-        if raw.strip() == "":
-            lines_out.append(("", 0.0))
+    for p in paragraphs:
+        if not p.strip():
+            lines_out.append(("", 0.0)) # Linha vazia para separar parágrafos
             continue
-
-        clean = re.sub(r"[ \t]+", " ", raw).strip()
-
-        # Bullet?
-        m = bullet_re.match(clean)
+        
+        # Verifica se é bullet point
+        m = bullet_re.match(p)
         if m:
-            content = m.group(1).strip()
-            content = fix_common_spacing_heuristics(content)
-            bullet_prefix = "• "
-            wrapped = wrap_text(bullet_prefix + content, pdf, usable_w - bullet_indent)
-            for wline in wrapped:
+            content = fix_spacing(m.group(1))
+            wrapped = wrap_text("• " + content, pdf, usable_w - bullet_indent)
+            for i, wline in enumerate(wrapped):
+                # A primeira linha do bullet tem o marcador, as outras apenas a indentação
                 lines_out.append((wline, bullet_indent))
-            continue
-
-        # Linha normal
-        clean = fix_common_spacing_heuristics(clean)
-        wrapped = wrap_text(clean, pdf, usable_w)
-        for wline in wrapped:
-            lines_out.append((wline, 0.0))
-
-    # Remove blanks redundantes no início/fim
-    while lines_out and lines_out[0][0] == "":
-        lines_out.pop(0)
-    while lines_out and lines_out[-1][0] == "":
-        lines_out.pop()
+        else:
+            # Linha normal de parágrafo
+            content = fix_spacing(p)
+            wrapped = wrap_text(content, pdf, usable_w)
+            for wline in wrapped:
+                lines_out.append((wline, 0.0))
 
     return lines_out
 
