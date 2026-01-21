@@ -1,11 +1,9 @@
 
 # ============================================================
 #  APP.PY — MANUAL DE FATURAMENTO (VERSÃO PREMIUM)
-#  ORGANIZADO • OTIMIZADO • SEGURO • COM ID ÚNICO
-#  - PDF Unicode (DejaVu)
-#  - "1. DADOS..." em COLUNA ÚNICA (um abaixo do outro)
-#  - "2. CRONOGRAMA..." igual ao print (header cinza + padding)
-#  - Observações Críticas com parágrafos + bullets
+#  COLUNA ÚNICA NA SEÇÃO 1 • TABELA DA SEÇÃO 2 IGUAL AO PRINT
+#  OBSERVAÇÕES CRÍTICAS COM PARÁGRAFOS + BULLETS
+#  PDF UNICODE (DejaVu) + WRAP DE URL SEM ESPAÇOS EXTRAS
 # ============================================================
 
 # ------------------------------------------------------------
@@ -40,7 +38,7 @@ class GitHubJSON:
 
         # Cache ultra-curto para evitar GET múltiplos desnecessários
         self._cache_data = None
-               self._cache_sha = None
+        self._cache_sha = None
         self._cache_time = 0.0
 
     @property
@@ -494,7 +492,7 @@ def gerar_pdf(dados):
         pdf.ln(1.5)
 
     # === COLUNA ÚNICA: label à esquerda (largura fixa) + valor à direita (wrap) ===
-    def one_column_info(pares, label_w=28, line_h=6.8, gap_y=1.2, val_size=10):
+    def one_column_info(pares, label_w=30, line_h=6.8, gap_y=1.6, val_size=10):
         """
         Desenha pares ("Label", "Valor") em UMA coluna:
         - label com largura fixa (label_w)
@@ -568,7 +566,6 @@ def gerar_pdf(dados):
         ("Retorno",  safe_get(dados, "prazo_retorno")),
         ("Sistema",  safe_get(dados, "sistema_utilizado")),
     ]
-    # label_w levemente maior (melhora alinhamento visual com labels curtos/longos)
     one_column_info(pares_unicos, label_w=30, line_h=6.8, gap_y=1.6, val_size=10)
     pdf.ln(2.0)
 
