@@ -294,55 +294,25 @@ def fix_technical_spacing(txt: str) -> str:
     return txt
 
 def sanitize_text(text: str) -> str:
+    """
+    Normaliza para NFC, limpa invisíveis e aplica correções técnicas de espaço.
+    """
     if text is None: return ""
     
     # Normaliza Unicode
     txt = unicodedata.normalize("NFC", str(text))
     
-    # Converte espaços Unicode/Invisíveis em espaços normais
+    # Converte TODOS os espaços Unicode e invisíveis em espaços normais
     txt = re.sub(r"[\u00A0\u1680\u180E\u2000-\u200A\u202F\u205F\u3000]", " ", txt)
-    txt = re.sub(r"[\u200B-\u200F\u202A-\u202E\u2060-\u206F]", "", txt)
-    
-    # APLICA A CORREÇÃO DE ESPAÇAMENTO TÉCNICO
-    txt = fix_technical_spacing(txt)
-    
-    # Colapsa múltiplos espaços em um só
-    txt = re.sub(r"[ \t]+", " ", txt)
-    return txt.strip()
-
-def sanitize_text(text: str) -> str:
-    if text is None: return ""
-    # Normaliza e remove lixo Unicode
-    txt = unicodedata.normalize("NFC", str(text))
-    txt = re.sub(r"[\u00A0\u1680\u180E\u2000-\u200A\u202F\u205F\u3000]", " ", txt)
-    txt = re.sub(r"[\u200B-\u200F\u202A-\u202E\u2060-\u206F]", "", txt)
-    
-    # Aplica a correção de espaçamento técnico
-    txt = fix_technical_spacing(txt)
-    
-    # Colapsa múltiplos espaços em um só
-    txt = re.sub(r"[ \t]+", " ", txt)
-    return txt.strip()
-
-def sanitize_text(text: str) -> str:
-    """
-    Normaliza para NFC, converte espaços Unicode em espaço ASCII,
-    remove invisíveis/controle e retorna string segura.
-    """
-    if text is None:
-        return ""
-    txt = unicodedata.normalize("NFC", str(text))
-
-    # Converte TODOS os espaços Unicode (categoria Zs) para ' '
-    txt = re.sub(r"[\u00A0\u1680\u180E\u2000-\u200A\u202F\u205F\u3000]", " ", txt)
-
-    # Remove zero-width/direcionalidade e controles ASCII
     txt = re.sub(r"[\u200B-\u200F\u202A-\u202E\u2060-\u206F]", "", txt)
     txt = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", "", txt)
-
-    # Colapsa múltiplos espaços/tabs em um único espaço
+    
+    # APLICA A CORREÇÃO DE ESPAÇAMENTO TÉCNICO (90 dias, etc)
+    txt = fix_technical_spacing(txt)
+    
+    # Colapsa múltiplos espaços em um só
     txt = re.sub(r"[ \t]+", " ", txt)
-
+    
     return txt.replace("\r", "").strip()
 
 def fix_common_spacing_heuristics(s: str) -> str:
