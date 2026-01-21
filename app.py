@@ -883,7 +883,7 @@ def page_cadastro():
                                       index=VERSOES_TISS.index(valor_versao))
         with colB:
             valor_fluxo = safe_get(dados_conv, "fluxo_nf")
-            if valor_fluxo não in OPCOES_FLUXO_NF:
+            if valor_fluxo not in OPCOES_FLUXO_NF:
                 valor_fluxo = OPCOES_FLUXO_NF[0]
             fluxo_nf = st.selectbox("Fluxo da Nota", OPCOES_FLUXO_NF,
                                     index=OPCOES_FLUXO_NF.index(valor_fluxo))
