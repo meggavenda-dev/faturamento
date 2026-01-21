@@ -10,8 +10,9 @@ import pandas as pd
 import time
 import re
 
-# 🔥 Import fixo (igual ao app principal)
+# Import do editor
 from streamlit_quill import st_quill
+# (Opcional) Import do botão de colar imagem — ainda não usado aqui
 from streamlit_paste_button import paste_image_button
 
 
@@ -51,7 +52,7 @@ class RotinasModule:
         self.setores_opcoes = list(setores_opcoes or [])
 
     # ============================================================
-    # LIMPEZA DE HTML (corrigido / igual ao módulo principal)
+    # LIMPEZA DE HTML (igual ao módulo principal)
     # ============================================================
     def _clean_html(self, raw_html: str) -> str:
         """Remove tags HTML e normaliza espaços — compatível com PDF premium."""
@@ -96,7 +97,7 @@ class RotinasModule:
         pdf.set_fill_color(*BLUE)
         pdf.set_text_color(255, 255, 255)
         set_font(18, True)
-        pdf.cell(0, 14, nome_rot, ln=1, align="C", fill=True)
+        pdf.cell(0, 14, nome_rot or "ROTINA", ln=1, align="C", fill=True)
         pdf.set_text_color(*TEXT)
         pdf.ln(5)
 
@@ -186,14 +187,14 @@ class RotinasModule:
 
         escolha = st.selectbox("Selecione uma rotina para editar:", opcoes)
 
-        # Garantimos que dados_rotina seja ao menos um dict vazio para evitar TypeErrors
+        # Garantimos que dados_rotina seja ao menos um dict vazio
         if escolha == "+ Nova Rotina":
-            rotina_id = "novo" 
+            rotina_id = "novo"
             dados_rotina = {}
         else:
             rotina_id = escolha.split(" — ")[0]
             dados_rotina = next(
-                (r for r in rotinas_atuais if str(r.get("id")) == str(rotina_id)), 
+                (r for r in rotinas_atuais if str(r.get("id")) == str(rotina_id)),
                 {}
             )
 
@@ -220,23 +221,21 @@ class RotinasModule:
             setor = st.text_input("Setor", value=setor_atual or "")
 
         # ============================================================
-        # 🖋️ EDITOR QUILL (corrigido + toolbar premium)
+        # 🖋️ EDITOR QUILL (mínimo compatível + HTML)
         # ============================================================
         st.markdown("##### 🖋️ Descrição Detalhada da Rotina")
 
-        # Buscamos o valor garantindo que o retorno seja string, nunca None
+        # Garante string (nunca None)
         desc_inicial = str(self.safe_get(dados_rotina, "descricao", ""))
-        
+
         descricao_html = st_quill(
             value=desc_inicial,
-            key=f"quill_editor_rotina_{rotina_id}", # Key única por ID
+            key=f"quill_editor_rotina_{rotina_id}",  # Key única por rotina
             placeholder="Digite o passo a passo completo da rotina...",
-            theme="snow",
+            html=True,  # >>> retorna HTML string (compatível com PDF)
+            # NÃO usar theme/modules/formats em versões antigas do streamlit-quill
         )
 
-
-
-       
         # ============================================================
         # SALVAR
         # ============================================================
@@ -244,16 +243,16 @@ class RotinasModule:
             if not nome:
                 st.error("O nome da rotina é obrigatório.")
             else:
-                # Se id for "novo", geramos um novo, senão mantemos o original
+                # Se id for "novo", geramos um novo; senão mantemos o original
                 id_final = self.generate_id(rotinas_atuais) if rotina_id == "novo" else int(rotina_id)
-        
+
                 novo_registro = {
                     "id": id_final,
                     "nome": nome,
                     "setor": setor,
-                    "descricao": descricao_html,
+                    "descricao": descricao_html,  # HTML salvo no JSON
                 }
-        
+
                 if rotina_id == "novo":
                     rotinas_atuais.append(novo_registro)
                 else:
@@ -261,13 +260,12 @@ class RotinasModule:
                         if str(r.get("id")) == str(rotina_id):
                             rotinas_atuais[i] = novo_registro
                             break
-        
+
                 if self.db.save(rotinas_atuais):
                     st.success("✔ Rotina salva com sucesso!")
                     self.db._cache_data = None
                     time.sleep(1)
                     st.rerun()
-        
 
         # ============================================================
         # DOWNLOAD PDF
