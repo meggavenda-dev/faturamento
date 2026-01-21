@@ -158,5 +158,25 @@
         "doc_digitalizacao": "",
         "observacoes": "Não tem uma data exata para enviar, chegou guia eu fecho e mando\n\nXML: https://www3.bcb.gov.br/pasbcmapa/login.aspx  \n\n1º passo: Faturamento> Transmitir Tiss XML > Novo (lado direito da tela)>clica no ícone amarelo (procurar arquivo)> escolher arquivo> enviar>salvar>transmitir>imprimir.\n\n2º passo: Gerar Lote >clica: capa de lote de todos pendentes > atualizar (tem que atualizar até todos os dados aparecerem) Clica em “Controle de Remessa de XML-Todos os protocolos pendentes.df”. Aí imprime 2 vias. Confere o nome do paciente (se a clínica tbm estiver mandando XML, tem que verificar qual a página que nos pertence).\n\n3º passo: escanear as guias\n\n4º passo: Aguardado Físico, clica na Lupa >novo>procurar arquivo (ícone amarelo)> escolher arquivo (procurar as guias que você escaneou) > enviar> salvar e imprimir.\n\nSó tirar aceite e enviar com os comprovantes impresso do site para o financeiro.\n",
         "id": 8
+    },
+    {
+        "nome": "CAPESESP - INTEGRALIS",
+        "codigo": "",
+        "empresa": "Integralis",
+        "sistema_utilizado": "Próprio",
+        "site": "http://k1qrd5-prd-protheus.totvscloud.com.br:11081/W_PWSX010.APW",
+        "login": "",
+        "senha": "",
+        "prazo_retorno": "",
+        "envio": "Dia 01 ao 05 (dia corrido). ",
+        "validade": "65",
+        "xml": "Sim",
+        "nf": "Não",
+        "versao_xml": "4.01.00",
+        "fluxo_nf": "Envia XML sem nota",
+        "config_gerador": "",
+        "doc_digitalizacao": "",
+        "observacoes": "SÓ PASSA CODIFICAÇÃO TUSS\n\nValidade das guias: 65 dias\n\nO envio do arquivo é do dia 01 ao 05 (dia corrido). Se dia 05 cair no final de semana, passar o arquivo no dia útil anterior. \n\nXML: http://k1qrd5-prd-protheus.totvscloud.com.br:11081/W_PWSX010.APW\n\nPegar login e senha no Fhasso.\n\nFaturamento>Enviar arquivo XML.Aguarda alguns minutos até aparecer se foi acatado ou se deu critica. Vai atualizando. Imprimir o comprovante do XML em 02 vias. \n\nObs: Os materiais e medicamento tem que está com codificação tuss, caso contrário o sistema não acata o arquivo. \n\nApós acatado, verificar se o valor bate com o do nosso relatório. \n\n2º passo:\n\nAcessar: https://servicos.capesesp.com.br/menus/prestadores_servicos.php\n\nQuando acessar o link, vai aparecer vários “itens” (médico-hospitalar, odontológico, Outros). Abaixo do “Outros” tem a ‘Interações de rede credenciada Novo’. Põe login e senha (geralmente é diferente do que passa XML, o da pasta do financeiro da certo). \n\nVai em ‘Nova Solicitação’> seleciona: encaminhamento de processos digitalizados. Preenche todos os campos (o n° da peg é o nº do protocolo que tem na capa do arquivo xml) seleciona o arquivo e OK. Tira print do comprovante que é o nº de protocolo que aparece após enviar a fatura  e anexa no aceite.\n",
+        "id": 9
     }
 ]
