@@ -255,7 +255,6 @@ def ui_text(value):
         return ""
     return sanitize_text(value)
     
-
 def fix_technical_spacing(txt: str) -> str:
     if not txt:
         return ""
@@ -267,53 +266,42 @@ def fix_technical_spacing(txt: str) -> str:
         urls[key] = match.group(0)
         return key
 
-    # 1️⃣ PROTEGE URLs PRIMEIRO (faltava atribuição!)
+    # 1️⃣ PROTEGE URLs (AGORA FUNCIONA)
     txt = re.sub(r"https?://[^\s<>\"']+", _url_replacer, txt)
 
-    # 2️⃣ BULLETS
-    txt = re.sub(r"([•\-–—])([^\s])", r"\1 \2", txt)
+    # 2️⃣ número + palavra (90dias → 90 dias)
+    txt = re.sub(r"(\d)([a-záéíóúãõç])", r"\1 \2", txt, flags=re.IGNORECASE)
 
-    # 3️⃣ Número ↔ letra
-    txt = re.sub(r"(\d)([^\W\d_])", r"\1 \2", txt, flags=re.UNICODE)
-    txt = re.sub(r"([^\W\d_])(\d)", r"\1 \2", txt, flags=re.UNICODE)
+    # 3️⃣ palavra + número (DAS12 → DAS 12)
+    txt = re.sub(r"([a-záéíóúãõç])(\d)", r"\1 \2", txt, flags=re.IGNORECASE)
 
-    # 4️⃣ minúscula → Maiúscula
-    txt = re.sub(r"([a-záéíóúãõç])([A-ZÁÉÍÓÚÃÕÇ])", r"\1 \2", txt)
+    # 4️⃣ casos reais conhecidos (ANTES das genéricas)
+    correcoes = {
+        r"\bPELASMARTKIDS\b": "PELA SMARTKIDS",
+        r"\bserpediatria\b": "ser pediatria",
+        r"\bdepacote\b": "de pacote",
+        r"\bdiasútil\b": "dias útil",
+        r"\bdiasuteis\b": "dias úteis",
+        r"\bDAS\s?(\d+)": r"DAS \1",
+    }
 
-    # 5️⃣ sigla → palavra
+    for erro, certo in correcoes.items():
+        txt = re.sub(erro, certo, txt, flags=re.IGNORECASE)
+
+    # 5️⃣ sigla + palavra (XMLenvio)
     txt = re.sub(r"([A-Z]{2,})([a-záéíóúãõç])", r"\1 \2", txt)
 
-    # 6️⃣ palavra → sigla
+    # 6️⃣ palavra + sigla (arquivoXML)
     txt = re.sub(r"([a-záéíóúãõç])([A-Z]{2,})", r"\1 \2", txt)
 
-    
-    # 7️⃣ Casos técnicos (português + domínio)
-    txt = re.sub(r"\b(dias)(úteis|útil)\b", r"\1 \2", txt, flags=re.IGNORECASE)
-    txt = re.sub(r"\b(sem)(nota|nf)\b", r"\1 \2", txt, flags=re.IGNORECASE)
-    
-    # 'às/as/das' + hora/minuto -> espaço antes do dígito
-    txt = re.sub(r"\b(às|as|das)(\d)", r"\1 \2", txt, flags=re.IGNORECASE)
-    
-    # número grudado em palavra (ex.: '90dias' -> '90 dias')
-    txt = re.sub(r"(\d)([^\W\d_])", r"\1 \2", txt, flags=re.UNICODE)
-    
-    # palavra grudada em número (ex.: 'às12:00' já coberto acima; aqui cobre 'ex3' etc.)
-    txt = re.sub(r"([^\W\d_])(\d)", r"\1 \2", txt, flags=re.UNICODE)
-    
-    # termos do seu domínio que chegam colados em várias fontes
-    txt = re.sub(r"\bPELASMARTKIDS\b", "PELA SMART KIDS", txt, flags=re.IGNORECASE)
-    txt = re.sub(r"\bserpediatria\b", "ser pediatria", txt, flags=re.IGNORECASE)
-    
-    # 'sitehttps://...' -> 'site https://...'
-    txt = re.sub(r"\b(site)(https?://)", r"\1 \2", txt, flags=re.IGNORECASE)
-
+    # 7️⃣ bullets
+    txt = re.sub(r"([•\-–—])([^\s])", r"\1 \2", txt)
 
     # 8️⃣ RESTAURA URLs
     for k, v in urls.items():
         txt = txt.replace(k, v)
 
     return txt
-
     
 def sanitize_text(text: str) -> str:
     if not text:
@@ -440,22 +428,20 @@ def wrap_text(text, pdf, max_width):
             continue
 
         # Palavra comum: usa espaço
-        candidate = f"{current} {w}".strip() if current else w        
-        if width(w) <= max_width:
-            current = w
+        candidate = f"{current} {w}".strip() if current else w
+        if width(candidate) <= max_width:
+            current = candidate
         else:
-            # Evita cortar palavras normais: só chunk se for MUITO longa (provável URL/ID)
-            if len(w) >= 25:
+            if current:
+                lines.append(current)
+            if width(w) <= max_width:
+                current = w
+            else:
                 pieces = chunk_text(w, max_width // 3 or 1)
                 current = pieces[0]
                 for piece in pieces[1:]:
                     lines.append(current)
                     current = piece
-            else:
-                # força quebra limpa de linha (não partir a palavra)
-                if current:
-                    lines.append(current)
-                current = w  # ficará na próxima linha por si só
 
     if current:
         lines.append(current)
@@ -486,41 +472,32 @@ def _pdf_set_fonts(pdf: FPDF) -> str:
     return "Helvetica"
 
 
-
 def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
     lines_out = []
-    if not text:
-        return []
+    if not text: return []
 
-    text = sanitize_text(text)  # sanitize uma vez
+    text = sanitize_text(text)  # ✅ UMA ÚNICA VEZ
 
     paragraphs = text.split('\n')
     bullet_re = re.compile(r"^\s*(?:[\u2022•\-–—\*]|->|→)\s*(.*)$")
-
+    
     for p in paragraphs:
         p = p.strip()
         if not p:
             lines_out.append(("", 0.0))
             continue
-
+    
         m = bullet_re.match(p)
         if m:
             content = m.group(1).strip()
             wrapped = wrap_text("• " + content, pdf, usable_w - bullet_indent)
-            for j, wline in enumerate(wrapped):
-                # NBSP nas linhas que continuam o parágrafo
-                if j < len(wrapped) - 1:
-                    wline = wline + "\u00A0"
+            for wline in wrapped:
                 lines_out.append((wline, bullet_indent))
         else:
             wrapped = wrap_text(p, pdf, usable_w)
-            for j, wline in enumerate(wrapped):
-                if j < len(wrapped) - 1:
-                    wline = wline + "\u00A0"
+            for wline in wrapped:
                 lines_out.append((wline, 0.0))
-
     return lines_out
-
     
 # ============================================================
 # 9. GERAÇÃO DO PDF — layout completo
@@ -559,55 +536,52 @@ def gerar_pdf(dados):
         pdf.ln(1.5)
 
     # === COLUNA ÚNICA: label à esquerda (largura fixa) + valor à direita (wrap) ===
-   
-def one_column_info(pares, label_w=30, line_h=6.8, gap_y=1.6, val_size=10):
-    """
-    Desenha pares ("Label", "Valor") em UMA coluna:
-    - label com largura fixa (label_w)
-    - valor ocupa (CONTENT_W - label_w)
-    - respeita quebra de página e quebra de linha (wrap_text)
-    - insere NBSP no fim de linhas intermediárias para evitar 'colagem' ao copiar
-    """
-    x = pdf.l_margin
-    y = pdf.get_y()
-    col_w = CONTENT_W
-    usable_w = col_w - label_w
+    def one_column_info(pares, label_w=30, line_h=6.8, gap_y=1.6, val_size=10):
+        """
+        Desenha pares ("Label", "Valor") em UMA coluna:
+        - label com largura fixa (label_w)
+        - valor ocupa (CONTENT_W - label_w)
+        - respeita quebra de página e quebra de linha (wrap_text)
+        """
+        x = pdf.l_margin
+        y = pdf.get_y()
+        col_w = CONTENT_W
+        usable_w = col_w - label_w
 
-    for (label, value) in pares:
-        label = label or ""
-        value = sanitize_text(value or "")
+        for (label, value) in pares:
+            label = label or ""
+            value = value or ""
 
-        # mede linhas do valor
-        set_font(val_size, False)
-        lines = wrap_text(value, pdf, max(1, usable_w))
-        needed_h = max(1, len(lines)) * line_h
+            # mede linhas do valor
+            set_font(val_size, False)
+            value = sanitize_text(value)
+            lines = wrap_text(value, pdf, max(1, usable_w))
+            needed_h = max(1, len(lines)) * line_h
 
-        # quebra de página preventiva
-        if y + needed_h > pdf.page_break_trigger:
-            pdf.add_page()
-            y = pdf.get_y()
+            # quebra de página preventiva
+            if y + needed_h > pdf.page_break_trigger:
+                pdf.add_page()
+                y = pdf.get_y()
 
-        # desenha label
-        set_font(10, True)
-        pdf.set_xy(x, y)
-        pdf.cell(label_w, line_h, f"{label}:")
+            # desenha label
+            set_font(10, True)
+            pdf.set_xy(x, y)
+            pdf.cell(label_w, line_h, f"{label}:")
 
-        # desenha valor (primeira + contínuas com NBSP)
-        set_font(val_size, False)
-        pdf.set_xy(x + label_w, y)
-        first = lines[0] + ("\u00A0" if len(lines) > 1 else "")
-        pdf.cell(usable_w, line_h, first)
+            # desenha primeira linha do valor
+            set_font(val_size, False)
+            pdf.set_xy(x + label_w, y)
+            pdf.cell(usable_w, line_h, lines[0] if lines else "")
 
-        for i in range(1, len(lines)):
-            pdf.set_xy(x + label_w, y + i * line_h)
-            cont = lines[i] + ("\u00A0" if i < len(lines) - 1 else "")
-            pdf.cell(usable_w, line_h, cont)
+            # linhas seguintes (se houver)
+            for i in range(1, len(lines)):
+                pdf.set_xy(x + label_w, y + i * line_h)
+                pdf.cell(usable_w, line_h, lines[i])
 
-        # avança Y
-        y = y + needed_h + gap_y
+            # avança Y
+            y = y + needed_h + gap_y
 
-    pdf.set_y(y)
-
+        pdf.set_y(y)
 
     # --------------------------
     # Título (barra azul) — SOMENTE NOME DO CONVÊNIO
@@ -706,13 +680,11 @@ def one_column_info(pares, label_w=30, line_h=6.8, gap_y=1.6, val_size=10):
                 pdf.rect(cx, y_row, widths[i], row_h)
 
                 x_text = cx + pad
-                y_text = y_row + pad                
-                for ln_idx, ln in enumerate(lines):
-                    out = ln + ("\u00A0" if ln_idx < len(lines) - 1 else "")
+                y_text = y_row + pad
+                for ln in lines:
                     pdf.set_xy(x_text, y_text)
-                    pdf.cell(widths[i] - 2*pad, cell_h, out)
+                    pdf.cell(widths[i] - 2*pad, cell_h, ln)
                     y_text += cell_h
-
 
                 cx += widths[i]
 
