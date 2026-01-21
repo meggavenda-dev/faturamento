@@ -380,9 +380,6 @@ def wrap_text(text, pdf, max_width):
     if not text:
         return [""]
 
-    # Colapsa espaços/tabs múltiplos em um único espaço (por linha)
-    text = re.sub(r"[ \t]+", " ", text)
-
     words = text.split(" ")
     lines, current = [], ""
 
@@ -479,25 +476,25 @@ def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
     lines_out = []
     if not text: return []
 
-    text = sanitize_text(text) 
+   text = sanitize_text(text)  # ✅ UMA ÚNICA VEZ
 
     paragraphs = text.split('\n')
     bullet_re = re.compile(r"^\s*(?:[\u2022•\-–—\*]|->|→)\s*(.*)$")
-
+    
     for p in paragraphs:
-        # A higienização aqui garantirá a separação das palavras
-        if not clean:
+        p = p.strip()
+        if not p:
             lines_out.append(("", 0.0))
             continue
-        
-        m = bullet_re.match(clean)
+    
+        m = bullet_re.match(p)
         if m:
             content = m.group(1).strip()
             wrapped = wrap_text("• " + content, pdf, usable_w - bullet_indent)
             for wline in wrapped:
                 lines_out.append((wline, bullet_indent))
         else:
-            wrapped = wrap_text(clean, pdf, usable_w)
+            wrapped = wrap_text(p, pdf, usable_w)
             for wline in wrapped:
                 lines_out.append((wline, 0.0))
     return lines_out
@@ -552,8 +549,8 @@ def gerar_pdf(dados):
         usable_w = col_w - label_w
 
         for (label, value) in pares:
-            label = sanitize_text(label)
-            value = sanitize_text(value)
+            label = label or ""
+            value = value or ""
 
             # mede linhas do valor
             set_font(val_size, False)
@@ -665,7 +662,7 @@ def gerar_pdf(dados):
             max_lines = 1
             for i, val in enumerate(row):
                 content_w = max(1, widths[i] - 2*pad)
-                lines = wrap_text(sanitize_text(val), pdf, content_w)
+                lines = wrap_text(val or "", pdf, content_w)
                 wrapped_cols.append(lines)
                 max_lines = max(max_lines, len(lines))
 
