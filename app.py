@@ -256,13 +256,15 @@ def fix_technical_spacing(txt: str) -> str:
     e termos técnicos específicos da AMIL.
     """
     if not txt: return ""
-    if "://" in txt: return txt # Protege links
+    
+    # 1. Ignora URLs para não quebrar links
+    if "://" in txt: return txt
 
-    # Separa Número de Letra (Ex: 90dias -> 90 dias)
+    # 2. Separa Número de Letra (Ex: 90dias -> 90 dias | DAS12:00 -> DAS 12:00)
     txt = re.sub(r"(\d)([A-Za-zÀ-ÖØ-öø-ÿ])", r"\1 \2", txt)
     txt = re.sub(r"([A-Za-zÀ-ÖØ-öø-ÿ])(\d)", r"\1 \2", txt)
     
-    # Dicionário de termos que grudam no manual
+    # 3. Dicionário de termos específicos que costumam colar
     correcoes = {
         r"serpediatria": "ser pediatria",
         r"depacote": "de pacote",
@@ -280,28 +282,36 @@ def fix_technical_spacing(txt: str) -> str:
         r"PELASMARTKIDS": "PELA SMARTKIDS",
         r"XMLnovamente": "XML novamente"
     }
+    
     for erro, corrigido in correcoes.items():
         txt = re.sub(erro, corrigido, txt, flags=re.IGNORECASE)
+        
     return txt
 
 def sanitize_text(text: str) -> str:
+    """
+    Normaliza para NFC, limpa invisíveis e aplica correções técnicas de espaço.
+    """
     if text is None: return ""
-    # 1. Normaliza Unicode e remove invisíveis
+    
+    # Normaliza Unicode
     txt = unicodedata.normalize("NFC", str(text))
+    
+    # Converte espaços Unicode e invisíveis em espaços normais
     txt = re.sub(r"[\u00A0\u1680\u180E\u2000-\u200A\u202F\u205F\u3000]", " ", txt)
     txt = re.sub(r"[\u200B-\u200F\u202A-\u202E\u2060-\u206F]", "", txt)
     txt = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", "", txt)
     
-    # 2. APLICA A CORREÇÃO DE ESPAÇAMENTO (Importante!)
+    # APLICA A CORREÇÃO DE ESPAÇAMENTO TÉCNICO
     txt = fix_technical_spacing(txt)
     
-    # 3. Limpa espaços duplos
+    # Colapsa múltiplos espaços em um só
     txt = re.sub(r"[ \t]+", " ", txt)
-    return txt.strip()
     
+    return txt.replace("\r", "").strip()
+
 def normalize(value):
-    if not value:
-        return ""
+    if not value: return ""
     return sanitize_text(value).strip().lower()
 
 def generate_id(dados_atuais):
@@ -309,15 +319,12 @@ def generate_id(dados_atuais):
     for item in dados_atuais:
         try:
             id_val = int(item.get("id"))
-            if id_val > 0:
-                ids.append(id_val)
-        except Exception:
-            continue
+            if id_val > 0: ids.append(id_val)
+        except Exception: continue
     return max(ids) + 1 if ids else 1
 
 def safe_get(d: dict, key: str, default=""):
-    if not isinstance(d, dict):
-        return default
+    if not isinstance(d, dict): return default
     return sanitize_text(d.get(key, default))
 
 # ============================================================
