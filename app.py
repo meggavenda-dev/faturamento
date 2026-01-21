@@ -2,7 +2,7 @@
 # ============================================================
 #  APP.PY — MANUAL DE FATURAMENTO (VERSÃO PREMIUM)
 #  COLUNA ÚNICA NA SEÇÃO 1 • TABELA DA SEÇÃO 2 IGUAL AO PRINT
-#  OBSERVAÇÕES CRÍTICAS COM PARÁGRAFOS + BULLETS E ESPAÇOS CORRIGIDOS
+#  OBSERVAÇÕES CRÍTICAS: RICH-TEXT (QUILL) + IMAGENS INLINE (PRINTS)
 #  PDF UNICODE (DejaVu) + WRAP DE URL SEM ESPAÇOS EXTRAS
 #  TÍTULO: SOMENTE NOME DO CONVÊNIO
 # ============================================================
@@ -17,6 +17,8 @@ import time
 import base64
 import random
 import unicodedata
+import tempfile
+import io
 
 import requests
 import pandas as pd
@@ -24,6 +26,24 @@ from fpdf import FPDF
 import streamlit as st
 from rotinas_module import RotinasModule
 
+# === Rich-text/Imagens nas Observações ===
+# Quill (colar prints com Ctrl+V)
+try:
+    from streamlit_quill import st_quill
+except Exception:
+    st_quill = None  # permite rodar mesmo sem a lib instalada
+
+# Parse de HTML para PDF
+try:
+    from bs4 import BeautifulSoup
+except Exception:
+    BeautifulSoup = None
+
+# Imagens no PDF (para obter proporção)
+try:
+    from PIL import Image
+except Exception:
+    Image = None
 
 # ------------------------------------------------------------
 # 2. GITHUB DATABASE (Incluído no módulo — sem import externo)
@@ -54,33 +74,32 @@ class GitHubJSON:
     # ============================
     # LOAD — Leitura segura (200ms)
     # ============================
-    
     def load(self, force=False):
         now = time.time()
         if not force and self._cache_data is not None:
             if (now - self._cache_time) < 0.2:  # cache curtíssimo
                 return self._cache_data, self._cache_sha
-    
+
         url = self.API_URL.format(owner=self.owner, repo=self.repo, path=self.path)
         r = requests.get(url, headers=self.headers, params={"ref": self.branch})
-    
+
         if r.status_code == 404:
             # Arquivo não existe — retorna base vazia
             self._cache_data = []
             self._cache_sha = None
             self._cache_time = now
             return [], None
-    
+
         if r.status_code != 200:
             raise Exception(f"GitHub GET error: {r.status_code} - {r.text}")
-    
+
         body = r.json()
         sha = body.get("sha")
-    
+
         # Pode vir vazio; garante string
         decoded_b64 = body.get("content") or ""
         decoded = base64.b64decode(decoded_b64).decode("utf-8")
-    
+
         # Auto-healing p/ arquivo vazio ou inválido
         if not decoded.strip():
             data = []
@@ -95,17 +114,16 @@ class GitHubJSON:
                 except json.JSONDecodeError:
                     # fallback seguro: considera base vazia
                     data = []
-    
+
         # Garante tipo lista (se vier dict por engano)
         if not isinstance(data, list):
             data = []
-    
+
         self._cache_data = data
         self._cache_sha = sha
         self._cache_time = now
-    
-        return data, sha
 
+        return data, sha
 
     # ============================================
     # SAVE — Salvamento atômico com SHA locking
@@ -156,7 +174,7 @@ class GitHubJSON:
 
     # =================================================
     # UPDATE — Carregar, alterar e salvar com atomicidade
-    # =================================================
+    # ====================================================
     def update(self, update_fn):
         for attempt in range(8):
             data, _ = self.load(force=True)
@@ -232,7 +250,6 @@ SETORES_ROTINA = [
     "CTI - Faturamento",
 ]
 
-
 EMPRESAS_FATURAMENTO = ["Integralis", "AMHP", "Outros"]
 SISTEMAS = ["Outros", "Orizon", "Benner", "Maida", "Facil", "Visual TISS", "Próprio"]
 
@@ -244,7 +261,7 @@ OPCOES_FLUXO_NF = ["Envia XML sem nota", "Envia NF junto com o lote"]
 # 5. CSS GLOBAL + HEADER FIXO (injetado no main)
 # ------------------------------------------------------------
 CSS_GLOBAL = f"""
-<style>
+&lt;style&gt;
   .block-container {{
       padding-top: 6rem !important;
       max-width: 1200px !important;
@@ -279,7 +296,7 @@ CSS_GLOBAL = f"""
       margin-bottom: 15px;
       color: {PRIMARY_COLOR};
   }}
-  .stButton > button {{
+  .stButton &gt; button {{
       background-color: {PRIMARY_COLOR} !important;
       color: white !important;
       border-radius: 6px !important;
@@ -287,11 +304,11 @@ CSS_GLOBAL = f"""
       font-weight: 600 !important;
       border: none !important;
   }}
-  .stButton > button:hover {{ background-color: #16375E !important; }}
-</style>
-<div class="header-premium">
-    <span class="header-title">💼 Manual de Faturamento</span>
-</div>
+  .stButton &gt; button:hover {{ background-color: #16375E !important; }}
+&lt;/style&gt;
+&lt;div class="header-premium"&gt;
+    &lt;span class="header-title"&gt;💼 Manual de Faturamento&lt;/span&gt;
+&lt;/div&gt;
 """
 
 # ============================================================
@@ -300,10 +317,7 @@ CSS_GLOBAL = f"""
 def ui_text(value):
     if not value:
         return ""
-    return sanitize_text(value)   
-
-
-
+    return sanitize_text(value)
 
 def fix_technical_spacing(txt: str) -> str:
     if not txt:
@@ -322,17 +336,15 @@ def fix_technical_spacing(txt: str) -> str:
     txt = re.sub(r"(\d)([A-Za-zÁÉÍÓÚÂÊÔÃÕÀÇáéíóúâêôãõàç])", r"\1 \2", txt)
     txt = re.sub(r"([A-Za-zÁÉÍÓÚÂÊÔÃÕÀÇáéíóúâêôãõàç])(\d)", r"\1 \2", txt)
 
-    # 3) Espaço após pontuação se estiver colado (ex: fechar.> -> fechar. >)
-    # Ignora pontos decimais em números
+    # 3) Espaço após pontuação se estiver colado (ignora decimais)
     txt = re.sub(r"(?<!\d)\.(?=[^\s\d])", ". ", txt)
     txt = re.sub(r":(?!\s)", ": ", txt)
     txt = re.sub(r";(?!\s)", "; ", txt)
 
-    # 4) Espaços ao redor de operadores e delimitadores técnicos
-    txt = re.sub(r"\s*>\s*", " > ", txt)
+    # 4) Espaços ao redor de barras
     txt = re.sub(r"\s*/\s*", " / ", txt)
-    
-    # 5) Correções específicas de colagem comuns em faturamento
+
+    # 5) Correções específicas
     correcoes = {
         r"PELASMARTKIDS": "PELA SMARTKIDS",
         r"serpediatria": "ser pediatria",
@@ -341,7 +353,8 @@ def fix_technical_spacing(txt: str) -> str:
         r"às12:00": "às 12:00",
         r"sófechar": "só fechar",
         r"gera oXML": "gera o XML",
-        r"noSisAmil": "no SisAmil"
+        r"noSisAmil": "no SisAmil",
+        r"\b90dias\b": "90 dias",
     }
     for erro, certo in correcoes.items():
         txt = re.sub(erro, certo, txt, flags=re.IGNORECASE)
@@ -355,25 +368,24 @@ def fix_technical_spacing(txt: str) -> str:
 
     return txt
 
-
 def sanitize_text(text: str) -> str:
     if not text:
         return ""
     txt = str(text)
     # Normalização e remoção de caracteres invisíveis que causam colagem
     txt = unicodedata.normalize("NFKC", txt)
-    txt = re.sub(r"[\u00A0\u200B-\u200F\uFEFF]", " ", txt) 
-    
+    txt = re.sub(r"[\u00A0\u200B-\u200F\uFEFF]", " ", txt)
+
     # Aplica correções de espaçamento
     txt = fix_technical_spacing(txt)
-    
+
     # Remove espaços duplos
     txt = re.sub(r"[ \t]+", " ", txt)
     return txt.strip()
 
-    
 def normalize(value):
-    if not value: return ""
+    if not value:
+        return ""
     return sanitize_text(value).strip().lower()
 
 def generate_id(dados_atuais):
@@ -381,8 +393,10 @@ def generate_id(dados_atuais):
     for item in dados_atuais:
         try:
             id_val = int(item.get("id"))
-            if id_val > 0: ids.append(id_val)
-        except Exception: continue
+            if id_val > 0:
+                ids.append(id_val)
+        except Exception:
+            continue
     return max(ids) + 1 if ids else 1
 
 def safe_get(data, key, default=""):
@@ -423,33 +437,35 @@ def wrap_text(text, pdf, max_width):
     if not text:
         return [""]
 
-    # Divide por espaços preservando a intenção original
     words = text.split(" ")
     lines, current = [], ""
 
     def width(s): return pdf.get_string_width(s)
 
     for w in words:
-        if not w: continue
-        
-        # Se for uma URL ou texto com delimitadores, usamos a lógica de quebra por caractere
+        if not w:
+            continue
+
+        # Palavra longa com delimitadores
         if any(ch in w for ch in "/?&=._-") and width(w) > max_width:
             segments = _split_token_preserving_delims(w)
             for seg in segments:
-                candidate = current + seg
+                candidate = current + seg  # sem espaço
                 if width(candidate) <= max_width:
                     current = candidate
                 else:
-                    if current: lines.append(current)
+                    if current:
+                        lines.append(current)
                     current = seg
             continue
 
-        # Palavra normal
+        # Palavra comum
         candidate = f"{current} {w}".strip() if current else w
         if width(candidate) <= max_width:
             current = candidate
         else:
-            if current: lines.append(current)
+            if current:
+                lines.append(current)
             current = w
 
     if current:
@@ -479,22 +495,22 @@ def _pdf_set_fonts(pdf: FPDF) -> str:
             pass
     return "Helvetica"
 
-
 def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
     lines_out = []
-    if not text: return []
+    if not text:
+        return []
 
     text = sanitize_text(text)  # ✅ UMA ÚNICA VEZ
 
     paragraphs = text.split('\n')
     bullet_re = re.compile(r"^\s*(?:[\u2022•\-–—\*]|->|→)\s*(.*)$")
-    
+
     for p in paragraphs:
         p = p.strip()
         if not p:
             lines_out.append(("", 0.0))
             continue
-    
+
         m = bullet_re.match(p)
         if m:
             content = m.group(1).strip()
@@ -506,7 +522,142 @@ def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
             for wline in wrapped:
                 lines_out.append((wline, 0.0))
     return lines_out
-    
+
+# ============================================================
+# 8.1 HELPER — Renderiza HTML (Quill) com imagens no PDF
+# ============================================================
+def render_quill_html_into_pdf(pdf: FPDF, html: str, content_w: float, line_h: float = 6.6):
+    """
+    Renderiza conteúdo HTML (Quill) no PDF, aceitando:
+      - <p>texto</p> (com <br>)
+      - data:image/...;base64,....
+      - <ul>/<ol> simples
+    Redimensiona imagens para 'content_w' mantendo proporção.
+    Se BeautifulSoup/Pillow não estiverem disponíveis, cai em fallback textual.
+    """
+    if not html or not str(html).strip():
+        return
+
+    if BeautifulSoup is None:
+        # Fallback: sem BeautifulSoup, imprime texto limpo
+        plain = re.sub(r"<br\s*/?>", "\n", str(html), flags=re.IGNORECASE)
+        plain = re.sub(r"<[^>]+>", "", plain)
+        for ln in wrap_text(plain, pdf, content_w):
+            pdf.cell(0, line_h, ln, ln=1)
+        return
+
+    soup = BeautifulSoup(html, "html.parser")
+
+    def _ensure_space(h_mm: float):
+        if pdf.get_y() + h_mm > pdf.page_break_trigger:
+            pdf.add_page()
+
+    for el in soup.children:
+        if getattr(el, "name", None) is None:
+            txt = sanitize_text(str(el))
+            if txt:
+                for ln in wrap_text(txt, pdf, content_w):
+                    pdf.cell(0, line_h, ln, ln=1)
+            continue
+
+        name = el.name.lower()
+
+        if name == "p":
+            txt_parts = []
+            has_img = False
+            for node in el.children:
+                if getattr(node, "name", None) == "img":
+                    has_img = True
+                    break
+            if not has_img:
+                txt = sanitize_text(el.get_text(separator="\n"))
+                for part in txt.split("\n"):
+                    for ln in wrap_text(part, pdf, content_w):
+                        pdf.cell(0, line_h, ln, ln=1)
+                pdf.ln(1.2)
+                continue
+
+            # Texto + imagem intercalados
+            for node in el.children:
+                if getattr(node, "name", None) == "img":
+                    src = node.get("src", "")
+                    if not src.startswith("data:image"):
+                        continue
+                    try:
+                        header, b64data = src.split(",", 1)
+                        img_bytes = base64.b64decode(b64data)
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                            tmp.write(img_bytes)
+                            tmp_path = tmp.name
+
+                        expected_h = 60
+                        if Image is not None:
+                            try:
+                                with Image.open(tmp_path) as im:
+                                    w_px, h_px = im.size
+                                ratio = h_px / float(w_px) if w_px else 1.0
+                                expected_h = content_w * ratio
+                            except Exception:
+                                pass
+
+                        _ensure_space(expected_h + 2)
+                        pdf.image(tmp_path, w=content_w)
+                        pdf.ln(2)
+                    except Exception:
+                        pass
+                else:
+                    text_node = sanitize_text(getattr(node, "get_text", lambda **k: str(node))())
+                    for part in text_node.split("\n"):
+                        for ln in wrap_text(part, pdf, content_w):
+                            pdf.cell(0, line_h, ln, ln=1)
+            pdf.ln(1.2)
+            continue
+
+        if name == "img":
+            src = el.get("src", "")
+            if not src.startswith("data:image"):
+                continue
+            try:
+                header, b64data = src.split(",", 1)
+                img_bytes = base64.b64decode(b64data)
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                    tmp.write(img_bytes)
+                    tmp_path = tmp.name
+
+                expected_h = 60
+                if Image is not None:
+                    try:
+                        with Image.open(tmp_path) as im:
+                            w_px, h_px = im.size
+                        ratio = h_px / float(w_px) if w_px else 1.0
+                        expected_h = content_w * ratio
+                    except Exception:
+                        pass
+
+                _ensure_space(expected_h + 2)
+                pdf.image(tmp_path, w=content_w)
+                pdf.ln(2)
+            except Exception:
+                pass
+            continue
+
+        if name in ("ul", "ol"):
+            is_ol = name == "ol"
+            idx = 1
+            for li in el.find_all("li", recursive=False):
+                prefix = f"{idx}. " if is_ol else "• "
+                li_text = sanitize_text(li.get_text(separator=" ").strip())
+                for ln in wrap_text(prefix + li_text, pdf, content_w):
+                    pdf.cell(0, line_h, ln, ln=1)
+                idx += 1
+            pdf.ln(1.2)
+            continue
+
+        # Qualquer outro bloco vira texto simples
+        plain = sanitize_text(el.get_text(separator="\n"))
+        for ln in wrap_text(plain, pdf, content_w):
+            pdf.cell(0, line_h, ln, ln=1)
+
 # ============================================================
 # 9. GERAÇÃO DO PDF — layout completo
 # ============================================================
@@ -515,7 +666,7 @@ def gerar_pdf(dados):
     Layout: título azul,
     Seção 1 (COLUNA ÚNICA),
     Seção 2 (tabela 5 colunas idêntica ao print),
-    e 'Observações Críticas' multipágina.
+    e 'Observações Críticas' multipágina (RICH-TEXT + IMAGENS).
     """
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.set_margins(15, 12, 15)
@@ -545,12 +696,6 @@ def gerar_pdf(dados):
 
     # === COLUNA ÚNICA: label à esquerda (largura fixa) + valor à direita (wrap) ===
     def one_column_info(pares, label_w=30, line_h=6.8, gap_y=1.6, val_size=10):
-        """
-        Desenha pares ("Label", "Valor") em UMA coluna:
-        - label com largura fixa (label_w)
-        - valor ocupa (CONTENT_W - label_w)
-        - respeita quebra de página e quebra de linha (wrap_text)
-        """
         x = pdf.l_margin
         y = pdf.get_y()
         col_w = CONTENT_W
@@ -595,7 +740,7 @@ def gerar_pdf(dados):
     # Título (barra azul) — SOMENTE NOME DO CONVÊNIO
     # --------------------------
     nome_conv = sanitize_text(safe_get(dados, "nome")).upper()
-    titulo_full = f"MANUAL: {nome_conv}" if nome_conv else "GUIA TÉCNICA"
+    titulo_full = nome_conv if nome_conv else ""  # atende ao requisito
 
     pdf.set_fill_color(*BLUE)
     pdf.set_text_color(255, 255, 255)
@@ -625,12 +770,6 @@ def gerar_pdf(dados):
     # Tabela "2. CRONOGRAMA..." (igual ao print)
     # --------------------------
     def table(headers, rows, widths, header_h=8.0, cell_h=6.0, pad=2.0):
-        """
-        Tabela com:
-        - Cabeçalho cinza claro, textos centralizados
-        - Corpo com padding interno (pad) e quebra suave por coluna
-        - Bordas padrão, redesenha cabeçalho ao quebrar página
-        """
         # Cabeçalho
         set_font(10, True)
         pdf.set_fill_color(242, 242, 242)   # cinza claro do header
@@ -713,70 +852,102 @@ def gerar_pdf(dados):
 
     headers = ["Prazo Envio", "Validade Guia", "XML / Versão", "Nota Fiscal", "Fluxo NF"]
 
-    
     xml_flag = safe_get(dados, "xml") or "—"
     xml_ver  = safe_get(dados, "versao_xml") or "—"
     xml_composto = f"{xml_flag} / {xml_ver}"
+    # reforço de barra com espaço (caso colado)
     xml_composto = re.sub(r"(?<=\w)/(?!\s)", " / ", xml_composto)
 
-
     row = [
-        safe_get(dados, "envio"),      # ex. "Data de envio: 01 ao 05 dias útil"
-        safe_get(dados, "validade"),   # "90"
-        xml_composto,                  # "Sim / 4.01.00"
-        safe_get(dados, "nf"),         # "Não"
-        safe_get(dados, "fluxo_nf"),   # "Envia XML sem nota"
+        safe_get(dados, "envio"),
+        safe_get(dados, "validade"),
+        xml_composto,
+        safe_get(dados, "nf"),
+        safe_get(dados, "fluxo_nf"),
     ]
     table(headers, [row], widths, header_h=8.0, cell_h=6.0, pad=2.0)
     pdf.ln(2.0)
 
     # --------------------------
-    # Observações Críticas — multipágina (com parágrafos + bullets)
+    # Observações Críticas — multipágina (RICH-TEXT + IMAGENS)
     # --------------------------
     bar_title("Observações Críticas")
 
-    obs_text = safe_get(dados, "observacoes")
-    left_margin = pdf.l_margin
-    width = CONTENT_W
-    line_h = 6.6
-    padding = 1.8
-    bullet_indent = 4.0
+    html_obs = safe_get(dados, "observacoes_html")
+    if html_obs:
+        # Fonte/body
+        def set_font_body():
+            try:
+                pdf.set_font(FONT, "", 10)
+            except Exception:
+                pdf.set_font("Helvetica", "", 10)
 
-    usable_w = width - 2 * padding
-    set_font(10, False)
+        set_font_body()
+        left_margin = pdf.l_margin
+        width = CONTENT_W
+        padding = 1.8
+        line_h = 6.6
 
-    wrapped_lines = build_wrapped_lines(obs_text, pdf, usable_w, line_h, bullet_indent=bullet_indent)
-
-    i = 0
-    while i < len(wrapped_lines):
+        # Caixa: por página
         y_top = pdf.get_y()
-        space = pdf.page_break_trigger - y_top
-        avail_h = max(0.0, space - 2 * padding - 0.5)
-        lines_per_page = int(avail_h // line_h) if avail_h > 0 else 0
-        if lines_per_page <= 0:
-            pdf.add_page()
-            continue
+        x_left = left_margin
+        x_text = x_left + padding
+        usable_w = width - 2 * padding
 
-        end = min(len(wrapped_lines), i + lines_per_page)
-        slice_lines = wrapped_lines[i:end]
+        pdf.set_xy(x_text, y_top + padding)
+        y_before = pdf.get_y()
+        render_quill_html_into_pdf(pdf, html_obs, usable_w, line_h=line_h)
+        y_after = pdf.get_y()
 
-        box_h = 2 * padding + len(slice_lines) * line_h
-        pdf.rect(left_margin, y_top, width, box_h)
-
-        x_text_base = left_margin + padding
-        y_text = y_top + padding
-        for (ln_text, indent_mm) in slice_lines:
-            pdf.set_xy(x_text_base + indent_mm, y_text)
-            pdf.cell(usable_w - indent_mm, line_h, ln_text)
-            y_text += line_h
-
+        box_h = (y_after - y_before) + 2 * padding
+        pdf.rect(x_left, y_top, width, box_h)
         pdf.set_y(y_top + box_h)
-        i = end
+    else:
+        # Fallback: texto simples antigo
+        obs_text = safe_get(dados, "observacoes")
+        left_margin = pdf.l_margin
+        width = CONTENT_W
+        line_h = 6.6
+        padding = 1.8
+        bullet_indent = 4.0
 
-        if i < len(wrapped_lines) and pdf.get_y() + line_h > pdf.page_break_trigger:
-            pdf.add_page()
+        usable_w = width - 2 * padding
+        try:
+            pdf.set_font(FONT, "", 10)
+        except Exception:
+            pdf.set_font("Helvetica", "", 10)
 
-    
+        wrapped_lines = build_wrapped_lines(obs_text, pdf, usable_w, line_h, bullet_indent=bullet_indent)
+
+        i = 0
+        while i < len(wrapped_lines):
+            y_top = pdf.get_y()
+            space = pdf.page_break_trigger - y_top
+            avail_h = max(0.0, space - 2 * padding - 0.5)
+            lines_per_page = int(avail_h // line_h) if avail_h > 0 else 0
+            if lines_per_page <= 0:
+                pdf.add_page()
+                continue
+
+            end = min(len(wrapped_lines), i + lines_per_page)
+            slice_lines = wrapped_lines[i:end]
+
+            box_h = 2 * padding + len(slice_lines) * line_h
+            pdf.rect(left_margin, y_top, width, box_h)
+
+            x_text_base = left_margin + padding
+            y_text = y_top + padding
+            for (ln_text, indent_mm) in slice_lines:
+                pdf.set_xy(x_text_base + indent_mm, y_text)
+                pdf.cell(usable_w - indent_mm, line_h, ln_text)
+                y_text += line_h
+
+            pdf.set_y(y_top + box_h)
+            i = end
+
+            if i < len(wrapped_lines) and pdf.get_y() + line_h > pdf.page_break_trigger:
+                pdf.add_page()
+
     # --------------------------
     # Retorno seguro (bytes)
     # --------------------------
@@ -795,7 +966,6 @@ def gerar_pdf(dados):
         raise TypeError(f"PDF gerado em tipo inesperado: {type(result)}")
 
     return bytes(result)
-
 
 # ============================================================
 # 10. UI COMPONENTS
@@ -959,7 +1129,31 @@ def page_cadastro():
 
         config_gerador = st.text_area("Configuração do Gerador XML", value=safe_get(dados_conv, "config_gerador"))
         doc_digitalizacao = st.text_area("Digitalização e Documentação", value=safe_get(dados_conv, "doc_digitalizacao"))
-        observacoes = st.text_area("Observações Críticas", value=safe_get(dados_conv, "observacoes"))
+
+        # === Observações (Rich-text com suporte a prints via Quill) ===
+        initial_html = safe_get(dados_conv, "observacoes_html")
+        if not initial_html:
+            legacy_txt = safe_get(dados_conv, "observacoes")
+            if legacy_txt:
+                parts = [f"<p>{sanitize_text(p)}</p>" for p in legacy_txt.split("\n") if sanitize_text(p)]
+                initial_html = "\n".join(parts)
+
+        if st_quill is None:
+            st.info("Para colar prints diretamente no texto, instale `streamlit-quill` (requirements.txt). Usando editor simples por enquanto.")
+            observacoes_html = st.text_area(
+                "Observações Críticas (HTML)",
+                value=initial_html or "",
+                height=300,
+                help="Campo em HTML. Com o `streamlit-quill` você poderá colar prints."
+            )
+        else:
+            observacoes_html = st_quill(
+                value=initial_html or "",
+                placeholder="Digite suas observações… (pode colar prints com Ctrl+V)",
+                html=True,
+                key=f"obs_quill_{conv_id or 'novo'}",
+                height=280,
+            )
 
         submit = st.form_submit_button("💾 Salvar Dados")
 
@@ -981,8 +1175,23 @@ def page_cadastro():
                 "fluxo_nf": fluxo_nf,
                 "config_gerador": config_gerador,
                 "doc_digitalizacao": doc_digitalizacao,
-                "observacoes": observacoes,
             }
+
+            # Fallback de texto puro: remove tags para manter compatibilidade
+            plain_obs = ""
+            if observacoes_html:
+                if BeautifulSoup is not None:
+                    try:
+                        plain_obs = BeautifulSoup(observacoes_html, "html.parser").get_text(separator="\n").strip()
+                    except Exception:
+                        plain_obs = sanitize_text(re.sub(r"<[^>]+>", "", observacoes_html))
+                else:
+                    plain_obs = sanitize_text(re.sub(r"<[^>]+>", "", observacoes_html))
+
+            novo_registro.update({
+                "observacoes_html": observacoes_html or "",
+                "observacoes": plain_obs or safe_get(dados_conv, "observacoes")
+            })
 
             if conv_id is None:
                 novo_registro["id"] = generate_id(dados_atuais)
@@ -1009,16 +1218,31 @@ def page_cadastro():
                 time.sleep(1)
                 st.rerun()
 
-
-
-    # BOTÃO PDF
+    # BOTÃO PDF (FORA DO FORM) + EXCLUSÃO
     if dados_conv:
-        st.download_button(
-            "📥 Baixar PDF do Convênio",
-            gerar_pdf(dados_conv),
-            file_name=f"Manual_{safe_get(dados_conv,'nome')}.pdf",
-            mime="application/pdf"
-        )
+        import re
+        try:
+            pdf_bytes = gerar_pdf(dados_conv)
+            if isinstance(pdf_bytes, str):
+                pdf_bytes = pdf_bytes.encode("latin-1", "ignore")
+            elif isinstance(pdf_bytes, bytearray):
+                pdf_bytes = bytes(pdf_bytes)
+            if not isinstance(pdf_bytes, (bytes, bytearray)):
+                raise TypeError(f"Tipo inesperado ao gerar PDF: {type(pdf_bytes)}")
+
+            nome_file = safe_get(dados_conv, "nome") or "Manual"
+            fname = re.sub(r'[\\/:*?"<>|]+', "_", f"Manual_{nome_file}.pdf")[:120]
+
+            st.download_button(
+                "📥 Baixar PDF do Convênio",
+                data=bytes(pdf_bytes),
+                file_name=fname,
+                mime="application/pdf",
+                key=f"dl_pdf_convenio_{safe_get(dados_conv, 'id')}",
+            )
+        except Exception as e:
+            st.error("Falha ao preparar o PDF do convênio.")
+            st.exception(e)
 
         # ==============================
         # 🗑️ EXCLUSÃO PERMANENTE — CONVÊNIO
@@ -1030,9 +1254,7 @@ def page_cadastro():
                 icon="⚠️"
             )
 
-            # Garante o ID como string (usa o do registro salvo quando existir)
-            conv_id_str = str(dados_conv.get("id") if isinstance(dados_conv, dict) else conv_id or "").strip()
-
+            conv_id_str = str(dados_conv.get("id") if isinstance(dados_conv, dict) else "") or ""
             confirm_val = st.text_input(
                 f"Confirmação: digite **{conv_id_str}**",
                 key=f"confirm_del_conv_{conv_id_str}"
@@ -1051,12 +1273,10 @@ def page_cadastro():
                         # remove o registro cujo id == conv_id_str
                         return [c for c in (data or []) if str(c.get("id")) != conv_id_str]
 
-                    # Atualiza no GitHub de forma atômica (SHA locking)
                     db.update(_update)
-
                     st.success(f"✔ Convênio {conv_id_str} excluído com sucesso!")
 
-                    # Limpa caches e estado da UI; recarrega a app
+                    # Limpa caches/estado e recarrega
                     db._cache_data = None
                     db._cache_sha = None
                     db._cache_time = 0.0
@@ -1065,9 +1285,7 @@ def page_cadastro():
                     st.rerun()
 
                 except Exception as e:
-                    st.error(f"Falha ao excluir convênio {conv_id_str}: {e}")   
-    
-
+                    st.error(f"Falha ao excluir convênio {conv_id_str}: {e}")
 
 # ============================================================
 # 12. PÁGINAS — CONSULTA & VISUALIZAR BANCO
@@ -1110,9 +1328,22 @@ def page_consulta(dados_atuais):
     ui_info_line("Fluxo da Nota", safe_get(dados, "fluxo_nf"))
     ui_card_end()
 
-    ui_block_info("⚙️ Configuração XML", safe_get(dados, "config_gerador"))
-    ui_block_info("🗂 Digitalização e Documentação", safe_get(dados, "doc_digitalizacao"))
-    ui_block_info("⚠️ Observações Críticas", safe_get(dados, "observacoes"))
+    # Observações: prioriza HTML (com prints), fallback para texto simples
+    obs_html = safe_get(dados, "observacoes_html")
+    if obs_html:
+        ui_card_start("⚠️ Observações Críticas (rich-text)")
+        st.markdown(
+            f"""
+            <div style="background-color:white; border-left:4px solid {PRIMARY_COLOR};
+                        padding:12px 16px; border-radius:6px;">
+                {obs_html}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        ui_card_end()
+    else:
+        ui_block_info("⚠️ Observações Críticas", safe_get(dados, "observacoes"))
 
     st.caption("Manual de Faturamento — Visualização Premium")
 
@@ -1125,8 +1356,7 @@ def page_visualizar_banco(dados_atuais):
         st.info("⚠️ Banco vazio.")
     ui_card_end()
 
-
-# >>>>>>>>>>>>> INSTÂNCIA DO MÓDULO DE ROTINAS <<<<<<<<<<<<
+# >>>>>>>>>>>>>>> INSTÂNCIA DO MÓDULO DE ROTINAS <<<<<<<<<<<<<<
 rotinas_module = RotinasModule(
     db_rotinas=db_rotinas,
     sanitize_text=sanitize_text,
@@ -1135,7 +1365,7 @@ rotinas_module = RotinasModule(
     generate_id=generate_id,
     safe_get=safe_get,
     primary_color=PRIMARY_COLOR,
-    setores_opcoes=SETORES_ROTINA,  
+    setores_opcoes=SETORES_ROTINA,
 )
 
 # ============================================================
@@ -1149,7 +1379,7 @@ def main():
     dados_atuais, _ = db.load()
 
     st.sidebar.title("📚 Navegação")
-    
+
     menu = st.sidebar.radio(
         "Selecione a página:",
         ["Cadastrar / Editar", "Consulta de Convênios", "Visualizar Banco", "Rotinas do Setor"]
@@ -1159,7 +1389,7 @@ def main():
     st.sidebar.markdown("### 🔄 Atualizar Sistema")
     if st.sidebar.button("Recarregar"):
         st.rerun()
-    
+
     if menu == "Cadastrar / Editar":
         page_cadastro()
     elif menu == "Consulta de Convênios":
