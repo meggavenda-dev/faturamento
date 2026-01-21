@@ -427,11 +427,11 @@ def _pdf_set_fonts(pdf: FPDF) -> str:
     return "Helvetica"
 
 
+
 def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
     """
     Converte o texto de Observações em lista de (linha, indent_mm), preservando parágrafos
-    e bullets, e aplicando heurísticas para recuperar espaços tipicamente perdidos
-    sem mexer dentro de URLs.
+    e bullets, e aplicando heurísticas de espaçamento e pontuação sem mexer em URLs.
     """
     lines_out = []
     raw_lines = (sanitize_text(text or "")).split("\n")
@@ -441,33 +441,44 @@ def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
     def fix_common_spacing_heuristics(s: str) -> str:
         s0 = s
 
-        # Linha 'só URL'? (não altera)
+        # Linha que é claramente URL? (não altera nada nela)
         is_url_line = s0.strip().lower().startswith(("http://", "https://"))
-        contains_scheme = "://" in s0  # haverá tokens de URL
+        contains_scheme = "://" in s0  # linha contém uma URL em algum ponto
 
-        # 1) ":" grudado → ": "
+        # 1) ":" grudado após rótulos → ": "
         if not is_url_line:
             s0 = re.sub(r":(?=\S)", ": ", s0)
 
-        # 2) Dígito+Letra e Letra+Dígito → adiciona espaço (90dias → 90 dias / DAS12 → DAS 12)
-        if not is_url_line and not contains_scheme:
-            s0 = re.sub(r"(\d)([A-Za-zÀ-ÖØ-öø-ÿ])", r"\1 \2", s0)
-            s0 = re.sub(r"([A-Za-zÀ-ÖØ-öø-ÿ])(\d)", r"\1 \2", s0)
-
-        # 3) Espaço após bullet colado (•DRA. → • DRA.)
-        s0 = re.sub(r"(•)(?=\S)", r"\1 ", s0)
-
-        # 4) minúscula seguida de MAIÚSCULA (daAmil → da Amil)
+        # 2) Tempo "22: 00" → "22:00"
         if not is_url_line:
+            s0 = re.sub(r"(\d)\s*:\s*(\d{2})(?!\d)", r"\1:\2", s0)
+
+        # 3) Remover espaço antes de pontuação e garantir 1 espaço após , ;
+        if not is_url_line:
+            s0 = re.sub(r"\s+([,.;:!?])", r"\1", s0)      # ... espaço antes de ,.;:!? → remove
+            s0 = re.sub(r"([,;])(?!\s)", r"\1 ", s0)      # vírgula/; seguidos de letra → adiciona espaço
+
+        # 4) Espaços ao redor de "/" (fora de URL): "a/b" ou "a  /  b" → "a / b"
+        if not is_url_line and not contains_scheme:
+            s0 = re.sub(r"\s*/\s*", " / ", s0)
+
+        # 5) Inserir espaço em casos colados comuns (fora de URL)
+        if not is_url_line and not contains_scheme:
+            # dígito+letra e letra+dígito
+            s0 = re.sub(r"(\d)([A-Za-zÀ-ÖØ-öø-ÿ])", r"\1 \2", s0)  # 90dias → 90 dias
+            s0 = re.sub(r"([A-Za-zÀ-ÖØ-öø-ÿ])(\d)", r"\1 \2", s0)  # DAS12 → DAS 12
+
+            # minúscula seguida de MAIÚSCULA (daAmil → da Amil)
             s0 = re.sub(r"([a-zà-ÿ])([A-ZÁ-Ú])", r"\1 \2", s0)
 
-        # 5) Espaço antes de certas palavras quando grudadas (sem interferir em URLs)
-        if not is_url_line:
+            # palavras‑chave que costumam grudar
             keywords = ["XML", "TUSS", "SisAmil", "Fhasso", "Faturamento", "Amil", "SMARTKIDS", "OK"]
             s0 = re.sub(r"([A-Za-zÀ-ÖØ-öø-ÿ])(?=(" + "|".join(keywords) + r")\b)", r"\1 ", s0)
 
-        # 6) Correções pontuais frequentes (case-insensitive), fora de URL
-        if not is_url_line:
+            # "DRA.MADIA" → "DRA. MADIA"
+            s0 = re.sub(r"\b(DRA\.)\s*(?=[A-Za-zÀ-ÖØ-öø-ÿ])", r"\1 ", s0, flags=re.IGNORECASE)
+
+            # Correções pontuais (case-insensitive)
             fixes = {
                 r"\bserpediatria\b": "ser pediatria",
                 r"\bdepacote\b": "de pacote",
@@ -493,22 +504,25 @@ def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
             for pat, rep in fixes.items():
                 s0 = re.sub(pat, rep, s0, flags=re.IGNORECASE)
 
+        # 6) Comprimir espaços repetidos que possam ter surgido
+        s0 = re.sub(r"\s{2,}", " ", s0)
         return s0
 
     for raw in raw_lines:
+        # Linha em branco → mantém parágrafo
         if raw.strip() == "":
             lines_out.append(("", 0.0))
             continue
 
         clean = re.sub(r"[ \t]+", " ", raw).strip()
 
-        # Linha com bullet
+        # Bullet?
         m = bullet_re.match(clean)
         if m:
-            text_item = m.group(1).strip()
-            text_item = fix_common_spacing_heuristics(text_item)
+            content = m.group(1).strip()
+            content = fix_common_spacing_heuristics(content)
             bullet_prefix = "• "
-            wrapped = wrap_text(bullet_prefix + text_item, pdf, usable_w - bullet_indent)
+            wrapped = wrap_text(bullet_prefix + content, pdf, usable_w - bullet_indent)
             for wline in wrapped:
                 lines_out.append((wline, bullet_indent))
             continue
