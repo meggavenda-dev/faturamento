@@ -529,10 +529,7 @@ def gerar_pdf(dados):
     Seção 2 (tabela 5 colunas idêntica ao print),
     e 'Observações Críticas' multipágina.
     """
-    obs_text_raw = safe_get(dados, "observacoes")
-    obs_text = clean_html(obs_text_raw) # ✅ Remove as tags HTML antes de processar as linhas do PDF
-    wrapped_lines = build_wrapped_lines(obs_text, pdf, usable_w, line_h, bullet_indent=bullet_indent)
-    
+   
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.set_margins(15, 12, 15)
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -550,6 +547,10 @@ def gerar_pdf(dados):
             pdf.set_font(FONT, style, size)
         except Exception:
             pdf.set_font("Helvetica", style, size)
+
+    obs_text_raw = safe_get(dados, "observacoes")
+    obs_text = clean_html(obs_text_raw) # ✅ Remove as tags HTML antes de processar as linhas do PDF
+    wrapped_lines = build_wrapped_lines(obs_text, pdf, usable_w, line_h, bullet_indent=bullet_indent)
 
     # ---------- Helpers ----------
     def bar_title(texto, top_margin=3, height=8):
