@@ -530,6 +530,18 @@ def gerar_pdf(dados):
     e 'Observações Críticas' multipágina.
     """
    
+    O erro NameError ocorreu porque a função table, que está dentro da sua gerar_pdf, ainda está tentando chamar set_font(), mas o nome correto agora é apply_font(). Além disso, o IndentationError anterior indicou que o alinhamento das funções internas foi quebrado.
+
+Aqui está a função gerar_pdf completa e corrigida. Eu padronizei toda a indentação e atualizei todas as referências para apply_font.
+
+Substitua sua função gerar_pdf por esta versão:
+Python
+
+def gerar_pdf(dados):
+    """
+    Layout: título azul, Seção 1, Seção 2 (Tabela) e Observações Críticas.
+    """
+    
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.set_margins(15, 12, 15)
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -540,7 +552,7 @@ def gerar_pdf(dados):
     TEXT = (0, 0, 0)
     CONTENT_W = pdf.w - pdf.l_margin - pdf.r_margin
     
-    # 1. ATIVAR FONTE PARA CÁLCULOS
+    # 1. ATIVAR FONTE PARA CÁLCULOS IMEDIATAMENTE
     FONT_FAMILY = _pdf_set_fonts(pdf)
     pdf.set_font(FONT_FAMILY, '', 10) 
     
@@ -549,9 +561,10 @@ def gerar_pdf(dados):
     bullet_indent = 4.0
     usable_w = CONTENT_W - 2 * padding
 
+    # 2. PROCESSAMENTO DO TEXTO RICO
     obs_text_raw = safe_get(dados, "observacoes")
     obs_text = clean_html(obs_text_raw) 
-    wrapped_lines = build_wrapped_lines(obs_text, pdf, usable_w, line_h, bullet_indent=bullet_indent)
+    wrapped_lines = build_wrapped_lines(obs_text, pdf, usable_w, line_h, bullet_indent=bullet_inden
 
     # ---------- Helpers ----------
     def apply_font(size=10, bold=False):
@@ -572,34 +585,70 @@ def gerar_pdf(dados):
         x = pdf.l_margin
         y = pdf.get_y()
         u_w = CONTENT_W - label_w
-
         for (label, value) in pares:
             label = label or ""
             value = value or ""
-            apply_font(val_size, False) # <--- CORRIGIDO DE set_font PARA apply_font
+            apply_font(val_size, False) 
             value = sanitize_text(value)
             lines = wrap_text(value, pdf, max(1, u_w))
             needed_h = max(1, len(lines)) * line_h_val
-
             if y + needed_h > pdf.page_break_trigger:
                 pdf.add_page()
                 apply_font(val_size, False)
                 y = pdf.get_y()
-
-            apply_font(10, True) # <--- CORRIGIDO
+            apply_font(10, True) 
             pdf.set_xy(x, y)
             pdf.cell(label_w, line_h_val, f"{label}:")
-
-            apply_font(val_size, False) # <--- CORRIGIDO
+            apply_font(val_size, False) 
             pdf.set_xy(x + label_w, y)
             pdf.cell(u_w, line_h_val, lines[0] if lines else "")
-
             for i in range(1, len(lines)):
                 pdf.set_xy(x + label_w, y + i * line_h_val)
                 pdf.cell(u_w, line_h_val, lines[i])
-
             y = y + needed_h + gap_y
         pdf.set_y(y)
+
+    def table(headers, rows, widths, header_h=8.0, cell_h=6.0, pad=2.0):
+        # Cabeçalho
+        apply_font(10, True)
+        pdf.set_fill_color(242, 242, 242)
+        pdf.set_draw_color(180, 180, 180)
+        x_base = pdf.l_margin
+        y_top = pdf.get_y()
+        cur_x = x_base
+        for i, head in enumerate(headers):
+            pdf.set_xy(cur_x, y_top)
+            pdf.cell(widths[i], header_h, sanitize_text(head), border=1, align="C", fill=True)
+            cur_x += widths[i]
+        pdf.ln(header_h)
+
+        # Corpo
+        apply_font(10, False)
+        for row_data in rows:
+            wrapped_cols = []
+            max_l = 1
+            for i, val in enumerate(row_data):
+                content_w = max(1, widths[i] - 2*pad)
+                lines = wrap_text(sanitize_text(val or ""), pdf, content_w)
+                wrapped_cols.append(lines)
+                max_l = max(max_l, len(lines))
+            
+            row_h = max_l * cell_h + 2*pad
+            if pdf.get_y() + row_h > pdf.page_break_trigger:
+                pdf.add_page()
+                apply_font(10, False)
+
+            y_row = pdf.get_y()
+            cx = pdf.l_margin
+            for i, lines in enumerate(wrapped_cols):
+                pdf.rect(cx, y_row, widths[i], row_h)
+                yt = y_row + pad
+                for ln in lines:
+                    pdf.set_xy(cx + pad, yt)
+                    pdf.cell(widths[i] - 2*pad, cell_h, ln)
+                    yt += cell_h
+                cx += widths[i]
+            pdf.ln(row_h)
 
     # --------------------------
     # Título (barra azul) — SOMENTE NOME DO CONVÊNIO
