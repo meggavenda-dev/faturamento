@@ -187,12 +187,13 @@ class RotinasModule:
         escolha = st.selectbox("Selecione uma rotina para editar:", opcoes)
 
         if escolha == "+ Nova Rotina":
-            rotina_id = None
-            dados_rotina = None
+            rotina_id = "novo"  # Usar uma string evita problemas de tipagem na key
+            dados_rotina = {}   # Dicionário vazio em vez de None
         else:
             rotina_id = escolha.split(" — ")[0]
             dados_rotina = next(
-                (r for r in rotinas_atuais if str(r.get("id")) == str(rotina_id)), None
+                (r for r in rotinas_atuais if str(r.get("id")) == str(rotina_id)), 
+                {} # Default para dict vazio se não encontrar
             )
 
         st.markdown("</div>", unsafe_allow_html=True)
@@ -224,9 +225,10 @@ class RotinasModule:
 
         
         
+        # No arquivo rotinas_module.py
         descricao_html = st_quill(
-            # Garante que se safe_get retornar None, vira uma string vazia
-            value=self.safe_get(dados_rotina, "descricao", "") or "", 
+            # O "or ''" garante que se o safe_get retornar None, o Python use ''
+            value=self.safe_get(dados_rotina, "descricao", "") or "",
             key=f"quill_rotina_{rotina_id}",
             placeholder="Digite o passo a passo completo da rotina...",
             theme="snow",
