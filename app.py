@@ -524,24 +524,8 @@ def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
 # ============================================================
 def gerar_pdf(dados):
     """
-    Layout: título azul,
-    Seção 1 (COLUNA ÚNICA),
-    Seção 2 (tabela 5 colunas idêntica ao print),
-    e 'Observações Críticas' multipágina.
-    """
-   
-    O erro NameError ocorreu porque a função table, que está dentro da sua gerar_pdf, ainda está tentando chamar set_font(), mas o nome correto agora é apply_font(). Além disso, o IndentationError anterior indicou que o alinhamento das funções internas foi quebrado.
-
-Aqui está a função gerar_pdf completa e corrigida. Eu padronizei toda a indentação e atualizei todas as referências para apply_font.
-
-Substitua sua função gerar_pdf por esta versão:
-Python
-
-def gerar_pdf(dados):
-    """
     Layout: título azul, Seção 1, Seção 2 (Tabela) e Observações Críticas.
     """
-    
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.set_margins(15, 12, 15)
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -564,9 +548,9 @@ def gerar_pdf(dados):
     # 2. PROCESSAMENTO DO TEXTO RICO
     obs_text_raw = safe_get(dados, "observacoes")
     obs_text = clean_html(obs_text_raw) 
-    wrapped_lines = build_wrapped_lines(obs_text, pdf, usable_w, line_h, bullet_indent=bullet_inden
+    wrapped_lines = build_wrapped_lines(obs_text, pdf, usable_w, line_h, bullet_indent=bullet_indent)
 
-    # ---------- Helpers ----------
+    # ---------- HELPERS INTERNOS ----------
     def apply_font(size=10, bold=False):
         style = "B" if bold else ""
         try:
@@ -609,7 +593,6 @@ def gerar_pdf(dados):
         pdf.set_y(y)
 
     def table(headers, rows, widths, header_h=8.0, cell_h=6.0, pad=2.0):
-        # Cabeçalho
         apply_font(10, True)
         pdf.set_fill_color(242, 242, 242)
         pdf.set_draw_color(180, 180, 180)
@@ -622,7 +605,6 @@ def gerar_pdf(dados):
             cur_x += widths[i]
         pdf.ln(header_h)
 
-        # Corpo
         apply_font(10, False)
         for row_data in rows:
             wrapped_cols = []
@@ -632,12 +614,10 @@ def gerar_pdf(dados):
                 lines = wrap_text(sanitize_text(val or ""), pdf, content_w)
                 wrapped_cols.append(lines)
                 max_l = max(max_l, len(lines))
-            
             row_h = max_l * cell_h + 2*pad
             if pdf.get_y() + row_h > pdf.page_break_trigger:
                 pdf.add_page()
                 apply_font(10, False)
-
             y_row = pdf.get_y()
             cx = pdf.l_margin
             for i, lines in enumerate(wrapped_cols):
@@ -650,9 +630,7 @@ def gerar_pdf(dados):
                 cx += widths[i]
             pdf.ln(row_h)
 
-    # --------------------------
-    # Título (barra azul) — SOMENTE NOME DO CONVÊNIO
-    # --------------------------
+    # ---------- RENDERIZAÇÃO ----------
     nome_conv = sanitize_text(safe_get(dados, "nome")).upper()
     pdf.set_fill_color(*BLUE)
     pdf.set_text_color(255, 255, 255)
@@ -673,118 +651,17 @@ def gerar_pdf(dados):
     ]
     one_column_info(pares_unicos)
 
-    # --------------------------
-    # Tabela "2. CRONOGRAMA..." (igual ao print)
-    # --------------------------
-    def table(headers, rows, widths, header_h=8.0, cell_h=6.0, pad=2.0):
-        """
-        Tabela com:
-        - Cabeçalho cinza claro, textos centralizados
-        - Corpo com padding interno (pad) e quebra suave por coluna
-        - Bordas padrão, redesenha cabeçalho ao quebrar página
-        """
-        # Cabeçalho
-        set_font(10, True)
-        pdf.set_fill_color(242, 242, 242)   # cinza claro do header
-        pdf.set_draw_color(180, 180, 180)   # borda suave
-        pdf.set_line_width(0.2)
-
-        x_base = pdf.l_margin
-        y_top  = pdf.get_y()
-        cur_x  = x_base
-
-        for i, head in enumerate(headers):
-            pdf.set_xy(cur_x, y_top)
-            pdf.cell(widths[i], header_h, sanitize_text(head), border=1, align="C", fill=True)
-            cur_x += widths[i]
-        pdf.ln(header_h)
-
-        # Corpo
-        set_font(10, False)
-
-        def _draw_header_again():
-            set_font(10, True)
-            pdf.set_fill_color(242, 242, 242)
-            pdf.set_draw_color(180, 180, 180)
-            pdf.set_line_width(0.2)
-
-            xh = pdf.l_margin
-            yh = pdf.get_y()
-            cx = xh
-            for j, h in enumerate(headers):
-                pdf.set_xy(cx, yh)
-                pdf.cell(widths[j], header_h, sanitize_text(h), border=1, align="C", fill=True)
-                cx += widths[j]
-            pdf.ln(header_h)
-            set_font(10, False)
-
-        for row in rows:
-            wrapped_cols = []
-            max_lines = 1
-            for i, val in enumerate(row):
-                content_w = max(1, widths[i] - 2*pad)
-                val = sanitize_text(val or "")
-                lines = wrap_text(val or "", pdf, content_w)
-                wrapped_cols.append(lines)
-                max_lines = max(max_lines, len(lines))
-
-            row_h = max_lines * cell_h + 2*pad
-
-            if pdf.get_y() + row_h > pdf.page_break_trigger:
-                pdf.add_page()
-                _draw_header_again()
-
-            y_row = pdf.get_y()
-            cx = pdf.l_margin
-            for i, lines in enumerate(wrapped_cols):
-                pdf.rect(cx, y_row, widths[i], row_h)
-
-                x_text = cx + pad
-                y_text = y_row + pad
-                for ln in lines:
-                    pdf.set_xy(x_text, y_text)
-                    pdf.cell(widths[i] - 2*pad, cell_h, ln)
-                    y_text += cell_h
-
-                cx += widths[i]
-
-            pdf.ln(row_h)
-
-    # --------------------------
-    # Seção 2 — Cronograma (tabela como no print)
-    # --------------------------
     bar_title("2. Cronograma e Regras Técnicas")
-
-    # Larguras calibradas p/ quebrar "dias útil" e "sem nota"
-    w1 = 52   # Prazo Envio
-    w2 = 35   # Validade
-    w3 = 35   # XML / Versão
-    w4 = 30   # Nota Fiscal
-    w5 = (pdf.w - pdf.l_margin - pdf.r_margin) - (w1 + w2 + w3 + w4)  # restante (~28mm)
+    w1, w2, w3, w4 = 52, 35, 35, 30
+    w5 = CONTENT_W - (w1 + w2 + w3 + w4)
     widths = [w1, w2, w3, w4, w5]
-
     headers = ["Prazo Envio", "Validade Guia", "XML / Versão", "Nota Fiscal", "Fluxo NF"]
-
     
     xml_flag = safe_get(dados, "xml") or "—"
-    xml_ver  = safe_get(dados, "versao_xml") or "—"
-    xml_composto = f"{xml_flag} / {xml_ver}"
-    xml_composto = re.sub(r"(?<=\w)/(?!\s)", " / ", xml_composto)
+    xml_ver = safe_get(dados, "versao_xml") or "—"
+    row = [safe_get(dados, "envio"), safe_get(dados, "validade"), f"{xml_flag} / {xml_ver}", safe_get(dados, "nf"), safe_get(dados, "fluxo_nf")]
+    table(headers, [row], widths)
 
-
-    row = [
-        safe_get(dados, "envio"),      # ex. "Data de envio: 01 ao 05 dias útil"
-        safe_get(dados, "validade"),   # "90"
-        xml_composto,                  # "Sim / 4.01.00"
-        safe_get(dados, "nf"),         # "Não"
-        safe_get(dados, "fluxo_nf"),   # "Envia XML sem nota"
-    ]
-    table(headers, [row], widths, header_h=8.0, cell_h=6.0, pad=2.0)
-    pdf.ln(2.0)
-
-    # --------------------------
-    # Observações Críticas — multipágina (com parágrafos + bullets)
-    # --------------------------
     bar_title("Observações Críticas")
     apply_font(10, False)
 
@@ -793,44 +670,25 @@ def gerar_pdf(dados):
         y_curr = pdf.get_y()
         espaco_livre = pdf.page_break_trigger - y_curr
         linhas_possiveis = int((espaco_livre - 2 * padding) // line_h)
-        
         if linhas_possiveis <= 0:
             pdf.add_page()
             apply_font(10, False)
-            continue
+            y_curr = pdf.get_y()
+            linhas_possiveis = int((pdf.page_break_trigger - y_curr - 2 * padding) // line_h)
 
         fim = min(len(wrapped_lines), idx + linhas_possiveis)
         chunk = wrapped_lines[idx:fim]
         box_h = 2 * padding + len(chunk) * line_h
-        
         pdf.rect(pdf.l_margin, y_curr, CONTENT_W, box_h)
         y_txt = y_curr + padding
         for (txt, ind) in chunk:
             pdf.set_xy(pdf.l_margin + padding + ind, y_txt)
             pdf.cell(usable_w - ind, line_h, txt)
             y_txt += line_h
-        
         pdf.set_y(y_curr + box_h)
         idx = fim
 
-        if i < len(wrapped_lines) and pdf.get_y() + line_h > pdf.page_break_trigger:
-            pdf.add_page()
-
-    
-    # --------------------------
-    # Retorno seguro (bytes)
-    # --------------------------
     result = pdf.output(dest="S")
-
-    # fpdf 1.x: str | fpdf2: bytes | alguns ambientes: bytearray
-    if isinstance(result, str):
-        try:
-            result = result.encode("latin-1")
-        except Exception:
-            result = result.encode("latin-1", "ignore")
-    elif isinstance(result, bytearray):
-        result = bytes(result)
-
     if isinstance(result, str): 
         result = result.encode("latin-1", "ignore")
     return bytes(result)
