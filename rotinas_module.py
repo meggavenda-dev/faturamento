@@ -236,36 +236,38 @@ class RotinasModule:
 
 
 
+       
         # ============================================================
         # SALVAR
         # ============================================================
         if st.button("💾 Salvar Rotina", use_container_width=True):
-                    if not nome:
-                        st.error("O nome da rotina é obrigatório.")
-                    else:
-                        # Se id for "novo", geramos um novo, senão mantemos o original
-                        id_final = self.generate_id(rotinas_atuais) if rotina_id == "novo" else int(rotina_id)
-                        
-                        novo_registro = {
-                            "id": id_final,
-                            "nome": nome,
-                            "setor": setor,
-                            "descricao": descricao_html,
-                        }
+            if not nome:
+                st.error("O nome da rotina é obrigatório.")
+            else:
+                # Se id for "novo", geramos um novo, senão mantemos o original
+                id_final = self.generate_id(rotinas_atuais) if rotina_id == "novo" else int(rotina_id)
         
-                        if rotina_id == "novo":
-                            rotinas_atuais.append(novo_registro)
-                        else:
-                            for i, r in enumerate(rotinas_atuais):
-                                if str(r.get("id")) == str(rotina_id):
-                                    rotinas_atuais[i] = novo_registro
-                                    break
-
+                novo_registro = {
+                    "id": id_final,
+                    "nome": nome,
+                    "setor": setor,
+                    "descricao": descricao_html,
+                }
+        
+                if rotina_id == "novo":
+                    rotinas_atuais.append(novo_registro)
+                else:
+                    for i, r in enumerate(rotinas_atuais):
+                        if str(r.get("id")) == str(rotina_id):
+                            rotinas_atuais[i] = novo_registro
+                            break
+        
                 if self.db.save(rotinas_atuais):
                     st.success("✔ Rotina salva com sucesso!")
                     self.db._cache_data = None
                     time.sleep(1)
                     st.rerun()
+        
 
         # ============================================================
         # DOWNLOAD PDF
