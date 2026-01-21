@@ -274,20 +274,19 @@ def sanitize_text(text: str) -> str:
 
 def fix_common_spacing_heuristics(s: str) -> str:
     """
-    Corrige palavras e números grudados identificados nos manuais.
+    Força o espaçamento em padrões identificados nos manuais da AMIL.
     """
     if not s: return ""
     
-    # 1. Protege URLs para não inserir espaços no meio delas
-    if "://" in s:
-        return s 
+    # 1. Ignora URLs para não quebrar links
+    if "://" in s: return s 
 
-    # 2. Insere espaço entre Números e Letras (Ex: 90dias -> 90 dias)
+    # 2. Separa Números de Letras (ex: 90dias -> 90 dias)
     s = re.sub(r"(\d)([A-Za-zÀ-ÿ])", r"\1 \2", s)
     s = re.sub(r"([A-Za-zÀ-ÿ])(\d)", r"\1 \2", s)
 
-    # 3. Corrige termos técnicos específicos da AMIL que grudam
-    fixes = {
+    # 3. Dicionário de termos específicos que grudam no seu manual
+    correcoes = {
         r"serpediatria": "ser pediatria",
         r"depacote": "de pacote",
         r"maisatualizadas": "mais atualizadas",
@@ -297,17 +296,18 @@ def fix_common_spacing_heuristics(s: str) -> str:
         r"ACESSARSISAMIL": "ACESSAR SISAMIL",
         r"Finalizarfaturamento": "Finalizar faturamento",
         r"ofinanceiro": "o financeiro",
-        r"DAS(\d)": r"DAS \1", 
-        r"PELASMARTKIDS": "PELA SMARTKIDS",
         r"epesquisa": "e pesquisa",
         r"sófechar": "só fechar",
-        r"deuerro": "deu erro"
+        r"deuerro": "deu erro",
+        r"DAS(\d)": r"DAS \1",
+        r"noSisAmil": "no SisAmil",
+        r"protocolosaparecerão": "protocolos aparecerão"
     }
     
-    for pat, rep in fixes.items():
-        s = re.sub(pat, rep, s, flags=re.IGNORECASE)
+    for erro, corrigido in correcoes.items():
+        s = re.sub(erro, corrigido, s, flags=re.IGNORECASE)
 
-    # 4. Limpa espaços duplos
+    # 4. Remove espaços duplos acidentais
     s = re.sub(r"\s{2,}", " ", s)
     
     return s.strip()
