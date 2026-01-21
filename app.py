@@ -539,14 +539,12 @@ def gerar_pdf(dados):
     GREY_BAR = (230, 230, 230)   # barra de seção
     TEXT = (0, 0, 0)
     CONTENT_W = pdf.w - pdf.l_margin - pdf.r_margin
-
     FONT = _pdf_set_fonts(pdf)
-    def set_font(size=10, bold=False):
-        style = "B" if bold else ""
-        try:
-            pdf.set_font(FONT, style, size)
-        except Exception:
-            pdf.set_font("Helvetica", style, size)
+    
+    line_h = 6.6
+    padding = 1.8
+    bullet_indent = 4.0
+    usable_w = CONTENT_W - 2 * padding
 
     obs_text_raw = safe_get(dados, "observacoes")
     obs_text = clean_html(obs_text_raw) # ✅ Remove as tags HTML antes de processar as linhas do PDF
