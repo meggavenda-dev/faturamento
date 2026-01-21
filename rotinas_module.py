@@ -1,30 +1,31 @@
 
 # rotinas_module.py
-# Módulo "Rotinas do Setor" — Cadastro/Edição + PDF premium
-# Usa injeção de dependências para compartilhar utilitárias do app principal
-# (sanitize_text, build_wrapped_lines, _pdf_set_fonts, generate_id, safe_get)
+# Módulo "Rotinas do Setor" — Cadastro/Edição + PDF premium + Exclusão permanente
+# Usa injeção de dependências do app principal para evitar import circular.
 
 from typing import Callable, Any, List, Tuple
 from fpdf import FPDF
 import streamlit as st
 import pandas as pd
 import time
+import re
+
 
 class RotinasModule:
     """
     Rotinas do Setor — módulo desacoplado do app principal.
 
-    Dependências (injeção):
-      - db_rotinas: instância de GitHubJSON (já configurada no app)
+    Dependências (injeção via __init__):
+      - db_rotinas: instância de GitHubJSON
       - sanitize_text: função(str) -> str
       - build_wrapped_lines: função(str, FPDF, float, float, float) -> List[Tuple[str, float]]
-      - _pdf_set_fonts: função(FPDF) -> str (retorna o nome da fonte ativa, ex.: "DejaVu" ou fallback)
+      - _pdf_set_fonts: função(FPDF) -> str  (retorna o nome da fonte ativa, ex.: "DejaVu" ou fallback)
       - generate_id: função(list) -> int
       - safe_get: função(dict, str, default) -> str
-      - primary_color: str (hex), opcional
-      - setores_opcoes: lista de strings para o select de Setor
+      - primary_color: str (hex)
+      - setores_opcoes: List[str] com as opções de Setor (ex.: ["Apoio e Controle", ...])
 
-    Como instanciar no app:
+    Exemplo de instância no app.py:
         rotinas_module = RotinasModule(
             db_rotinas=db_rotinas,
             sanitize_text=sanitize_text,
@@ -156,20 +157,25 @@ class RotinasModule:
             if i < len(wrapped_lines) and pdf.get_y() + line_h > pdf.page_break_trigger:
                 pdf.add_page()
 
-        # ---- Retorno seguro (bytes) ----
+        # ---- Retorno seguro (sempre bytes) ----
         result = pdf.output(dest="S")
+
+        # fpdf 1.x retorna str; fpdf2 retorna bytes; alguns ambientes podem gerar bytearray.
         if isinstance(result, str):
-            try:
-                result = result.encode("latin-1")
-            except Exception:
-                result = result.encode("latin-1", "ignore")
-        return result
+            result = result.encode("latin-1", "ignore")
+        elif isinstance(result, bytearray):
+            result = bytes(result)
+
+        if not isinstance(result, (bytes, bytearray)):
+            raise TypeError(f"PDF gerado em tipo inesperado: {type(result)}")
+
+        return bytes(result)
 
     # =========================
     # Página Streamlit do módulo
     # =========================
     def page(self):
-        # Carrega banco de rotinas com tolerância (classe premium deve auto-healar [])
+        # Carrega banco de rotinas com tolerância
         try:
             rotinas_atuais, _ = self.db.load(force=True)
         except Exception:
@@ -211,7 +217,7 @@ class RotinasModule:
         with st.form(key=form_key):
             nome = st.text_input("Nome da Rotina", value=self.safe_get(dados_rotina, "nome"))
 
-            # Campo SETOR — selectbox com as opções injetadas
+            # Campo SETOR — selectbox com as opções injetadas (fallback: input livre)
             setor_atual = self.safe_get(dados_rotina, "setor")
             if self.setores_opcoes:
                 if setor_atual not in self.setores_opcoes:
@@ -219,7 +225,6 @@ class RotinasModule:
                 idx_setor = self.setores_opcoes.index(setor_atual) if setor_atual in self.setores_opcoes else 0
                 setor = st.selectbox("Setor", self.setores_opcoes, index=idx_setor)
             else:
-                # fallback para caso não tenham sido injetadas opções
                 setor = st.text_input("Setor", value=setor_atual or "")
 
             descricao = st.text_area(
@@ -260,36 +265,70 @@ class RotinasModule:
 
         # ---- Botão PDF (aparece quando uma rotina está selecionada) ----
         if dados_rotina:
-            import re
-        
             try:
                 pdf_bytes = self.gerar_pdf_rotina(dados_rotina)
-        
-                # Garante que o dado para o st.download_button é bytes
+
+                # Normalize para bytes (cinto e suspensório)
                 if isinstance(pdf_bytes, str):
                     pdf_bytes = pdf_bytes.encode("latin-1", "ignore")
+                elif isinstance(pdf_bytes, bytearray):
+                    pdf_bytes = bytes(pdf_bytes)
                 if not isinstance(pdf_bytes, (bytes, bytearray)):
                     raise TypeError(f"Tipo inesperado ao gerar PDF: {type(pdf_bytes)}")
-        
-                # Monta nome de arquivo seguro (sem caracteres inválidos)
+
+                # Nome de arquivo seguro
                 setor = self.safe_get(dados_rotina, "setor")
                 nome  = self.safe_get(dados_rotina, "nome")
                 fname = f"Rotina_{setor}_{nome}.pdf".strip() or "Rotina.pdf"
                 fname = re.sub(r'[\\/:*?"<>|]+', "_", fname)[:120]
-        
+
                 st.download_button(
                     label="📥 Baixar PDF da Rotina",
-                    data=pdf_bytes,
+                    data=bytes(pdf_bytes),
                     file_name=fname,
                     mime="application/pdf",
                     key=f"dl_pdf_rotina_{self.safe_get(dados_rotina, 'id')}",
                 )
-        
+
             except Exception as e:
                 st.error("Falha ao preparar o PDF para download.")
-                # Mostra detalhes no app (útil em desenvolvimento; remova se quiser)
                 st.exception(e)
 
+            # ==============================
+            # 🗑️ EXCLUSÃO PERMANENTE — ROTINA
+            # ==============================
+            rotina_id_str = str(dados_rotina.get("id") or "")
+            with st.expander("🗑️ Excluir rotina (permanente)", expanded=False):
+                st.warning(
+                    "Esta ação **não pode ser desfeita**. "
+                    "Para confirmar, digite o **ID** da rotina e clique em Excluir.",
+                    icon="⚠️"
+                )
+                confirm_val = st.text_input(
+                    f"Confirmação: digite **{rotina_id_str}**",
+                    key=f"confirm_del_rot_{rotina_id_str}"
+                )
+
+                can_delete = confirm_val.strip() == rotina_id_str and bool(rotina_id_str)
+                if st.button("Excluir rotina **permanentemente**", type="primary", disabled=not can_delete):
+                    try:
+                        def _update(data):
+                            # remove pelo ID (atomicidade via SHA locking na classe GitHubJSON)
+                            return [r for r in (data or []) if str(r.get("id")) != rotina_id_str]
+
+                        self.db.update(_update)
+
+                        st.success(f"✔ Rotina {rotina_id_str} excluída com sucesso!")
+
+                        # Limpa caches/estado e recarrega
+                        self.db._cache_data = None
+                        self.db._cache_sha = None
+                        self.db._cache_time = 0.0
+                        st.session_state.clear()
+                        time.sleep(1)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Falha ao excluir rotina {rotina_id_str}: {e}")
 
         # ---- Visualização do banco ----
         st.markdown("<div class='card'><div class='card-title'>📋 Banco de Rotinas</div>", unsafe_allow_html=True)
