@@ -1009,14 +1009,47 @@ def page_cadastro():
                 time.sleep(1)
                 st.rerun()
 
+    
     # BOTÃO PDF
-    if dados_conv:
-        st.download_button(
-            "📥 Baixar PDF do Convênio",
-            gerar_pdf(dados_conv),
-            file_name=f"Manual_{safe_get(dados_conv,'nome')}.pdf",
-            mime="application/pdf"
-        )
+        if dados_conv:
+            st.download_button(
+                "📥 Baixar PDF do Convênio",
+                gerar_pdf(dados_conv),
+                file_name=f"Manual_{safe_get(dados_conv,'nome')}.pdf",
+                mime="application/pdf"
+            )
+    
+            # ==============================
+            # 🗑️ EXCLUSÃO PERMANENTE — CONVÊNIO
+            # ==============================
+            with st.expander("🗑️ Excluir convênio (permanente)", expanded=False):
+                st.warning(
+                    "Esta ação **não pode ser desfeita**. "
+                    "Para confirmar, digite o **ID** do convênio e clique em Excluir.",
+                    icon="⚠️"
+                )
+    
+                # Garante o ID como string (usa o do registro salvo quando existir)
+                conv_id_str = str(dados_conv.get("id") if isinstance(dados_conv, dict) else conv_id or "").strip()
+    
+                confirm_val = st.text_input(
+                    f"Confirmação: digite **{conv_id_str}**",
+                    key=f"confirm_del_conv_{conv_id_str}"
+                )
+    
+                can_delete = confirm_val.strip() == conv_id_str and bool(conv_id_str)
+    
+                if st.button(
+                    "Excluir convênio **permanentemente**",
+                    type="primary",
+                    disabled=not can_delete,
+                    key=f"btn_del_conv_{conv_id_str}"
+                ):
+                    try:
+                        def _update(data):
+                            # remove o registro cujo id == conv_id_str
+                            return [c for c in (data or []) if str(c.get("id")) != conv_id_str]
+
 
 # ============================================================
 # 12. PÁGINAS — CONSULTA & VISUALIZAR BANCO
