@@ -253,8 +253,8 @@ CSS_GLOBAL = f"""
 def ui_text(value):
     if not value:
         return ""
-    return sanitize_text(value)
-    
+    return sanitize_text(value)   
+
 
 def fix_technical_spacing(txt: str) -> str:
     if not txt:
@@ -267,25 +267,22 @@ def fix_technical_spacing(txt: str) -> str:
         urls[key] = match.group(0)
         return key
 
-    # 1) Protege URLs (sem espaços extras)
+    # 1) Protege URLs
     txt = re.sub(r"https?://[^\s<>\"']+", _url_replacer, txt)
 
     # 2) number+word e word+number
     txt = re.sub(r"(\d)([A-Za-zÁÉÍÓÚÂÊÔÃÕÀÇáéíóúâêôãõàç])", r"\1 \2", txt)
     txt = re.sub(r"([A-Za-zÁÉÍÓÚÂÊÔÃÕÀÇáéíóúâêôãõàç])(\d)", r"\1 \2", txt)
 
-    # 3) acrescenta espaço depois de dois-pontos quando vier colado ao próximo token
-    #    Ex.: "Site:https://..." -> "Site: https://..."
+    # 3) espaço após dois-pontos quando vier colado
     txt = re.sub(r":(?!\s)", ": ", txt)
 
-    # 4) reforça espaços ao redor de barras quando há letras/dígitos dos dois lados
-    #    Ex.: "Sim/4.01.00" -> "Sim / 4.01.00"
+    # 4) espaços ao redor de barras
     txt = re.sub(r"(?<=\w)/(?!\s)", " / ", txt)
     txt = re.sub(r"(?<!\s)/(?!\s)(?=\w)", " / ", txt)
-    # normaliza duplicações " /  / " eventuais
     txt = re.sub(r"\s*/\s*", " / ", txt)
 
-    # 5) Correções conhecidas (antes das genéricas)
+    # 5) Correções conhecidas
     correcoes = {
         r"\bPELASMARTKIDS\b": "PELA SMARTKIDS",
         r"\bserpediatria\b": "ser pediatria",
@@ -293,10 +290,8 @@ def fix_technical_spacing(txt: str) -> str:
         r"\bdiasútil\b": "dias útil",
         r"\bdiasuteis\b": "dias úteis",
         r"\bDAS\s?(\d+)": r"DAS \1",
-        # Casos vistos no PDF atual:
         r"\b90dias\b": "90 dias",
         r"\bàs12:00\b": "às 12:00",
-        r"\bSISAMIL\b": "SISAMIL",   # apenas normalização, caso venha grudado
     }
     for erro, certo in correcoes.items():
         txt = re.sub(erro, certo, txt, flags=re.IGNORECASE)
@@ -305,7 +300,7 @@ def fix_technical_spacing(txt: str) -> str:
     txt = re.sub(r"([A-Z]{2,})([a-záéíóúãõç])", r"\1 \2", txt)
     txt = re.sub(r"([a-záéíóúãõç])([A-Z]{2,})", r"\1 \2", txt)
 
-    # 7) bullets coladas no conteúdo: "•Texto" -> "• Texto"
+    # 7) bullets coladas
     txt = re.sub(r"([•\-–—\*→])([^\s])", r"\1 \2", txt)
 
     # 8) Restaura URLs
@@ -314,7 +309,6 @@ def fix_technical_spacing(txt: str) -> str:
 
     return txt
 
-    
 
 def sanitize_text(text: str) -> str:
     if not text:
@@ -333,10 +327,11 @@ def sanitize_text(text: str) -> str:
     # 3) Correção semântica e espaçamento técnico
     txt = fix_technical_spacing(txt)
 
-    # 4) Normalização de espaços (mantém um espaço único)
+    # 4) Normalização de espaços
     txt = re.sub(r"[ \t]+", " ", txt)
 
     return txt.replace("\r", "").strip()
+
 
     
 def normalize(value):
