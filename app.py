@@ -266,6 +266,28 @@ def fix_technical_spacing(txt: str) -> str:
         urls[key] = match.group(0)
         return key
 
+    # 6️⃣ Palavra minúscula colada com palavra minúscula (casos técnicos comuns)
+    txt = re.sub(
+        r"\b(dias)(úteis|útil)\b", 
+        r"\1 \2", 
+        txt, 
+        flags=re.IGNORECASE
+    )
+
+    txt = re.sub(
+        r"\b(sem)(nota|nf)\b", 
+        r"\1 \2", 
+        txt, 
+        flags=re.IGNORECASE
+    )
+
+    txt = re.sub(
+        r"\b(data)(de)(envio)\b", 
+        r"\1 \2 \3", 
+        txt, 
+        flags=re.IGNORECASE
+    )
+
     # 1️⃣ Protege URLs
     txt = re.sub(r"https?://\S+", _url_replacer, txt)
 
