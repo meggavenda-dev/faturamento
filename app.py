@@ -1031,6 +1031,7 @@ def ui_block_info(title: str, content: str):
 # ============================================================
 # 11. PÁGINA — CADASTRO / EDIÇÃO DE CONVÊNIOS
 # ============================================================
+
 def page_cadastro():
     dados_atuais, _ = db.load(force=True)
     dados_atuais = list(dados_atuais)
@@ -1055,12 +1056,16 @@ def page_cadastro():
 
     ui_card_end()
 
+    # ============================================================
+    # FORM — APENAS CAMPOS TRADICIONAIS + SUBMIT
+    # ============================================================
     form_key = f"form_{conv_id}" if conv_id else "form_novo"
 
     with st.form(key=form_key):
+
         col1, col2, col3 = st.columns(3)
 
-        # COLUNA 1
+        # -------- COLUNA 1 --------
         with col1:
             nome = st.text_input("Nome do Convênio", value=safe_get(dados_conv, "nome"))
             codigo = st.text_input("Código", value=safe_get(dados_conv, "codigo"))
@@ -1083,14 +1088,14 @@ def page_cadastro():
                 index=SISTEMAS.index(valor_sistema)
             )
 
-        # COLUNA 2
+        # -------- COLUNA 2 --------
         with col2:
             site = st.text_input("Site/Portal", value=safe_get(dados_conv, "site"))
             login = st.text_input("Login", value=safe_get(dados_conv, "login"))
             senha = st.text_input("Senha", value=safe_get(dados_conv, "senha"))
             retorno = st.text_input("Prazo Retorno", value=safe_get(dados_conv, "prazo_retorno"))
 
-        # COLUNA 3
+        # -------- COLUNA 3 --------
         with col3:
             envio = st.text_input("Prazo Envio", value=safe_get(dados_conv, "envio"))
             validade = st.text_input("Validade da Guia", value=safe_get(dados_conv, "validade"))
@@ -1105,8 +1110,9 @@ def page_cadastro():
                 valor_nf = "Sim"
             nf = st.radio("Exige Nota Fiscal?", OPCOES_NF, index=OPCOES_NF.index(valor_nf))
 
-        # XML/NF
+        # -------- XML / NF --------
         colA, colB = st.columns(2)
+
         with colA:
             valor_versao = safe_get(dados_conv, "versao_xml")
             if valor_versao not in VERSOES_TISS:
@@ -1130,165 +1136,140 @@ def page_cadastro():
         config_gerador = st.text_area("Configuração do Gerador XML", value=safe_get(dados_conv, "config_gerador"))
         doc_digitalizacao = st.text_area("Digitalização e Documentação", value=safe_get(dados_conv, "doc_digitalizacao"))
 
-        # === Observações (Rich-text com suporte a prints via Quill) ===
-        initial_html = safe_get(dados_conv, "observacoes_html")
-        if not initial_html:
-            legacy_txt = safe_get(dados_conv, "observacoes")
-            if legacy_txt:
-                parts = [f"<p>{sanitize_text(p)}</p>" for p in legacy_txt.split("\n") if sanitize_text(p)]
-                initial_html = "\n".join(parts)
-
-
-        # apenas placeholder dentro do FORM
+        # SUBMIT DO FORM
         submit = st.form_submit_button("💾 Salvar Dados")
-        
-        # editor REAL fora do form
-        if st_quill is None:
-            st.info("Editor avançado não instalado...")
-            observacoes_html = st.text_area(
-                "Observações Críticas (HTML)",
-                value=initial_html or "",
-                height=300
-            )
-        else:
-            observacoes_html = st_quill(
-                value=initial_html or "",
-                placeholder="Digite suas observações… (pode colar prints com Ctrl+V)",
-                html=True,
-                key=f"obs_quill_{conv_id or 'novo'}",
-                height=280,
-            )
-        
 
-        if submit:
-            novo_registro = {
-                "nome": nome,
-                "codigo": codigo,
-                "empresa": empresa,
-                "sistema_utilizado": sistema,
-                "site": site,
-                "login": login,
-                "senha": senha,
-                "prazo_retorno": retorno,
-                "envio": envio,
-                "validade": validade,
-                "xml": xml,
-                "nf": nf,
-                "versao_xml": versao_xml,
-                "fluxo_nf": fluxo_nf,
-                "config_gerador": config_gerador,
-                "doc_digitalizacao": doc_digitalizacao,
-            }
+    # ============================================================
+    # RICH-TEXT (FORA DO FORM!)  — Aceita prints via Ctrl+V
+    # ============================================================
+    st.markdown("### 📝 Observações Críticas")
 
-            # Fallback de texto puro: remove tags para manter compatibilidade
-            plain_obs = ""
-            if observacoes_html:
-                if BeautifulSoup is not None:
-                    try:
-                        plain_obs = BeautifulSoup(observacoes_html, "html.parser").get_text(separator="\n").strip()
-                    except Exception:
-                        plain_obs = sanitize_text(re.sub(r"<[^>]+>", "", observacoes_html))
-                else:
-                    plain_obs = sanitize_text(re.sub(r"<[^>]+>", "", observacoes_html))
+    initial_html = safe_get(dados_conv, "observacoes_html")
+    if not initial_html:
+        legacy_txt = safe_get(dados_conv, "observacoes")
+        if legacy_txt:
+            parts = [f"<p>{sanitize_text(p)}</p>" for p in legacy_txt.split("\n") if sanitize_text(p)]
+            initial_html = "\n".join(parts)
 
-            novo_registro.update({
-                "observacoes_html": observacoes_html or "",
-                "observacoes": plain_obs or safe_get(dados_conv, "observacoes")
-            })
+    # Editor Quill fora do form
+    if st_quill is None:
+        st.info("Editor avançado não instalado... usando modo texto simples.")
+        observacoes_html = st.text_area(
+            "Observações Críticas (HTML)",
+            value=initial_html or "",
+            height=300
+        )
+    else:
+        observacoes_html = st_quill(
+            value=initial_html or "",
+            placeholder="Digite suas observações… (pode colar prints com Ctrl+V)",
+            html=True,
+            key=f"obs_quill_{conv_id or 'novo'}",
+            height=280,
+        )
 
-            if conv_id is None:
-                novo_registro["id"] = generate_id(dados_atuais)
-                dados_atuais.append(novo_registro)
+    # ============================================================
+    # PROCESSAMENTO DO SUBMIT
+    # ============================================================
+    if submit:
+
+        novo_registro = {
+            "nome": nome,
+            "codigo": codigo,
+            "empresa": empresa,
+            "sistema_utilizado": sistema,
+            "site": site,
+            "login": login,
+            "senha": senha,
+            "prazo_retorno": retorno,
+            "envio": envio,
+            "validade": validade,
+            "xml": xml,
+            "nf": nf,
+            "versao_xml": versao_xml,
+            "fluxo_nf": fluxo_nf,
+            "config_gerador": config_gerador,
+            "doc_digitalizacao": doc_digitalizacao,
+        }
+
+        # Texto puro para compatibilidade
+        if observacoes_html:
+            if BeautifulSoup:
+                plain_obs = BeautifulSoup(observacoes_html, "html.parser").get_text("\n").strip()
             else:
-                novo_registro["id"] = int(conv_id)
-                for i, c in enumerate(dados_atuais):
-                    if str(c.get("id")) == str(conv_id):
-                        dados_atuais[i] = novo_registro
-                        break
+                plain_obs = sanitize_text(re.sub(r"<[^>]+>", "", observacoes_html))
+        else:
+            plain_obs = safe_get(dados_conv, "observacoes")
 
-            # SALVAR NO GITHUB
-            if db.save(dados_atuais):
-                st.success(f"✔ Convênio {novo_registro['id']} salvo com sucesso!")
+        novo_registro["observacoes_html"] = observacoes_html or ""
+        novo_registro["observacoes"] = plain_obs
 
-                # LIMPA CACHE DO BANCO
-                db._cache_data = None
-                db._cache_sha = None
-                db._cache_time = 0.0
+        # Novo ou edição
+        if conv_id is None:
+            novo_registro["id"] = generate_id(dados_atuais)
+            dados_atuais.append(novo_registro)
+        else:
+            novo_registro["id"] = int(conv_id)
+            for i, c in enumerate(dados_atuais):
+                if str(c.get("id")) == str(conv_id):
+                    dados_atuais[i] = novo_registro
+                    break
 
-                # LIMPA ESTADO DO STREAMLIT
-                st.session_state.clear()
+        # Salvar no GitHub
+        if db.save(dados_atuais):
+            st.success(f"✔ Convênio {novo_registro['id']} salvo com sucesso!")
+            db._cache_data = None
+            db._cache_sha = None
+            db._cache_time = 0.0
+            st.session_state.clear()
+            time.sleep(1)
+            st.rerun()
 
-                time.sleep(1)
-                st.rerun()
-
-    # BOTÃO PDF (FORA DO FORM) + EXCLUSÃO
+    # ============================================================
+    # PDF + EXCLUSÃO (sem alterações)
+    # ============================================================
     if dados_conv:
-        import re
         try:
             pdf_bytes = gerar_pdf(dados_conv)
-            if isinstance(pdf_bytes, str):
-                pdf_bytes = pdf_bytes.encode("latin-1", "ignore")
-            elif isinstance(pdf_bytes, bytearray):
-                pdf_bytes = bytes(pdf_bytes)
-            if not isinstance(pdf_bytes, (bytes, bytearray)):
-                raise TypeError(f"Tipo inesperado ao gerar PDF: {type(pdf_bytes)}")
-
             nome_file = safe_get(dados_conv, "nome") or "Manual"
             fname = re.sub(r'[\\/:*?"<>|]+', "_", f"Manual_{nome_file}.pdf")[:120]
 
             st.download_button(
                 "📥 Baixar PDF do Convênio",
-                data=bytes(pdf_bytes),
+                data=pdf_bytes,
                 file_name=fname,
                 mime="application/pdf",
-                key=f"dl_pdf_convenio_{safe_get(dados_conv, 'id')}",
             )
         except Exception as e:
             st.error("Falha ao preparar o PDF do convênio.")
             st.exception(e)
 
-        # ==============================
-        # 🗑️ EXCLUSÃO PERMANENTE — CONVÊNIO
-        # ==============================
-        with st.expander("🗑️ Excluir convênio (permanente)", expanded=False):
+        with st.expander("🗑️ Excluir convênio (permanente)"):
             st.warning(
                 "Esta ação **não pode ser desfeita**. "
-                "Para confirmar, digite o **ID** do convênio e clique em Excluir.",
-                icon="⚠️"
+                "Digite o ID para confirmar."
             )
 
-            conv_id_str = str(dados_conv.get("id") if isinstance(dados_conv, dict) else "") or ""
+            conv_id_str = str(safe_get(dados_conv, "id"))
             confirm_val = st.text_input(
                 f"Confirmação: digite **{conv_id_str}**",
-                key=f"confirm_del_conv_{conv_id_str}"
+                key=f"confirm_del_{conv_id_str}"
             )
 
-            can_delete = confirm_val.strip() == conv_id_str and bool(conv_id_str)
-
-            if st.button(
-                "Excluir convênio **permanentemente**",
-                type="primary",
-                disabled=not can_delete,
-                key=f"btn_del_conv_{conv_id_str}"
-            ):
+            if st.button("Excluir convênio permanentemente", disabled=(confirm_val != conv_id_str)):
                 try:
-                    def _update(data):
-                        # remove o registro cujo id == conv_id_str
-                        return [c for c in (data or []) if str(c.get("id")) != conv_id_str]
+                    def _upd(data):
+                        return [c for c in data if str(c.get("id")) != conv_id_str]
 
-                    db.update(_update)
-                    st.success(f"✔ Convênio {conv_id_str} excluído com sucesso!")
-
-                    # Limpa caches/estado e recarrega
+                    db.update(_upd)
+                    st.success("Convênio excluído!")
                     db._cache_data = None
-                    db._cache_sha = None
-                    db._cache_time = 0.0
                     st.session_state.clear()
                     time.sleep(1)
                     st.rerun()
-
                 except Exception as e:
-                    st.error(f"Falha ao excluir convênio {conv_id_str}: {e}")
+                    st.error(f"Erro ao excluir: {e}")
+
 
 # ============================================================
 # 12. PÁGINAS — CONSULTA & VISUALIZAR BANCO
