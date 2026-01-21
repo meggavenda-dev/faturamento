@@ -1009,6 +1009,8 @@ def page_cadastro():
                 time.sleep(1)
                 st.rerun()
 
+
+
     # BOTÃO PDF
     if dados_conv:
         st.download_button(
@@ -1017,6 +1019,55 @@ def page_cadastro():
             file_name=f"Manual_{safe_get(dados_conv,'nome')}.pdf",
             mime="application/pdf"
         )
+
+        # ==============================
+        # 🗑️ EXCLUSÃO PERMANENTE — CONVÊNIO
+        # ==============================
+        with st.expander("🗑️ Excluir convênio (permanente)", expanded=False):
+            st.warning(
+                "Esta ação **não pode ser desfeita**. "
+                "Para confirmar, digite o **ID** do convênio e clique em Excluir.",
+                icon="⚠️"
+            )
+
+            # Garante o ID como string (usa o do registro salvo quando existir)
+            conv_id_str = str(dados_conv.get("id") if isinstance(dados_conv, dict) else conv_id or "").strip()
+
+            confirm_val = st.text_input(
+                f"Confirmação: digite **{conv_id_str}**",
+                key=f"confirm_del_conv_{conv_id_str}"
+            )
+
+            can_delete = confirm_val.strip() == conv_id_str and bool(conv_id_str)
+
+            if st.button(
+                "Excluir convênio **permanentemente**",
+                type="primary",
+                disabled=not can_delete,
+                key=f"btn_del_conv_{conv_id_str}"
+            ):
+                try:
+                    def _update(data):
+                        # remove o registro cujo id == conv_id_str
+                        return [c for c in (data or []) if str(c.get("id")) != conv_id_str]
+
+                    # Atualiza no GitHub de forma atômica (SHA locking)
+                    db.update(_update)
+
+                    st.success(f"✔ Convênio {conv_id_str} excluído com sucesso!")
+
+                    # Limpa caches e estado da UI; recarrega a app
+                    db._cache_data = None
+                    db._cache_sha = None
+                    db._cache_time = 0.0
+                    st.session_state.clear()
+                    time.sleep(1)
+                    st.rerun()
+
+                except Exception as e:
+                    st.error(f"Falha ao excluir convênio {conv_id_str}: {e}")   
+    
+
 
 # ============================================================
 # 12. PÁGINAS — CONSULTA & VISUALIZAR BANCO
