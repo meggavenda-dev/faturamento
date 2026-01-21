@@ -255,6 +255,7 @@ def ui_text(value):
         return ""
     return sanitize_text(value)
     
+
 def fix_technical_spacing(txt: str) -> str:
     if not txt:
         return ""
@@ -266,14 +267,8 @@ def fix_technical_spacing(txt: str) -> str:
         urls[key] = match.group(0)
         return key
 
-    # 1️⃣ PROTEGE URLs PRIMEIRO
-    re.sub(r"https?://[^\s<>\"']+", _url_replacer, txt)
-    
-    # 7️⃣ casos técnicos
-    txt = re.sub(r"\b(dias)(úteis|útil)\b", r"\1 \2", txt, flags=re.IGNORECASE)
-    txt = re.sub(r"\b(sem)(nota|nf)\b", r"\1 \2", txt, flags=re.IGNORECASE)
-    txt = re.sub(r"(às)(\d)", r"\1 \2", txt, flags=re.IGNORECASE)
-    
+    # 1️⃣ PROTEGE URLs PRIMEIRO (faltava atribuição!)
+    txt = re.sub(r"https?://[^\s<>\"']+", _url_replacer, txt)
 
     # 2️⃣ BULLETS
     txt = re.sub(r"([•\-–—])([^\s])", r"\1 \2", txt)
@@ -291,11 +286,18 @@ def fix_technical_spacing(txt: str) -> str:
     # 6️⃣ palavra → sigla
     txt = re.sub(r"([a-záéíóúãõç])([A-Z]{2,})", r"\1 \2", txt)
 
+    # 7️⃣ Casos técnicos
+    txt = re.sub(r"\b(dias)(úteis|útil)\b", r"\1 \2", txt, flags=re.IGNORECASE)
+    txt = re.sub(r"\b(sem)(nota|nf)\b", r"\1 \2", txt, flags=re.IGNORECASE)
+    txt = re.sub(r"\b(às|as|das)(\d)", r"\1 \2", txt, flags=re.IGNORECASE)  # ex.: DAS12:00 -> DAS 12:00
+    txt = re.sub(r"\b(site)(https?://)", r"\1 \2", txt, flags=re.IGNORECASE)
+
     # 8️⃣ RESTAURA URLs
     for k, v in urls.items():
         txt = txt.replace(k, v)
 
     return txt
+
     
 def sanitize_text(text: str) -> str:
     if not text:
@@ -466,32 +468,41 @@ def _pdf_set_fonts(pdf: FPDF) -> str:
     return "Helvetica"
 
 
+
 def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
     lines_out = []
-    if not text: return []
+    if not text:
+        return []
 
-    text = sanitize_text(text)  # ✅ UMA ÚNICA VEZ
+    text = sanitize_text(text)  # sanitize uma vez
 
     paragraphs = text.split('\n')
     bullet_re = re.compile(r"^\s*(?:[\u2022•\-–—\*]|->|→)\s*(.*)$")
-    
+
     for p in paragraphs:
         p = p.strip()
         if not p:
             lines_out.append(("", 0.0))
             continue
-    
+
         m = bullet_re.match(p)
         if m:
             content = m.group(1).strip()
             wrapped = wrap_text("• " + content, pdf, usable_w - bullet_indent)
-            for wline in wrapped:
+            for j, wline in enumerate(wrapped):
+                # NBSP nas linhas que continuam o parágrafo
+                if j < len(wrapped) - 1:
+                    wline = wline + "\u00A0"
                 lines_out.append((wline, bullet_indent))
         else:
             wrapped = wrap_text(p, pdf, usable_w)
-            for wline in wrapped:
+            for j, wline in enumerate(wrapped):
+                if j < len(wrapped) - 1:
+                    wline = wline + "\u00A0"
                 lines_out.append((wline, 0.0))
+
     return lines_out
+
     
 # ============================================================
 # 9. GERAÇÃO DO PDF — layout completo
@@ -546,11 +557,13 @@ def gerar_pdf(dados):
             label = label or ""
             value = value or ""
 
-            # mede linhas do valor
+            # mede linhas do valor            
             set_font(val_size, False)
-            value = sanitize_text(value)
-            lines = wrap_text(value, pdf, max(1, usable_w))
-            needed_h = max(1, len(lines)) * line_h
+            pdf.set_xy(x + label_w, y)
+            first = lines[0] + ("\u00A0" if len(lines) > 1 else "")
+            pdf.cell(usable_w, line_h, first)
+
+            
 
             # quebra de página preventiva
             if y + needed_h > pdf.page_break_trigger:
@@ -570,7 +583,8 @@ def gerar_pdf(dados):
             # linhas seguintes (se houver)
             for i in range(1, len(lines)):
                 pdf.set_xy(x + label_w, y + i * line_h)
-                pdf.cell(usable_w, line_h, lines[i])
+                cont = lines[i] + ("\u00A0" if i < len(lines) - 1 else "")
+                pdf.cell(usable_w, line_h, cont)
 
             # avança Y
             y = y + needed_h + gap_y
@@ -674,11 +688,13 @@ def gerar_pdf(dados):
                 pdf.rect(cx, y_row, widths[i], row_h)
 
                 x_text = cx + pad
-                y_text = y_row + pad
-                for ln in lines:
+                y_text = y_row + pad                
+                for ln_idx, ln in enumerate(lines):
+                    out = ln + ("\u00A0" if ln_idx < len(lines) - 1 else "")
                     pdf.set_xy(x_text, y_text)
-                    pdf.cell(widths[i] - 2*pad, cell_h, ln)
+                    pdf.cell(widths[i] - 2*pad, cell_h, out)
                     y_text += cell_h
+
 
                 cx += widths[i]
 
