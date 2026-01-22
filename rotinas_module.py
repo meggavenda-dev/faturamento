@@ -154,14 +154,8 @@ class RotinasModule:
             pdf.set_y(y_top + box_h)
             i = end
 
-        # Resultado PDF
-        result = pdf.output(dest="S")
-        if isinstance(result, str):
-            result = result.encode("latin-1", "ignore")
-        elif isinstance(result, bytearray):
-            result = bytes(result)
-
-        return bytes(result)
+        # fpdf2 retorna bytes diretamente
+        return pdf.output()
 
     # ============================================================
     # PÁGINA DO MÓDULO (COM EDITOR QUILL)

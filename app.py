@@ -688,10 +688,8 @@ def gerar_pdf(dados):
         pdf.set_y(y_curr + box_h)
         idx = fim
 
-    result = pdf.output(dest="S")
-    if isinstance(result, str): 
-        result = result.encode("latin-1", "ignore")
-    return bytes(result)
+    # fpdf2 retorna bytes diretamente
+    return pdf.output()
 
 
 # ============================================================
