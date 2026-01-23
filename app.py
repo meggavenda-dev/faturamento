@@ -12,6 +12,7 @@
 # ------------------------------------------------------------
 import os
 import re
+import io
 import json
 import time
 import base64
@@ -21,6 +22,7 @@ import unicodedata
 import requests
 import pandas as pd
 from fpdf import FPDF
+from PIL import Image
 import streamlit as st
 from rotinas_module import RotinasModule
 
@@ -317,6 +319,40 @@ def clean_html(raw_html):
     return re.sub(cleanr, '', raw_html)
 
 
+def extract_images_from_html(html_content):
+    """
+    Extrai imagens base64 de tags <img> do HTML e retorna tupla (texto_sem_imagens, lista_imagens)
+    """
+    if not html_content:
+        return html_content, []
+
+    images = []
+
+    # Regex para encontrar tags <img src="data:image/...;base64,DATA">
+    img_pattern = r'<img[^>]+src="data:image/([^;]+);base64,([^"]+)"[^>]*>'
+
+    def replace_img(match):
+        image_format = match.group(1)  # png, jpeg, etc
+        base64_data = match.group(2)
+
+        try:
+            # Decodifica base64
+            img_data = base64.b64decode(base64_data)
+            # Cria objeto Image do Pillow
+            img = Image.open(io.BytesIO(img_data))
+            images.append(img)
+            # Retorna marcador de texto para manter espaçamento
+            return "\n[IMAGEM]\n"
+        except Exception as e:
+            print(f"Erro ao processar imagem: {e}")
+            return ""
+
+    # Substitui tags de imagem por marcador
+    html_without_images = re.sub(img_pattern, replace_img, html_content)
+
+    return html_without_images, images
+
+
 def fix_technical_spacing(txt: str) -> str:
     if not txt:
         return ""
@@ -545,9 +581,11 @@ def gerar_pdf(dados):
     bullet_indent = 4.0
     usable_w = CONTENT_W - 2 * padding
 
-    # 2. PROCESSAMENTO DO TEXTO RICO
+    # 2. PROCESSAMENTO DO TEXTO RICO E IMAGENS
     obs_text_raw = safe_get(dados, "observacoes")
-    obs_text = clean_html(obs_text_raw) 
+    # Extrai imagens antes de limpar HTML
+    obs_text_with_markers, obs_images = extract_images_from_html(obs_text_raw)
+    obs_text = clean_html(obs_text_with_markers)
     wrapped_lines = build_wrapped_lines(obs_text, pdf, usable_w, line_h, bullet_indent=bullet_indent)
 
     # ---------- HELPERS INTERNOS ----------
@@ -665,8 +703,47 @@ def gerar_pdf(dados):
     bar_title("Observações Críticas")
     apply_font(10, False)
 
+    # Renderiza texto e imagens
     idx = 0
+    img_idx = 0
     while idx < len(wrapped_lines):
+        # Verifica se a linha atual contém marcador de imagem
+        if idx < len(wrapped_lines) and "[IMAGEM]" in wrapped_lines[idx][0]:
+            # Adiciona imagem se houver
+            if img_idx < len(obs_images):
+                img = obs_images[img_idx]
+                # Salva imagem temporariamente
+                temp_img_path = f"/tmp/temp_img_{img_idx}.png"
+                img.save(temp_img_path, "PNG")
+
+                # Calcula dimensões para caber na largura disponível
+                img_width = CONTENT_W - 10  # margem de 5mm de cada lado
+                aspect_ratio = img.height / img.width
+                img_height = img_width * aspect_ratio
+
+                # Verifica se cabe na página
+                y_curr = pdf.get_y()
+                if y_curr + img_height > pdf.page_break_trigger:
+                    pdf.add_page()
+                    apply_font(10, False)
+                    y_curr = pdf.get_y()
+
+                # Adiciona imagem centralizada
+                x_img = pdf.l_margin + 5
+                pdf.image(temp_img_path, x=x_img, y=y_curr, w=img_width)
+                pdf.set_y(y_curr + img_height + 5)  # espaço após imagem
+
+                # Remove arquivo temporário
+                try:
+                    os.remove(temp_img_path)
+                except:
+                    pass
+
+                img_idx += 1
+            # Pula linha com marcador
+            idx += 1
+            continue
+
         y_curr = pdf.get_y()
         espaco_livre = pdf.page_break_trigger - y_curr
         linhas_possiveis = int((espaco_livre - 2 * padding) // line_h)
@@ -678,6 +755,13 @@ def gerar_pdf(dados):
 
         fim = min(len(wrapped_lines), idx + linhas_possiveis)
         chunk = wrapped_lines[idx:fim]
+
+        # Filtra linhas com marcador de imagem
+        chunk = [(txt, ind) for (txt, ind) in chunk if "[IMAGEM]" not in txt]
+        if not chunk:
+            idx = fim
+            continue
+
         box_h = 2 * padding + len(chunk) * line_h
         pdf.rect(pdf.l_margin, y_curr, CONTENT_W, box_h)
         y_txt = y_curr + padding
@@ -688,10 +772,8 @@ def gerar_pdf(dados):
         pdf.set_y(y_curr + box_h)
         idx = fim
 
-    result = pdf.output(dest="S")
-    if isinstance(result, str): 
-        result = result.encode("latin-1", "ignore")
-    return bytes(result)
+    # fpdf2 retorna bytearray, converter para bytes
+    return bytes(pdf.output())
 
 
 # ============================================================

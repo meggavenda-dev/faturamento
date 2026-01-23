@@ -5,15 +5,53 @@
 
 from typing import Callable, Any, List, Tuple
 from fpdf import FPDF
+from PIL import Image
 import streamlit as st
 import pandas as pd
 import time
 import re
+import io
+import os
+import base64
 
 # Import do editor
 from streamlit_quill import st_quill
 # (Opcional) Import do botão de colar imagem — ainda não usado aqui
 from streamlit_paste_button import paste_image_button
+
+
+def extract_images_from_html(html_content):
+    """
+    Extrai imagens base64 de tags <img> do HTML e retorna tupla (texto_sem_imagens, lista_imagens)
+    """
+    if not html_content:
+        return html_content, []
+
+    images = []
+
+    # Regex para encontrar tags <img src="data:image/...;base64,DATA">
+    img_pattern = r'<img[^>]+src="data:image/([^;]+);base64,([^"]+)"[^>]*>'
+
+    def replace_img(match):
+        image_format = match.group(1)  # png, jpeg, etc
+        base64_data = match.group(2)
+
+        try:
+            # Decodifica base64
+            img_data = base64.b64decode(base64_data)
+            # Cria objeto Image do Pillow
+            img = Image.open(io.BytesIO(img_data))
+            images.append(img)
+            # Retorna marcador de texto para manter espaçamento
+            return "\n[IMAGEM]\n"
+        except Exception as e:
+            print(f"Erro ao processar imagem: {e}")
+            return ""
+
+    # Substitui tags de imagem por marcador
+    html_without_images = re.sub(img_pattern, replace_img, html_content)
+
+    return html_without_images, images
 
 
 class RotinasModule:
@@ -113,7 +151,9 @@ class RotinasModule:
         bar_title("Descrição")
 
         descricao_raw = self.safe_get(dados, "descricao")
-        descricao = self._clean_html(descricao_raw)
+        # Extrai imagens antes de limpar HTML
+        descricao_with_markers, desc_images = extract_images_from_html(descricao_raw)
+        descricao = self._clean_html(descricao_with_markers)
 
         width = CONTENT_W
         line_h = 6.6
@@ -127,18 +167,64 @@ class RotinasModule:
             descricao, pdf, usable_w, line_h, bullet_indent=bullet_indent
         )
 
+        # Renderiza texto e imagens
         i = 0
+        img_idx = 0
         while i < len(wrapped_lines):
+            # Verifica se a linha atual contém marcador de imagem
+            if i < len(wrapped_lines) and "[IMAGEM]" in wrapped_lines[i][0]:
+                # Adiciona imagem se houver
+                if img_idx < len(desc_images):
+                    img = desc_images[img_idx]
+                    # Salva imagem temporariamente
+                    temp_img_path = f"/tmp/temp_rot_img_{img_idx}.png"
+                    img.save(temp_img_path, "PNG")
+
+                    # Calcula dimensões para caber na largura disponível
+                    img_width = CONTENT_W - 10  # margem de 5mm de cada lado
+                    aspect_ratio = img.height / img.width
+                    img_height = img_width * aspect_ratio
+
+                    # Verifica se cabe na página
+                    y_curr = pdf.get_y()
+                    if y_curr + img_height > pdf.page_break_trigger:
+                        pdf.add_page()
+                        set_font(10, False)
+                        y_curr = pdf.get_y()
+
+                    # Adiciona imagem centralizada
+                    x_img = pdf.l_margin + 5
+                    pdf.image(temp_img_path, x=x_img, y=y_curr, w=img_width)
+                    pdf.set_y(y_curr + img_height + 5)  # espaço após imagem
+
+                    # Remove arquivo temporário
+                    try:
+                        os.remove(temp_img_path)
+                    except:
+                        pass
+
+                    img_idx += 1
+                # Pula linha com marcador
+                i += 1
+                continue
+
             y_top = pdf.get_y()
             space = pdf.page_break_trigger - y_top
             avail_h = max(0.0, space - 2 * padding - 0.5)
             lines_per_page = int(avail_h // line_h) if avail_h > 0 else 0
             if lines_per_page <= 0:
                 pdf.add_page()
+                set_font(10, False)
                 continue
 
             end = min(len(wrapped_lines), i + lines_per_page)
             slice_lines = wrapped_lines[i:end]
+
+            # Filtra linhas com marcador de imagem
+            slice_lines = [(txt, ind) for (txt, ind) in slice_lines if "[IMAGEM]" not in txt]
+            if not slice_lines:
+                i = end
+                continue
 
             box_h = 2 * padding + len(slice_lines) * line_h
             pdf.rect(pdf.l_margin, y_top, width, box_h)
@@ -154,14 +240,8 @@ class RotinasModule:
             pdf.set_y(y_top + box_h)
             i = end
 
-        # Resultado PDF
-        result = pdf.output(dest="S")
-        if isinstance(result, str):
-            result = result.encode("latin-1", "ignore")
-        elif isinstance(result, bytearray):
-            result = bytes(result)
-
-        return bytes(result)
+        # fpdf2 retorna bytearray, converter para bytes
+        return bytes(pdf.output())
 
     # ============================================================
     # PÁGINA DO MÓDULO (COM EDITOR QUILL)
