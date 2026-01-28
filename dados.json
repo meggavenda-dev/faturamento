@@ -219,5 +219,26 @@
         "doc_digitalizacao": "",
         "observacoes": "Conforme orientação da Sargento Guelli, as assinaturas dos pacientes não precisam ser iguais a documentação. \n\nBombeiro não aceita guia anexa.\n\n•\tATENÇÃO NOS LAUDOS\n•\tDOCUMENTAÇÃO FRENTE E VERSO \n•\tPACIENTE MENOR DE 14 ANOS DOC FRENTE E VERSO + FRENTE E VERSO DO RESPONS. \n\nCaso não apareça o outro campo para anexar a documentação não tem problema desde que a documentação esteja totalmente anexada na confirmação do atendimento.  \n\nValidade das guias: NÃO TEM VALIDADE, vai todos os dias, pelo portal INOVA. Sem NF.\n\nPortal para envio XML: https://singular.cbm.df.gov.br/inova/externo/login?0 coloca login e senha da clínica > Seleciona quem você representa – Clica no nome da clínica > clica em: com solicitante ou pendência > Credenciadas saúde-Pedido de auditoria > Clica em editar – Nova auditoria – escolher o arquivo XML (na hora de gerar o arquivo marcar a opção Guia Operador/Prestador), quando o XML for selecionado vai aparecer o campo para anexar a guia escaneada, anexe todas e no final clique em confirmar.\n\nPara imprimir o comprovante de envio vai em acompanhamento > Credenciadas saúde-Pedido de auditoria > clica no símbolo  (visualizar processo) clica em cima do número do seu processo e imprime 2 vias, uma vai pro financeiro junto com o aceite e a outra deixa junto com as guias que serão arquivadas.\n\n\n",
         "id": 11
+    },
+    {
+        "id": 12,
+        "nome": "CAESAN - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "https://www.caesan.com.br/login-prestador/?pagina=enviar-arquivo",
+        "login": "35955",
+        "senha": "0073amhpdf",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "",
+        "validade": "60",
+        "xml": "Sim",
+        "versao_xml": "3.05.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
