@@ -366,5 +366,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 19,
+        "nome": "CAESAN - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "https://www.caesan.com.br/login-prestador/?pagina=enviar-arquivo",
+        "login": "35955",
+        "senha": "0073amhpdf",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "Envio de 01 a 05",
+        "validade": "60 Dias",
+        "xml": "Sim",
+        "versao_xml": "3.05.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
