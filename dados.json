@@ -303,5 +303,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 16,
+        "nome": "BACEN - AMHPDF",
+        "codigo": "",
+        "empresa": "AMHP",
+        "site": "https://www3.bcb.gov.br/portalbcsaude/Login?ReturnUrl=%2fportalbcsaude%2fsaude%2fe%2fportal%2finicio_prestador.aspx%3fi%3dMENUITEMID_636005437870018929%26m%3dMAIN&i=MENUITEMID_636005437870018929&m=MAIN",
+        "login": "00735860000173",
+        "senha": "AmhpDF@@2026",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "Diário",
+        "validade": "120 dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "Mapa \n\nhttps://www3.bcb.gov.br/pasbcmapa/login.aspx\n\nLogin: 00735860000173\nSenha: #AmhpDF2026@\n\nImportante:\n \nTodos os arquivos XML enviados até às 11h30 serão processados no site do MAPA no mesmo dia. Após esse horário, os arquivos só serão processados às 18h.\n \nFique sempre atento ao vencimento da fatura para evitar atrasos.\n \nManual de Envio de Guias – BACEN\n \n🔁 Visão Geral do Processo\n \nO envio das guias BACEN é realizado em dois portais distintos:\n \n1. Portal BC Saúde (1º portal): Envio do XML.\n \n2. Portal de Anexos (2º portal): Finalização com anexos das guias (exceto consultas).\n \nEnvio de Guias de Consulta\n \nAs guias de consultas (I.A ou físicas) são enviadas apenas pelo 1º portal (BC Saúde).\n \nO aceite é confirmado com o protocolo gerado nesse portal.\n \nNão é necessário anexar no 2º portal.\n \nGuias físicas de consulta:\n \nRetire capa de protocolo ou etiquetas.\n \nEntregue diretamente à Fran para escaneamento e anexar ao sistema.\n \nEsse processo é feito pelos estagiários até o momento.\n \n  \n✅ Passo a Passo Guias I.A\n\n\n \nGerar Relatório de Conferência:\n \nPuxe o relatório de Guias em Conferência (marcar I.A).\n \nGerar o XML:\n \nNo sistema, gere o XML das guias selecionadas.\n \nEnviar no 1º Portal (BC Saúde):\n \nAcesse o portal com os dados do documento: “Sites e Senhas” na pasta compartilhada do trio, o caminho é:    \\\\10.0.0.239\\faturamento\\Brenda - Marise - Pedro\n \nBaixar Guias para Anexar:\n \nVolte ao sistema e vá até a fatura correspondente.\n \nClique em “Baixar Guias”.\n \nImportante: Crie uma pasta em Downloads com o nome dos convênios para facilitar os downloads.\n \nAo clicar em “baixar Guias”\n \nDefina esse caminho em “download”, dentro da pasta referente ao convênio, crie outra pasta penas com a data atual, deixe essa pasta selecionada para definir o caminho do download.\n \nOrganizar os Arquivos:\n \n        Após baixar todas as guias:\n \nRecorte a pasta da documentação e cole dentro da pasta Guias Escaneadas-2025-BACEN\n \nProtocolo no Sistema:\n \nInsira o número do protocolo/PEG, gerado após o envio do xml, no portal BC saúde, é uma etapa essencial pois só é possível executar a automação para anexar a documentação com a informação correta do protocolo/PEG, sendo assim, antes de gerar a remessa, lembre-se de informar esse número no sistema.\n \n❗ Exceto guias de consulta, que não precisam desse passo.\n \nFechamento:\n \nFeche todas as faturas de imediato, após o envio no portal do primeiro site, para não deixar em aberto na parte de conferência do sistema.\n \n \nFinalização.\n \nGere a remessa apenas depois de conferir se as faturas foram processadas no segundo portal, só assim gere a remessa, confirme que os protocolos/pegs estão corretos, e execute a automação para anexar a documentação no 2º portal.\n \nIMPORTANTE: caso a senha dos sites mude informe imediatamente para o setor de T.I, ou seja, será necessário abrir um chamado para realizar a alteração da senha dos portais dentro da programação da automação.\n\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
