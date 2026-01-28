@@ -387,5 +387,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 20,
+        "nome": "CAMED - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "https://portalconectasaude.com.br",
+        "login": "negociacao.gerencia@amhp.com.br",
+        "senha": "Amhp2025@",
+        "sistema_utilizado": "Benner",
+        "prazo_retorno": "",
+        "envio": "De 01 á 05",
+        "validade": "60 Dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "Validade: 60 dias \n\n30 guias no lote\n\nTabela: CBHPM\n\nAutorização: para tudo, inclusive consultas\n\n\nSó vai o xml, não anexa guias\n \nSó envia o físico se for periódico sem matrícula (correio)\n\nEndereço:\n\nDESTINATÁRIO:\n\nCAMED – CAIXA DE ASSISTÊNCIA DOS FUNCIONÁRIOS DO BANCO DO NORDESTE DO BRASIL\n\nAVENIDA SANTOS DUMONT, 782 CENTRO\n\nCEP: 60150-160                                            \n\nFORTALEZA- CE\n\n \n\nFechamento:\n\nSepara modelo de guia e periódico\n\nErros xml\n\nTaxas/ aluguel (60023090) - tab 18\n\n500 - tab 22\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
