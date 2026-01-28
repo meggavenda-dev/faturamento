@@ -408,5 +408,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 21,
+        "nome": "CARE PLUS - AMHPDF",
+        "codigo": "",
+        "empresa": "AMHP",
+        "site": "https://www8.careplus.com.br/portal/login.aspx",
+        "login": "emerson.amhp@gmail.com - CODIGO: 14596",
+        "senha": "Amhp007386@",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "Diário",
+        "validade": "90 Dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
