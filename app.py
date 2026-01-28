@@ -19,6 +19,15 @@ import base64
 import random
 import unicodedata
 
+
+# --- WORD (python-docx) ---
+from docx import Document
+from docx.shared import Cm, Pt, Inches
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+
+
 import requests
 import pandas as pd
 from fpdf import FPDF
@@ -668,6 +677,215 @@ def gerar_pdf(dados):
                 cx += widths[i]
             pdf.ln(row_h)
 
+    def gerar_docx(dados):
+    """
+    Gera .docx com o mesmo padrão do PDF:
+    - Título com faixa azul e somente o nome do convênio (MAIÚSCULO)
+    - Seção 1 em coluna única (pares etiqueta: valor, com label em negrito)
+    - Seção 2 como tabela (mesmos cabeçalhos e larguras proporcionais)
+    - Observações Críticas com parágrafos + bullets + imagens coladas no Quill
+    """
+    nome_conv = sanitize_text(safe_get(dados, "nome")).upper()
+
+    # --- Documento e margens ---
+    doc = Document()
+    section = doc.sections[0]
+    section.left_margin  = Cm(1.5)
+    section.right_margin = Cm(1.5)
+    section.top_margin   = Cm(1.2)
+    section.bottom_margin= Cm(1.5)
+    page_w_cm = section.page_width.cm
+    content_w_cm = page_w_cm - section.left_margin.cm - section.right_margin.cm
+
+    # ----------------- Helpers -----------------
+    def set_cell_bg(cell, rgb_hex):
+        """Aplica cor de fundo (hex sem #) em uma célula de tabela"""
+        tcPr = cell._tc.get_or_add_tcPr()
+        shd = OxmlElement('w:shd')
+        shd.set(qn('w:val'), 'clear')
+        shd.set(qn('w:color'), 'auto')
+        shd.set(qn('w:fill'), rgb_hex)
+        tcPr.append(shd)
+
+    def add_title_band(texto):
+        # Uma tabela 1x1 com fundo azul e texto centralizado branco
+        tbl = doc.add_table(rows=1, cols=1)
+        tbl.autofit = False
+        tbl.columns[0].width = Cm(content_w_cm)
+        cell = tbl.cell(0, 0)
+        set_cell_bg(cell, "1F497D")  # azul
+        p = cell.paragraphs[0]
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = p.add_run(texto or "CONVÊNIO")
+        run.bold = True
+        run.font.size = Pt(18)
+        run.font.color.rgb = __import__('docx').shared.RGBColor(255, 255, 255)
+        # Espaço depois do título
+        doc.add_paragraph()
+
+    def add_section_bar(texto):
+        tbl = doc.add_table(rows=1, cols=1)
+        tbl.autofit = False
+        tbl.columns[0].width = Cm(content_w_cm)
+        cell = tbl.cell(0, 0)
+        set_cell_bg(cell, "E6E6E6")  # cinza claro
+        p = cell.paragraphs[0]
+        run = p.add_run(f" {sanitize_text(texto).upper()}")
+        run.bold = True
+        run.font.size = Pt(12)
+        doc.add_paragraph()
+
+    def add_label_value_block(pares):
+        """Coluna única: cada linha com 'Label: Valor' (label em negrito)"""
+        for label, value in pares:
+            label = sanitize_text(label or "")
+            value = sanitize_text(value or "")
+            p = doc.add_paragraph()
+            run_label = p.add_run(f"{label}: ")
+            run_label.bold = True
+            run_val = p.add_run(value)
+            run_val.bold = False
+
+    def add_table_sec2(headers, row, widths_mm):
+        """
+        headers: list[str]
+        row: list[str]
+        widths_mm: list[float] (soma deve caber na largura de conteúdo)
+        """
+        # Converter mm -> cm
+        widths_cm = [mm/10.0 for mm in widths_mm]
+        # Ajuste proporcional para caber exatamente
+        total_w = sum(widths_cm)
+        if total_w > 0:
+            scale = content_w_cm / total_w
+            widths_cm = [w * scale for w in widths_cm]
+
+        tbl = doc.add_table(rows=1, cols=len(headers))
+        tbl.autofit = False
+        for i, w in enumerate(widths_cm):
+            tbl.columns[i].width = Cm(max(0.8, w))  # largura mínima de segurança
+
+        # Cabeçalho
+        hdr_cells = tbl.rows[0].cells
+        for i, h in enumerate(headers):
+            htxt = sanitize_text(h or "")
+            hdr_cells[i].text = htxt
+            set_cell_bg(hdr_cells[i], "F2F2F2")
+            # Bold + centralizado
+            for p in hdr_cells[i].paragraphs:
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                if p.runs:
+                    p.runs[0].bold = True
+
+        # Linha de dados
+        row_cells = tbl.add_row().cells
+        for i, val in enumerate(row):
+            txt = sanitize_text(val or "")
+            row_cells[i].text = txt
+
+        # Espaço após a tabela
+        doc.add_paragraph()
+
+    def add_observacoes_box(html):
+        # Extrai imagens e marcações
+        html_with_markers, imgs = extract_images_from_html(html)
+        text = clean_html(html_with_markers)
+        text = sanitize_text(text)
+
+        # Caixa com borda: tabela 1x1 sem preenchimento
+        box = doc.add_table(rows=1, cols=1)
+        box.autofit = False
+        box.columns[0].width = Cm(content_w_cm)
+        cell = box.cell(0, 0)
+        # (A borda usa padrão do Word; se quiser borda mais grossa, precisaria manipular w:tblBorders)
+
+        bullet_re = re.compile(r"^\s*(?:[\u2022•\-–—\*]|-&gt;|→)\s*(.*)$")
+        paragraphs = text.split('\n')
+        img_idx = 0
+        for ptxt in paragraphs:
+            ptxt = (ptxt or "").strip()
+            if not ptxt:
+                cell.add_paragraph()
+                continue
+
+            if "[IMAGEM]" in ptxt:
+                if img_idx < len(imgs):
+                    img = imgs[img_idx]
+                    img_idx += 1
+                    # redimensiona para caber na largura do conteúdo
+                    stream = io.BytesIO()
+                    # limite de largura em cm -> px: aproximar 96 dpi
+                    max_width_cm = content_w_cm - 0.8
+                    # calcula nova largura em px
+                    max_width_px = int(max_width_cm * 37.7952755906)  # 1 cm ≈ 37.795 px
+                    if img.width > max_width_px:
+                        ratio = max_width_px / float(img.width)
+                        new_h = int(img.height * ratio)
+                        img = img.resize((max_width_px, new_h))
+                    img.save(stream, format="PNG", optimize=True)
+                    stream.seek(0)
+                    p = cell.add_paragraph()
+                    run = p.add_run()
+                    run.add_picture(stream, width=Cm(max_width_cm))
+                continue
+
+            m = bullet_re.match(ptxt)
+            if m:
+                content = sanitize_text(m.group(1))
+                p = cell.add_paragraph(style='List Bullet')
+                p.add_run(content)
+            else:
+                p = cell.add_paragraph()
+                p.add_run(ptxt)
+
+        doc.add_paragraph()
+
+    # ----------------- Montagem -----------------
+    # Título: SOMENTE NOME DO CONVÊNIO
+    add_title_band(nome_conv)
+
+    # Seção 1
+    add_section_bar("1. Dados de Identificação e Acesso")
+    pares_unicos = [
+        ("Empresa",  safe_get(dados, "empresa")),
+        ("Código",   safe_get(dados, "codigo")),
+        ("Portal",   safe_get(dados, "site")),
+        ("Senha",    safe_get(dados, "senha")),
+        ("Login",    safe_get(dados, "login")),
+        ("Retorno",  safe_get(dados, "prazo_retorno")),
+        ("Sistema",  safe_get(dados, "sistema_utilizado")),
+    ]
+    add_label_value_block(pares_unicos)
+
+    # Seção 2 (tabela)
+    add_section_bar("2. Cronograma e Regras Técnicas")
+    headers = ["Prazo Envio", "Validade Guia", "XML / Versão", "Nota Fiscal", "Fluxo NF"]
+    xml_flag = safe_get(dados, "xml") or "—"
+    xml_ver = safe_get(dados, "versao_xml") or "—"
+    row = [
+        safe_get(dados, "envio"),
+        safe_get(dados, "validade"),
+        f"{xml_flag} / {xml_ver}",
+        safe_get(dados, "nf"),
+        safe_get(dados, "fluxo_nf"),
+    ]
+    # Mesmas proporções do PDF (mm): 52, 35, 35, 30, resto
+    w1, w2, w3, w4 = 52, 35, 35, 30
+    # convertemos último como "resto" igual ao PDF:
+    # Vamos só repetir as proporções; o ajuste proporcional garante a soma = content_w
+    w5 = 60  # valor simbólico; será ajustado pela escala
+    add_table_sec2(headers, row, [w1, w2, w3, w4, w5])
+
+    # Observações Críticas
+    add_section_bar("Observações Críticas")
+    add_observacoes_box(safe_get(dados, "observacoes"))
+
+    # Exporta para bytes
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.getvalue()
+
     # ---------- RENDERIZAÇÃO ----------
     nome_conv = sanitize_text(safe_get(dados, "nome")).upper()
     pdf.set_fill_color(*BLUE)
@@ -1073,6 +1291,17 @@ def page_cadastro():
 
                 except Exception as e:
                     st.error(f"Falha ao excluir convênio {conv_id_str}: {e}")   
+
+    
+    # BOTÃO DOCX
+    if dados_conv:
+        st.download_button(
+            "📝 Baixar Word do Convênio",
+            gerar_docx(dados_conv),
+            file_name=f"Manual_{safe_get(dados_conv,'nome')}.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+
     
 
 
