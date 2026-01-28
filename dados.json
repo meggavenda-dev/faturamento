@@ -429,5 +429,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 22,
+        "nome": "CASSI - AMHPDF",
+        "codigo": "220",
+        "empresa": "Integralis",
+        "site": "https://www.orizon.com.br/acesso-restrito.html?csrt=5479685093261447842",
+        "login": "AMHP0073",
+        "senha": "Amhp@2025!",
+        "sistema_utilizado": "Próprio",
+        "prazo_retorno": "",
+        "envio": "Do dia 01 até o dia 20",
+        "validade": "90 Dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
