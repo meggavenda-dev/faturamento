@@ -789,7 +789,9 @@ def gerar_docx(dados):
     """
     Gera .docx com o mesmo padrão do PDF:
     - Título com faixa azul e somente o nome do convênio (MAIÚSCULO)
-    - Seção 1 em coluna única (pares etiqueta: valor, com label em negrito)
+    - Seção 1 em coluna única (AGORA como tabela 2-colunas p/ alinhamento)
+        • Remove 'Empresa'
+        • 'Login' ANTES de 'Senha'
     - Seção 2 como tabela (mesmos cabeçalhos e larguras proporcionais)
     - Observações Críticas com parágrafos + bullets + imagens coladas no Quill
     - (Opcional) Print de Tela/Evidência salvo no campo print_b64
@@ -815,6 +817,13 @@ def gerar_docx(dados):
         shd.set(qn('w:color'), 'auto')
         shd.set(qn('w:fill'), rgb_hex)
         tcPr.append(shd)
+
+    def zero_par_spacing(paragraph):
+        """Remove espaços antes/depois e mantém alinhamento à esquerda"""
+        p = paragraph.paragraph_format
+        p.space_before = Pt(0)
+        p.space_after = Pt(0)
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
     def add_title_band(texto):
         # Uma tabela 1x1 com fundo azul e texto centralizado branco
@@ -842,18 +851,37 @@ def gerar_docx(dados):
         run = p.add_run(f" {sanitize_text(texto).upper()}")
         run.bold = True
         run.font.size = Pt(12)
+        zero_par_spacing(p)
         doc.add_paragraph()
 
-    def add_label_value_block(pares):
-        """Coluna única: cada linha com 'Label: Valor' (label em negrito)"""
+    def add_label_value_table(pares, label_w_cm=3.0):
+        """
+        Coluna única visual usando tabela 2-colunas (label/value)
+        - label_w_cm: largura fixa da coluna de rótulo (negrito)
+        - valor ocupa o restante com quebra automática
+        """
+        tbl = doc.add_table(rows=0, cols=2)
+        tbl.autofit = False
+        # Define larguras
+        tbl.columns[0].width = Cm(label_w_cm)
+        tbl.columns[1].width = Cm(max(1.0, content_w_cm - label_w_cm))
+
         for label, value in pares:
-            label = sanitize_text(label or "")
-            value = sanitize_text(value or "")
-            p = doc.add_paragraph()
-            run_label = p.add_run(f"{label}: ")
-            run_label.bold = True
-            run_val = p.add_run(value)
-            run_val.bold = False
+            row = tbl.add_row().cells
+            # Label
+            lbl_txt = sanitize_text(label or "") + ":"
+            p_lbl = row[0].paragraphs[0]
+            zero_par_spacing(p_lbl)
+            r_lbl = p_lbl.add_run(lbl_txt)
+            r_lbl.bold = True
+            # Valor
+            val_txt = sanitize_text(value or "")
+            p_val = row[1].paragraphs[0]
+            zero_par_spacing(p_val)
+            p_val.add_run(val_txt)
+
+        # Espaço após o bloco
+        doc.add_paragraph()
 
     def add_table_sec2(headers, row, widths_mm):
         """
@@ -890,7 +918,11 @@ def gerar_docx(dados):
         row_cells = tbl.add_row().cells
         for i, val in enumerate(row):
             txt = sanitize_text(val or "")
-            row_cells[i].text = txt
+            # Define alinhamento à esquerda e remove espaçamentos
+            row_cells[i].text = ""  # vamos escrever via run para evitar estilos herdados estranhos
+            p = row_cells[i].paragraphs[0]
+            zero_par_spacing(p)
+            p.add_run(txt)
 
         # Espaço após a tabela
         doc.add_paragraph()
@@ -901,7 +933,7 @@ def gerar_docx(dados):
         text = clean_html(html_with_markers)
         text = sanitize_text(text)
 
-        # Caixa com borda: tabela 1x1 sem preenchimento explícito
+        # Caixa com borda: tabela 1x1
         box = doc.add_table(rows=1, cols=1)
         box.autofit = False
         box.columns[0].width = Cm(content_w_cm)
@@ -913,7 +945,7 @@ def gerar_docx(dados):
         for ptxt in paragraphs:
             ptxt = (ptxt or "").strip()
             if not ptxt:
-                cell.add_paragraph()
+                zero_par_spacing(cell.add_paragraph())
                 continue
 
             if "[IMAGEM]" in ptxt:
@@ -922,10 +954,8 @@ def gerar_docx(dados):
                     img_idx += 1
                     # redimensiona para caber na largura do conteúdo
                     stream = io.BytesIO()
-                    # limite de largura em cm -> px: aproximar 96 dpi
                     max_width_cm = content_w_cm - 0.8
-                    # calcula nova largura em px
-                    max_width_px = int(max_width_cm * 37.7952755906)  # 1 cm ≈ 37.795 px
+                    max_width_px = int(max_width_cm * 37.7952755906)  # ~96 dpi
                     if img.width > max_width_px:
                         ratio = max_width_px / float(img.width)
                         new_h = int(img.height * ratio)
@@ -933,6 +963,7 @@ def gerar_docx(dados):
                     img.save(stream, format="PNG", optimize=True)
                     stream.seek(0)
                     p = cell.add_paragraph()
+                    zero_par_spacing(p)
                     run = p.add_run()
                     run.add_picture(stream, width=Cm(max_width_cm))
                 continue
@@ -941,9 +972,11 @@ def gerar_docx(dados):
             if m:
                 content = sanitize_text(m.group(1))
                 p = cell.add_paragraph(style='List Bullet')
+                zero_par_spacing(p)
                 p.add_run(content)
             else:
                 p = cell.add_paragraph()
+                zero_par_spacing(p)
                 p.add_run(ptxt)
 
         doc.add_paragraph()
@@ -952,18 +985,19 @@ def gerar_docx(dados):
     # Título: SOMENTE NOME DO CONVÊNIO
     add_title_band(nome_conv)
 
-    # Seção 1
+    # Seção 1 (REMOVER 'Empresa' e inverter Login/Senha)
     add_section_bar("1. Dados de Identificação e Acesso")
     pares_unicos = [
-        ("Empresa",  safe_get(dados, "empresa")),
+        # ("Empresa",  safe_get(dados, "empresa")),  # <- removido conforme pedido
         ("Código",   safe_get(dados, "codigo")),
         ("Portal",   safe_get(dados, "site")),
+        ("Login",    safe_get(dados, "login")),     # <- Login antes de Senha
         ("Senha",    safe_get(dados, "senha")),
-        ("Login",    safe_get(dados, "login")),
         ("Retorno",  safe_get(dados, "prazo_retorno")),
         ("Sistema",  safe_get(dados, "sistema_utilizado")),
     ]
-    add_label_value_block(pares_unicos)
+    # Tabela 2-colunas p/ alinhar rótulo/valor
+    add_label_value_table(pares_unicos, label_w_cm=3.2)
 
     # Seção 2 (tabela) — mesmas proporções do PDF
     add_section_bar("2. Cronograma e Regras Técnicas")
@@ -978,7 +1012,7 @@ def gerar_docx(dados):
         safe_get(dados, "fluxo_nf"),
     ]
     w1, w2, w3, w4 = 52, 35, 35, 30
-    w5 = 60  # valor simbólico; será ajustado pela escala para content_w
+    w5 = 60  # valor simbólico; será ajustado pela escala
     add_table_sec2(headers, row, [w1, w2, w3, w4, w5])
 
     # Observações Críticas
@@ -994,7 +1028,6 @@ def gerar_docx(dados):
             doc.add_paragraph()  # espaço
             add_section_bar("Print de Tela / Evidência")
             stream = io.BytesIO()
-            # Redimensiona para largura útil
             max_width_cm = content_w_cm - 0.8
             max_width_px = int(max_width_cm * 37.7952755906)
             if img.width > max_width_px:
@@ -1004,6 +1037,7 @@ def gerar_docx(dados):
             img.save(stream, format="PNG", optimize=True)
             stream.seek(0)
             p = doc.add_paragraph()
+            zero_par_spacing(p)
             run = p.add_run()
             run.add_picture(stream, width=Cm(max_width_cm))
         except Exception:
