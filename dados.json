@@ -282,5 +282,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 15,
+        "nome": "ANAFE - AMHPDF",
+        "codigo": "",
+        "empresa": "AMHP",
+        "site": "https://novowebplananafe.facilinformatica.com.br/GuiasTISS/Logon",
+        "login": "00735860000173",
+        "senha": "AMHPDF2025",
+        "sistema_utilizado": "Facil",
+        "prazo_retorno": "",
+        "envio": "Envio de 1 a 5",
+        "validade": "90 dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Sim",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "Tipo de acesso:  Prestador PJ\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
