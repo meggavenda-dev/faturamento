@@ -240,5 +240,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 13,
+        "nome": "AFEB - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "Não tem site",
+        "login": "Não tem site",
+        "senha": "Não tem site",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "Calendário Próprio",
+        "validade": "Sem Validade",
+        "xml": "Não",
+        "versao_xml": "Não Envia",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "Orientações:\n \n1 - Juntar os processos - Gera no AMHPTISS a relação de pacientes e colocar as guias de atendimento.\n2 - Conferência dos documentos \n3 - Scanear \n4 - Gerar remessa \n5 - 1º Via junto das guias (dentro do envelope)\n6 - 2º via no envelope (lado de fora) \n \n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
