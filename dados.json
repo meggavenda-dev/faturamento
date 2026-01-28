@@ -261,5 +261,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 14,
+        "nome": "AFFEGO - AMHPDF",
+        "codigo": "",
+        "empresa": "AMHP",
+        "site": "https://www.affegosaude.com.br/login_prestador.php",
+        "login": "21580",
+        "senha": "0073586000",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "Dia 15",
+        "validade": "Sem validade",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
