@@ -345,5 +345,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 18,
+        "nome": "CAEME - AMHPDF",
+        "codigo": "",
+        "empresa": "AMHP",
+        "site": "Não tem portal",
+        "login": "Não tem portal",
+        "senha": "Não tem portal",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "Até o dia 05 (Deve estar no convênio dia 05).",
+        "validade": "90 Dias",
+        "xml": "Sim",
+        "versao_xml": "3.05.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "MÁXIMO DE GUIAS NO LOTE: 99\n \nTabela: CBHPM\n \nAutorização: Todos os atendimentos deverão ter autorização, inclusive consultas.\nSeparar modelos de guias – Consultas e SP/SADT.\n \n \nFechamento:\n \nConvênio não possui site\n\nSeparar modelos de guias – Consultas e SP/SADT.\n \nGerar o arquivo xml / Gerar remessa / Scanear\n \nPassar para o Emerson (ou Wesley) enviar por e-mail o xml e a remessa ao convênio\n \nEnviar ao correio as guias, a remessa e o e-mail.\n \nEnviar o físico via correio\n \nEndereço:\n \nCAEME - Caixa de Assistência dos Empregados do Setor Publico do Estado de Goiás\nRua 262, nº 84, Qd. 111, Lt. 10, Setor Leste Universitário \nCep: 74.615-300\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
