@@ -1,4 +1,3 @@
-
 # ============================================================
 #  APP.PY — MANUAL DE FATURAMENTO (VERSÃO PREMIUM)
 #  COLUNA ÚNICA NA SEÇÃO 1 • TABELA DA SEÇÃO 2 IGUAL AO PRINT
@@ -19,15 +18,6 @@ import base64
 import random
 import unicodedata
 
-
-# --- WORD (python-docx) ---
-from docx import Document
-from docx.shared import Cm, Pt, Inches
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml import OxmlElement
-from docx.oxml.ns import qn
-
-
 import requests
 import pandas as pd
 from fpdf import FPDF
@@ -37,6 +27,13 @@ from rotinas_module import RotinasModule
 
 from streamlit_quill import st_quill
 from streamlit_paste_button import paste_image_button
+
+# --- WORD (python-docx) ---
+from docx import Document
+from docx.shared import Cm, Pt, Inches, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 
 # ------------------------------------------------------------
 # 2. GITHUB DATABASE (Incluído no módulo — sem import externo)
@@ -67,33 +64,32 @@ class GitHubJSON:
     # ============================
     # LOAD — Leitura segura (200ms)
     # ============================
-    
     def load(self, force=False):
         now = time.time()
         if not force and self._cache_data is not None:
             if (now - self._cache_time) < 0.2:  # cache curtíssimo
                 return self._cache_data, self._cache_sha
-    
+
         url = self.API_URL.format(owner=self.owner, repo=self.repo, path=self.path)
         r = requests.get(url, headers=self.headers, params={"ref": self.branch})
-    
+
         if r.status_code == 404:
             # Arquivo não existe — retorna base vazia
             self._cache_data = []
             self._cache_sha = None
             self._cache_time = now
             return [], None
-    
+
         if r.status_code != 200:
             raise Exception(f"GitHub GET error: {r.status_code} - {r.text}")
-    
+
         body = r.json()
         sha = body.get("sha")
-    
+
         # Pode vir vazio; garante string
         decoded_b64 = body.get("content") or ""
         decoded = base64.b64decode(decoded_b64).decode("utf-8")
-    
+
         # Auto-healing p/ arquivo vazio ou inválido
         if not decoded.strip():
             data = []
@@ -108,17 +104,16 @@ class GitHubJSON:
                 except json.JSONDecodeError:
                     # fallback seguro: considera base vazia
                     data = []
-    
+
         # Garante tipo lista (se vier dict por engano)
         if not isinstance(data, list):
             data = []
-    
+
         self._cache_data = data
         self._cache_sha = sha
         self._cache_time = now
-    
-        return data, sha
 
+        return data, sha
 
     # ============================================
     # SAVE — Salvamento atômico com SHA locking
@@ -245,7 +240,6 @@ SETORES_ROTINA = [
     "CTI - Faturamento",
 ]
 
-
 EMPRESAS_FATURAMENTO = ["Integralis", "AMHP", "Outros"]
 SISTEMAS = ["Outros", "Orizon", "Benner", "Maida", "Facil", "Visual TISS", "Próprio"]
 
@@ -313,20 +307,26 @@ CSS_GLOBAL = f"""
 def ui_text(value):
     if not value:
         return ""
-    return sanitize_text(value)   
+    return sanitize_text(value)
 
 def image_to_base64(img):
-    if img is None: return None
+    """Converte objeto PIL Image para string Base64 para salvar no JSON"""
+    if img is None:
+        return ""
     buffered = io.BytesIO()
-    img.save(buffered, format="PNG")
+    # Otimização: Redimensiona se for muito grande para não travar o JSON no GitHub
+    if img.width > 1200:
+        img.thumbnail((1200, 1200))
+    img.save(buffered, format="PNG", optimize=True)
     return base64.b64encode(buffered.getvalue()).decode()
 
 def clean_html(raw_html):
-    """Limpa tags HTML para o PDF não bugar"""
-    if not raw_html: return ""
-    cleanr = re.compile('<.*?>')
-    return re.sub(cleanr, '', raw_html)
-
+    """Remove tags HTML e &nbsp; para processamento de texto puro (PDF/Word)"""
+    if not raw_html:
+        return ""
+    cleanr = re.compile('<.*?>|&nbsp;')
+    cleantext = re.sub(cleanr, ' ', raw_html)
+    return re.sub(r' +', ' ', cleantext).strip()
 
 def extract_images_from_html(html_content):
     """
@@ -361,7 +361,6 @@ def extract_images_from_html(html_content):
 
     return html_without_images, images
 
-
 def fix_technical_spacing(txt: str) -> str:
     if not txt:
         return ""
@@ -388,7 +387,7 @@ def fix_technical_spacing(txt: str) -> str:
     # 4) Espaços ao redor de operadores e delimitadores técnicos
     txt = re.sub(r"\s*>\s*", " > ", txt)
     txt = re.sub(r"\s*/\s*", " / ", txt)
-    
+
     # 5) Correções específicas de colagem comuns em faturamento
     correcoes = {
         r"PELASMARTKIDS": "PELA SMARTKIDS",
@@ -412,23 +411,21 @@ def fix_technical_spacing(txt: str) -> str:
 
     return txt
 
-
 def sanitize_text(text: str) -> str:
     if not text:
         return ""
     txt = str(text)
     # Normalização e remoção de caracteres invisíveis que causam colagem
     txt = unicodedata.normalize("NFKC", txt)
-    txt = re.sub(r"[\u00A0\u200B-\u200F\uFEFF]", " ", txt) 
-    
+    txt = re.sub(r"[\u00A0\u200B-\u200F\uFEFF]", " ", txt)
+
     # Aplica correções de espaçamento
     txt = fix_technical_spacing(txt)
-    
+
     # Remove espaços duplos
     txt = re.sub(r"[ \t]+", " ", txt)
     return txt.strip()
 
-    
 def normalize(value):
     if not value: return ""
     return sanitize_text(value).strip().lower()
@@ -439,7 +436,8 @@ def generate_id(dados_atuais):
         try:
             id_val = int(item.get("id"))
             if id_val > 0: ids.append(id_val)
-        except Exception: continue
+        except Exception:
+            continue
     return max(ids) + 1 if ids else 1
 
 def safe_get(data, key, default=""):
@@ -488,7 +486,7 @@ def wrap_text(text, pdf, max_width):
 
     for w in words:
         if not w: continue
-        
+
         # Se for uma URL ou texto com delimitadores, usamos a lógica de quebra por caractere
         if any(ch in w for ch in "/?&=._-") and width(w) > max_width:
             segments = _split_token_preserving_delims(w)
@@ -514,7 +512,7 @@ def wrap_text(text, pdf, max_width):
     return lines
 
 # ============================================================
-# 8. PDF — fontes e OBSERVAÇÕES (parágrafos + bullets + correções de espaço)
+# 8. PDF — fontes e OBSERVAÇÕES (parágrafos + bullets + espaços)
 # ============================================================
 def _pdf_set_fonts(pdf: FPDF) -> str:
     """
@@ -536,7 +534,6 @@ def _pdf_set_fonts(pdf: FPDF) -> str:
             pass
     return "Helvetica"
 
-
 def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
     lines_out = []
     if not text: return []
@@ -545,13 +542,13 @@ def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
 
     paragraphs = text.split('\n')
     bullet_re = re.compile(r"^\s*(?:[\u2022•\-–—\*]|->|→)\s*(.*)$")
-    
+
     for p in paragraphs:
         p = p.strip()
         if not p:
             lines_out.append(("", 0.0))
             continue
-    
+
         m = bullet_re.match(p)
         if m:
             content = m.group(1).strip()
@@ -563,7 +560,7 @@ def build_wrapped_lines(text, pdf, usable_w, line_h, bullet_indent=4.0):
             for wline in wrapped:
                 lines_out.append((wline, 0.0))
     return lines_out
-    
+
 # ============================================================
 # 9. GERAÇÃO DO PDF — layout completo
 # ============================================================
@@ -580,11 +577,11 @@ def gerar_pdf(dados):
     GREY_BAR = (230, 230, 230)
     TEXT = (0, 0, 0)
     CONTENT_W = pdf.w - pdf.l_margin - pdf.r_margin
-    
+
     # 1. ATIVAR FONTE PARA CÁLCULOS IMEDIATAMENTE
     FONT_FAMILY = _pdf_set_fonts(pdf)
-    pdf.set_font(FONT_FAMILY, '', 10) 
-    
+    pdf.set_font(FONT_FAMILY, '', 10)
+
     line_h = 6.6
     padding = 1.8
     bullet_indent = 4.0
@@ -604,7 +601,7 @@ def gerar_pdf(dados):
             pdf.set_font(FONT_FAMILY, style, size)
         except:
             pdf.set_font("Helvetica", style, size)
-            
+
     def bar_title(texto, top_margin=3, height=8):
         pdf.ln(top_margin)
         pdf.set_fill_color(*GREY_BAR)
@@ -619,7 +616,7 @@ def gerar_pdf(dados):
         for (label, value) in pares:
             label = label or ""
             value = value or ""
-            apply_font(val_size, False) 
+            apply_font(val_size, False)
             value = sanitize_text(value)
             lines = wrap_text(value, pdf, max(1, u_w))
             needed_h = max(1, len(lines)) * line_h_val
@@ -627,10 +624,10 @@ def gerar_pdf(dados):
                 pdf.add_page()
                 apply_font(val_size, False)
                 y = pdf.get_y()
-            apply_font(10, True) 
+            apply_font(10, True)
             pdf.set_xy(x, y)
             pdf.cell(label_w, line_h_val, f"{label}:")
-            apply_font(val_size, False) 
+            apply_font(val_size, False)
             pdf.set_xy(x + label_w, y)
             pdf.cell(u_w, line_h_val, lines[0] if lines else "")
             for i in range(1, len(lines)):
@@ -677,221 +674,13 @@ def gerar_pdf(dados):
                 cx += widths[i]
             pdf.ln(row_h)
 
-    def gerar_docx(dados):
-    """
-    Gera .docx com o mesmo padrão do PDF:
-    - Título com faixa azul e somente o nome do convênio (MAIÚSCULO)
-    - Seção 1 em coluna única (pares etiqueta: valor, com label em negrito)
-    - Seção 2 como tabela (mesmos cabeçalhos e larguras proporcionais)
-    - Observações Críticas com parágrafos + bullets + imagens coladas no Quill
-    """
-    nome_conv = sanitize_text(safe_get(dados, "nome")).upper()
-
-    # --- Documento e margens ---
-    doc = Document()
-    section = doc.sections[0]
-    section.left_margin  = Cm(1.5)
-    section.right_margin = Cm(1.5)
-    section.top_margin   = Cm(1.2)
-    section.bottom_margin= Cm(1.5)
-    page_w_cm = section.page_width.cm
-    content_w_cm = page_w_cm - section.left_margin.cm - section.right_margin.cm
-
-    # ----------------- Helpers -----------------
-    def set_cell_bg(cell, rgb_hex):
-        """Aplica cor de fundo (hex sem #) em uma célula de tabela"""
-        tcPr = cell._tc.get_or_add_tcPr()
-        shd = OxmlElement('w:shd')
-        shd.set(qn('w:val'), 'clear')
-        shd.set(qn('w:color'), 'auto')
-        shd.set(qn('w:fill'), rgb_hex)
-        tcPr.append(shd)
-
-    def add_title_band(texto):
-        # Uma tabela 1x1 com fundo azul e texto centralizado branco
-        tbl = doc.add_table(rows=1, cols=1)
-        tbl.autofit = False
-        tbl.columns[0].width = Cm(content_w_cm)
-        cell = tbl.cell(0, 0)
-        set_cell_bg(cell, "1F497D")  # azul
-        p = cell.paragraphs[0]
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = p.add_run(texto or "CONVÊNIO")
-        run.bold = True
-        run.font.size = Pt(18)
-        run.font.color.rgb = __import__('docx').shared.RGBColor(255, 255, 255)
-        # Espaço depois do título
-        doc.add_paragraph()
-
-    def add_section_bar(texto):
-        tbl = doc.add_table(rows=1, cols=1)
-        tbl.autofit = False
-        tbl.columns[0].width = Cm(content_w_cm)
-        cell = tbl.cell(0, 0)
-        set_cell_bg(cell, "E6E6E6")  # cinza claro
-        p = cell.paragraphs[0]
-        run = p.add_run(f" {sanitize_text(texto).upper()}")
-        run.bold = True
-        run.font.size = Pt(12)
-        doc.add_paragraph()
-
-    def add_label_value_block(pares):
-        """Coluna única: cada linha com 'Label: Valor' (label em negrito)"""
-        for label, value in pares:
-            label = sanitize_text(label or "")
-            value = sanitize_text(value or "")
-            p = doc.add_paragraph()
-            run_label = p.add_run(f"{label}: ")
-            run_label.bold = True
-            run_val = p.add_run(value)
-            run_val.bold = False
-
-    def add_table_sec2(headers, row, widths_mm):
-        """
-        headers: list[str]
-        row: list[str]
-        widths_mm: list[float] (soma deve caber na largura de conteúdo)
-        """
-        # Converter mm -> cm
-        widths_cm = [mm/10.0 for mm in widths_mm]
-        # Ajuste proporcional para caber exatamente
-        total_w = sum(widths_cm)
-        if total_w > 0:
-            scale = content_w_cm / total_w
-            widths_cm = [w * scale for w in widths_cm]
-
-        tbl = doc.add_table(rows=1, cols=len(headers))
-        tbl.autofit = False
-        for i, w in enumerate(widths_cm):
-            tbl.columns[i].width = Cm(max(0.8, w))  # largura mínima de segurança
-
-        # Cabeçalho
-        hdr_cells = tbl.rows[0].cells
-        for i, h in enumerate(headers):
-            htxt = sanitize_text(h or "")
-            hdr_cells[i].text = htxt
-            set_cell_bg(hdr_cells[i], "F2F2F2")
-            # Bold + centralizado
-            for p in hdr_cells[i].paragraphs:
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                if p.runs:
-                    p.runs[0].bold = True
-
-        # Linha de dados
-        row_cells = tbl.add_row().cells
-        for i, val in enumerate(row):
-            txt = sanitize_text(val or "")
-            row_cells[i].text = txt
-
-        # Espaço após a tabela
-        doc.add_paragraph()
-
-    def add_observacoes_box(html):
-        # Extrai imagens e marcações
-        html_with_markers, imgs = extract_images_from_html(html)
-        text = clean_html(html_with_markers)
-        text = sanitize_text(text)
-
-        # Caixa com borda: tabela 1x1 sem preenchimento
-        box = doc.add_table(rows=1, cols=1)
-        box.autofit = False
-        box.columns[0].width = Cm(content_w_cm)
-        cell = box.cell(0, 0)
-        # (A borda usa padrão do Word; se quiser borda mais grossa, precisaria manipular w:tblBorders)
-
-        bullet_re = re.compile(r"^\s*(?:[\u2022•\-–—\*]|-&gt;|→)\s*(.*)$")
-        paragraphs = text.split('\n')
-        img_idx = 0
-        for ptxt in paragraphs:
-            ptxt = (ptxt or "").strip()
-            if not ptxt:
-                cell.add_paragraph()
-                continue
-
-            if "[IMAGEM]" in ptxt:
-                if img_idx < len(imgs):
-                    img = imgs[img_idx]
-                    img_idx += 1
-                    # redimensiona para caber na largura do conteúdo
-                    stream = io.BytesIO()
-                    # limite de largura em cm -> px: aproximar 96 dpi
-                    max_width_cm = content_w_cm - 0.8
-                    # calcula nova largura em px
-                    max_width_px = int(max_width_cm * 37.7952755906)  # 1 cm ≈ 37.795 px
-                    if img.width > max_width_px:
-                        ratio = max_width_px / float(img.width)
-                        new_h = int(img.height * ratio)
-                        img = img.resize((max_width_px, new_h))
-                    img.save(stream, format="PNG", optimize=True)
-                    stream.seek(0)
-                    p = cell.add_paragraph()
-                    run = p.add_run()
-                    run.add_picture(stream, width=Cm(max_width_cm))
-                continue
-
-            m = bullet_re.match(ptxt)
-            if m:
-                content = sanitize_text(m.group(1))
-                p = cell.add_paragraph(style='List Bullet')
-                p.add_run(content)
-            else:
-                p = cell.add_paragraph()
-                p.add_run(ptxt)
-
-        doc.add_paragraph()
-
-    # ----------------- Montagem -----------------
-    # Título: SOMENTE NOME DO CONVÊNIO
-    add_title_band(nome_conv)
-
-    # Seção 1
-    add_section_bar("1. Dados de Identificação e Acesso")
-    pares_unicos = [
-        ("Empresa",  safe_get(dados, "empresa")),
-        ("Código",   safe_get(dados, "codigo")),
-        ("Portal",   safe_get(dados, "site")),
-        ("Senha",    safe_get(dados, "senha")),
-        ("Login",    safe_get(dados, "login")),
-        ("Retorno",  safe_get(dados, "prazo_retorno")),
-        ("Sistema",  safe_get(dados, "sistema_utilizado")),
-    ]
-    add_label_value_block(pares_unicos)
-
-    # Seção 2 (tabela)
-    add_section_bar("2. Cronograma e Regras Técnicas")
-    headers = ["Prazo Envio", "Validade Guia", "XML / Versão", "Nota Fiscal", "Fluxo NF"]
-    xml_flag = safe_get(dados, "xml") or "—"
-    xml_ver = safe_get(dados, "versao_xml") or "—"
-    row = [
-        safe_get(dados, "envio"),
-        safe_get(dados, "validade"),
-        f"{xml_flag} / {xml_ver}",
-        safe_get(dados, "nf"),
-        safe_get(dados, "fluxo_nf"),
-    ]
-    # Mesmas proporções do PDF (mm): 52, 35, 35, 30, resto
-    w1, w2, w3, w4 = 52, 35, 35, 30
-    # convertemos último como "resto" igual ao PDF:
-    # Vamos só repetir as proporções; o ajuste proporcional garante a soma = content_w
-    w5 = 60  # valor simbólico; será ajustado pela escala
-    add_table_sec2(headers, row, [w1, w2, w3, w4, w5])
-
-    # Observações Críticas
-    add_section_bar("Observações Críticas")
-    add_observacoes_box(safe_get(dados, "observacoes"))
-
-    # Exporta para bytes
-    buf = io.BytesIO()
-    doc.save(buf)
-    buf.seek(0)
-    return buf.getvalue()
-
     # ---------- RENDERIZAÇÃO ----------
     nome_conv = sanitize_text(safe_get(dados, "nome")).upper()
     pdf.set_fill_color(*BLUE)
     pdf.set_text_color(255, 255, 255)
     apply_font(18, True)
-    pdf.cell(0, 14, f"MANUAL: {nome_conv}" if nome_conv else "GUIA TÉCNICA", ln=1, align="C", fill=True)
+    # Título do PDF: somente nome do convênio
+    pdf.cell(0, 14, nome_conv if nome_conv else "CONVÊNIO", ln=1, align="C", fill=True)
     pdf.set_text_color(*TEXT)
     pdf.ln(5)
 
@@ -912,7 +701,7 @@ def gerar_pdf(dados):
     w5 = CONTENT_W - (w1 + w2 + w3 + w4)
     widths = [w1, w2, w3, w4, w5]
     headers = ["Prazo Envio", "Validade Guia", "XML / Versão", "Nota Fiscal", "Fluxo NF"]
-    
+
     xml_flag = safe_get(dados, "xml") or "—"
     xml_ver = safe_get(dados, "versao_xml") or "—"
     row = [safe_get(dados, "envio"), safe_get(dados, "validade"), f"{xml_flag} / {xml_ver}", safe_get(dados, "nf"), safe_get(dados, "fluxo_nf")]
@@ -993,6 +782,238 @@ def gerar_pdf(dados):
     # fpdf2 retorna bytearray, converter para bytes
     return bytes(pdf.output())
 
+# ============================================================
+# 9.1 GERAÇÃO DO WORD — layout espelhado ao PDF
+# ============================================================
+def gerar_docx(dados):
+    """
+    Gera .docx com o mesmo padrão do PDF:
+    - Título com faixa azul e somente o nome do convênio (MAIÚSCULO)
+    - Seção 1 em coluna única (pares etiqueta: valor, com label em negrito)
+    - Seção 2 como tabela (mesmos cabeçalhos e larguras proporcionais)
+    - Observações Críticas com parágrafos + bullets + imagens coladas no Quill
+    - (Opcional) Print de Tela/Evidência salvo no campo print_b64
+    """
+    nome_conv = sanitize_text(safe_get(dados, "nome")).upper()
+
+    # --- Documento e margens ---
+    doc = Document()
+    section = doc.sections[0]
+    section.left_margin  = Cm(1.5)
+    section.right_margin = Cm(1.5)
+    section.top_margin   = Cm(1.2)
+    section.bottom_margin= Cm(1.5)
+    page_w_cm = section.page_width.cm
+    content_w_cm = page_w_cm - section.left_margin.cm - section.right_margin.cm
+
+    # ----------------- Helpers -----------------
+    def set_cell_bg(cell, rgb_hex):
+        """Aplica cor de fundo (hex sem #) em uma célula de tabela"""
+        tcPr = cell._tc.get_or_add_tcPr()
+        shd = OxmlElement('w:shd')
+        shd.set(qn('w:val'), 'clear')
+        shd.set(qn('w:color'), 'auto')
+        shd.set(qn('w:fill'), rgb_hex)
+        tcPr.append(shd)
+
+    def add_title_band(texto):
+        # Uma tabela 1x1 com fundo azul e texto centralizado branco
+        tbl = doc.add_table(rows=1, cols=1)
+        tbl.autofit = False
+        tbl.columns[0].width = Cm(content_w_cm)
+        cell = tbl.cell(0, 0)
+        set_cell_bg(cell, "1F497D")  # azul
+        p = cell.paragraphs[0]
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = p.add_run(texto or "CONVÊNIO")
+        run.bold = True
+        run.font.size = Pt(18)
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        # Espaço depois do título
+        doc.add_paragraph()
+
+    def add_section_bar(texto):
+        tbl = doc.add_table(rows=1, cols=1)
+        tbl.autofit = False
+        tbl.columns[0].width = Cm(content_w_cm)
+        cell = tbl.cell(0, 0)
+        set_cell_bg(cell, "E6E6E6")  # cinza claro
+        p = cell.paragraphs[0]
+        run = p.add_run(f" {sanitize_text(texto).upper()}")
+        run.bold = True
+        run.font.size = Pt(12)
+        doc.add_paragraph()
+
+    def add_label_value_block(pares):
+        """Coluna única: cada linha com 'Label: Valor' (label em negrito)"""
+        for label, value in pares:
+            label = sanitize_text(label or "")
+            value = sanitize_text(value or "")
+            p = doc.add_paragraph()
+            run_label = p.add_run(f"{label}: ")
+            run_label.bold = True
+            run_val = p.add_run(value)
+            run_val.bold = False
+
+    def add_table_sec2(headers, row, widths_mm):
+        """
+        headers: list[str]
+        row: list[str]
+        widths_mm: list[float] (soma deve caber na largura de conteúdo)
+        """
+        # Converter mm -> cm
+        widths_cm = [mm/10.0 for mm in widths_mm]
+        # Ajuste proporcional para caber exatamente
+        total_w = sum(widths_cm)
+        if total_w > 0:
+            scale = content_w_cm / total_w
+            widths_cm = [w * scale for w in widths_cm]
+
+        tbl = doc.add_table(rows=1, cols=len(headers))
+        tbl.autofit = False
+        for i, w in enumerate(widths_cm):
+            tbl.columns[i].width = Cm(max(0.8, w))  # largura mínima de segurança
+
+        # Cabeçalho
+        hdr_cells = tbl.rows[0].cells
+        for i, h in enumerate(headers):
+            htxt = sanitize_text(h or "")
+            hdr_cells[i].text = htxt
+            set_cell_bg(hdr_cells[i], "F2F2F2")
+            # Bold + centralizado
+            for p in hdr_cells[i].paragraphs:
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                if p.runs:
+                    p.runs[0].bold = True
+
+        # Linha de dados
+        row_cells = tbl.add_row().cells
+        for i, val in enumerate(row):
+            txt = sanitize_text(val or "")
+            row_cells[i].text = txt
+
+        # Espaço após a tabela
+        doc.add_paragraph()
+
+    def add_observacoes_box(html):
+        # Extrai imagens e marcações
+        html_with_markers, imgs = extract_images_from_html(html)
+        text = clean_html(html_with_markers)
+        text = sanitize_text(text)
+
+        # Caixa com borda: tabela 1x1 sem preenchimento explícito
+        box = doc.add_table(rows=1, cols=1)
+        box.autofit = False
+        box.columns[0].width = Cm(content_w_cm)
+        cell = box.cell(0, 0)
+
+        bullet_re = re.compile(r"^\s*(?:[\u2022•\-–—\*]|-&gt;|->|→)\s*(.*)$")
+        paragraphs = text.split('\n')
+        img_idx = 0
+        for ptxt in paragraphs:
+            ptxt = (ptxt or "").strip()
+            if not ptxt:
+                cell.add_paragraph()
+                continue
+
+            if "[IMAGEM]" in ptxt:
+                if img_idx < len(imgs):
+                    img = imgs[img_idx]
+                    img_idx += 1
+                    # redimensiona para caber na largura do conteúdo
+                    stream = io.BytesIO()
+                    # limite de largura em cm -> px: aproximar 96 dpi
+                    max_width_cm = content_w_cm - 0.8
+                    # calcula nova largura em px
+                    max_width_px = int(max_width_cm * 37.7952755906)  # 1 cm ≈ 37.795 px
+                    if img.width > max_width_px:
+                        ratio = max_width_px / float(img.width)
+                        new_h = int(img.height * ratio)
+                        img = img.resize((max_width_px, new_h))
+                    img.save(stream, format="PNG", optimize=True)
+                    stream.seek(0)
+                    p = cell.add_paragraph()
+                    run = p.add_run()
+                    run.add_picture(stream, width=Cm(max_width_cm))
+                continue
+
+            m = bullet_re.match(ptxt)
+            if m:
+                content = sanitize_text(m.group(1))
+                p = cell.add_paragraph(style='List Bullet')
+                p.add_run(content)
+            else:
+                p = cell.add_paragraph()
+                p.add_run(ptxt)
+
+        doc.add_paragraph()
+
+    # ----------------- Montagem -----------------
+    # Título: SOMENTE NOME DO CONVÊNIO
+    add_title_band(nome_conv)
+
+    # Seção 1
+    add_section_bar("1. Dados de Identificação e Acesso")
+    pares_unicos = [
+        ("Empresa",  safe_get(dados, "empresa")),
+        ("Código",   safe_get(dados, "codigo")),
+        ("Portal",   safe_get(dados, "site")),
+        ("Senha",    safe_get(dados, "senha")),
+        ("Login",    safe_get(dados, "login")),
+        ("Retorno",  safe_get(dados, "prazo_retorno")),
+        ("Sistema",  safe_get(dados, "sistema_utilizado")),
+    ]
+    add_label_value_block(pares_unicos)
+
+    # Seção 2 (tabela) — mesmas proporções do PDF
+    add_section_bar("2. Cronograma e Regras Técnicas")
+    headers = ["Prazo Envio", "Validade Guia", "XML / Versão", "Nota Fiscal", "Fluxo NF"]
+    xml_flag = safe_get(dados, "xml") or "—"
+    xml_ver = safe_get(dados, "versao_xml") or "—"
+    row = [
+        safe_get(dados, "envio"),
+        safe_get(dados, "validade"),
+        f"{xml_flag} / {xml_ver}",
+        safe_get(dados, "nf"),
+        safe_get(dados, "fluxo_nf"),
+    ]
+    w1, w2, w3, w4 = 52, 35, 35, 30
+    w5 = 60  # valor simbólico; será ajustado pela escala para content_w
+    add_table_sec2(headers, row, [w1, w2, w3, w4, w5])
+
+    # Observações Críticas
+    add_section_bar("Observações Críticas")
+    add_observacoes_box(safe_get(dados, "observacoes"))
+
+    # (Opcional) Print de Tela / Evidência (imagem fora do Quill)
+    img_b64 = safe_get(dados, "print_b64")
+    if img_b64:
+        try:
+            img_data = base64.b64decode(img_b64)
+            img = Image.open(io.BytesIO(img_data))
+            doc.add_paragraph()  # espaço
+            add_section_bar("Print de Tela / Evidência")
+            stream = io.BytesIO()
+            # Redimensiona para largura útil
+            max_width_cm = content_w_cm - 0.8
+            max_width_px = int(max_width_cm * 37.7952755906)
+            if img.width > max_width_px:
+                ratio = max_width_px / float(img.width)
+                new_h = int(img.height * ratio)
+                img = img.resize((max_width_px, new_h))
+            img.save(stream, format="PNG", optimize=True)
+            stream.seek(0)
+            p = doc.add_paragraph()
+            run = p.add_run()
+            run.add_picture(stream, width=Cm(max_width_cm))
+        except Exception:
+            pass
+
+    # Exporta para bytes
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.getvalue()
 
 # ============================================================
 # 10. UI COMPONENTS
@@ -1056,31 +1077,6 @@ def ui_block_info(title: str, content: str):
     ui_card_end()
 
 # ------------------------------------------------------------
-# FUNÇÕES DE APOIO (Coloque antes da def page_cadastro)
-# ------------------------------------------------------------
-def image_to_base64(img):
-    """Converte objeto PIL Image para string Base64 para salvar no JSON"""
-    if img is None:
-        return ""
-    import io
-    buffered = io.BytesIO()
-    # Otimização: Redimensiona se for muito grande para não travar o JSON no GitHub
-    if img.width > 1200:
-        img.thumbnail((1200, 1200))
-    img.save(buffered, format="PNG", optimize=True)
-    return base64.b64encode(buffered.getvalue()).decode()
-
-def clean_html(raw_html):
-    """Remove tags HTML para processamento de texto puro (usado no PDF)"""
-    if not raw_html: return ""
-    cleanr = re.compile('<.*?>|&nbsp;')
-    cleantext = re.sub(cleanr, ' ', raw_html)
-    return re.sub(r' +', ' ', cleantext).strip()
-
-# ------------------------------------------------------------
-# MÓDULO DE CADASTRO COMPLETO
-# ------------------------------------------------------------
-# ------------------------------------------------------------
 # MÓDULO DE CADASTRO COMPLETO (REINTEGRADO XML/NF)
 # ------------------------------------------------------------
 def page_cadastro():
@@ -1120,10 +1116,10 @@ def page_cadastro():
         with col1:
             nome = st.text_input("Nome do Convênio", value=safe_get(dados_conv, "nome"))
             codigo = st.text_input("Código", value=safe_get(dados_conv, "codigo"))
-            
+
             valor_empresa = safe_get(dados_conv, "empresa")
-            empresa = st.selectbox("Empresa", EMPRESAS_FATURAMENTO, 
-                                 index=EMPRESAS_FATURAMENTO.index(valor_empresa) if valor_empresa in EMPRESAS_FATURAMENTO else 0)
+            empresa = st.selectbox("Empresa", EMPRESAS_FATURAMENTO,
+                                   index=EMPRESAS_FATURAMENTO.index(valor_empresa) if valor_empresa in EMPRESAS_FATURAMENTO else 0)
 
         with col2:
             site = st.text_input("Site/Portal", value=safe_get(dados_conv, "site"))
@@ -1132,7 +1128,7 @@ def page_cadastro():
 
         with col3:
             sistema = st.selectbox("Sistema", SISTEMAS,
-                                 index=SISTEMAS.index(safe_get(dados_conv, "sistema_utilizado")) if safe_get(dados_conv, "sistema_utilizado") in SISTEMAS else 0)
+                                   index=SISTEMAS.index(safe_get(dados_conv, "sistema_utilizado")) if safe_get(dados_conv, "sistema_utilizado") in SISTEMAS else 0)
             retorno = st.text_input("Prazo Retorno", value=safe_get(dados_conv, "prazo_retorno"))
             envio = st.text_input("Prazo Envio", value=safe_get(dados_conv, "envio"))
 
@@ -1145,10 +1141,10 @@ def page_cadastro():
         with col_xml:
             valor_xml = safe_get(dados_conv, "xml") or "Sim"
             xml = st.radio("Envia XML?", OPCOES_XML, index=OPCOES_XML.index(valor_xml), horizontal=True)
-            
+
             valor_versao = safe_get(dados_conv, "versao_xml")
             versao_xml = st.selectbox("Versão TISS", VERSOES_TISS,
-                                    index=VERSOES_TISS.index(valor_versao) if valor_versao in VERSOES_TISS else 0)
+                                      index=VERSOES_TISS.index(valor_versao) if valor_versao in VERSOES_TISS else 0)
 
         with col_nf:
             valor_nf = safe_get(dados_conv, "nf") or "Não"
@@ -1158,10 +1154,10 @@ def page_cadastro():
         with col_fluxo:
             valor_fluxo = safe_get(dados_conv, "fluxo_nf") or OPCOES_FLUXO_NF[0]
             fluxo_nf = st.selectbox("Fluxo da Nota Fiscal", OPCOES_FLUXO_NF,
-                                  index=OPCOES_FLUXO_NF.index(valor_fluxo) if valor_fluxo in OPCOES_FLUXO_NF else 0)
+                                    index=OPCOES_FLUXO_NF.index(valor_fluxo) if valor_fluxo in OPCOES_FLUXO_NF else 0)
 
         st.markdown("---")
-        
+
         # --- BLOCO 3: EDITOR RICO ---
         st.markdown("##### 🖋️ Observações Críticas")
         observacoes_html = st_quill(
@@ -1173,13 +1169,13 @@ def page_cadastro():
         # --- BLOCO 4: PRINT / IMAGEM ---
         st.markdown("##### 📸 Print de Tela / Evidência")
         c_paste, c_preview = st.columns([1, 1])
-        
+
         with c_paste:
             st.info("Clique no botão abaixo e cole (Ctrl+V) o print.")
             pasted_img = paste_image_button(label="📋 Colar Imagem", key=f"paste_btn_{conv_id}")
-        
+
         img_b64_salva = safe_get(dados_conv, "print_b64")
-        
+
         if pasted_img.image_data is not None:
             with c_preview:
                 st.image(pasted_img.image_data, caption="Nova Imagem", use_container_width=True)
@@ -1234,8 +1230,6 @@ def page_cadastro():
                     time.sleep(0.8)
                     st.rerun()
 
-
-
     # BOTÃO PDF
     if dados_conv:
         st.download_button(
@@ -1245,9 +1239,19 @@ def page_cadastro():
             mime="application/pdf"
         )
 
-        # ==============================
-        # 🗑️ EXCLUSÃO PERMANENTE — CONVÊNIO
-        # ==============================
+    # BOTÃO DOCX
+    if dados_conv:
+        st.download_button(
+            "📝 Baixar Word do Convênio",
+            gerar_docx(dados_conv),
+            file_name=f"Manual_{safe_get(dados_conv,'nome')}.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+
+    # ==============================
+    # 🗑️ EXCLUSÃO PERMANENTE — CONVÊNIO
+    # ==============================
+    if dados_conv:
         with st.expander("🗑️ Excluir convênio (permanente)", expanded=False):
             st.warning(
                 "Esta ação **não pode ser desfeita**. "
@@ -1255,9 +1259,7 @@ def page_cadastro():
                 icon="⚠️"
             )
 
-            # Garante o ID como string (usa o do registro salvo quando existir)
-            conv_id_str = str(dados_conv.get("id") if isinstance(dados_conv, dict) else conv_id or "").strip()
-
+            conv_id_str = str(dados_conv.get("id") if isinstance(dados_conv, dict) else "").strip()
             confirm_val = st.text_input(
                 f"Confirmação: digite **{conv_id_str}**",
                 key=f"confirm_del_conv_{conv_id_str}"
@@ -1290,20 +1292,7 @@ def page_cadastro():
                     st.rerun()
 
                 except Exception as e:
-                    st.error(f"Falha ao excluir convênio {conv_id_str}: {e}")   
-
-    
-    # BOTÃO DOCX
-    if dados_conv:
-        st.download_button(
-            "📝 Baixar Word do Convênio",
-            gerar_docx(dados_conv),
-            file_name=f"Manual_{safe_get(dados_conv,'nome')}.docx",
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        )
-
-    
-
+                    st.error(f"Falha ao excluir convênio {conv_id_str}: {e}")
 
 # ============================================================
 # 12. PÁGINAS — CONSULTA & VISUALIZAR BANCO
@@ -1361,8 +1350,7 @@ def page_visualizar_banco(dados_atuais):
         st.info("⚠️ Banco vazio.")
     ui_card_end()
 
-
-# >>>>>>>>>>>>> INSTÂNCIA DO MÓDULO DE ROTINAS <<<<<<<<<<<<
+# >>>>>>>>>>> INSTÂNCIA DO MÓDULO DE ROTINAS <<<<<<<<<<
 rotinas_module = RotinasModule(
     db_rotinas=db_rotinas,
     sanitize_text=sanitize_text,
@@ -1371,7 +1359,7 @@ rotinas_module = RotinasModule(
     generate_id=generate_id,
     safe_get=safe_get,
     primary_color=PRIMARY_COLOR,
-    setores_opcoes=SETORES_ROTINA,  
+    setores_opcoes=SETORES_ROTINA,
 )
 
 # ============================================================
@@ -1385,7 +1373,7 @@ def main():
     dados_atuais, _ = db.load()
 
     st.sidebar.title("📚 Navegação")
-    
+
     menu = st.sidebar.radio(
         "Selecione a página:",
         ["Cadastrar / Editar", "Consulta de Convênios", "Visualizar Banco", "Rotinas do Setor"]
@@ -1395,7 +1383,7 @@ def main():
     st.sidebar.markdown("### 🔄 Atualizar Sistema")
     if st.sidebar.button("Recarregar"):
         st.rerun()
-    
+
     if menu == "Cadastrar / Editar":
         page_cadastro()
     elif menu == "Consulta de Convênios":
