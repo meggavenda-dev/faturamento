@@ -450,5 +450,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 23,
+        "nome": "CONAB - AMHPDF",
+        "codigo": "20",
+        "empresa": "AMHP",
+        "site": "http://sisdep.conab.gov.br/sitiss_portal/site/index?tipo_acesso=P",
+        "login": "00735860000173",
+        "senha": "amhp0073*",
+        "sistema_utilizado": "Próprio",
+        "prazo_retorno": "",
+        "envio": "Do dia 1º ao 5º dia útil de cada mês",
+        "validade": "90 dias",
+        "xml": "Sim",
+        "versao_xml": "3.05.00",
+        "nf": "Sim",
+        "fluxo_nf": "Envia NF junto com o lote",
+        "observacoes": "MANUAL DE ENVIO CONAB\n\nAcesso ao Portal\n\n• Site: http://sisdep.conab.gov.br/sitiss_portal/site/index?tipo_acesso=P\n\n• Login: 00735860000173\n\n• Senha: amhp0073*\n\nPrazo de Envio\n\n• Período: Do dia 1º ao 5º dia útil de cada mês.\n\n• Antecipação: No dia 20 de cada mês, solicitar ao Wesley\npara verificar se é possível antecipar o envio.\n\nSeparação das Guias\n\n• Guias Periódicas devem ser separadas das Guias Normais.\n\n• Validade: 90 dias. Se houver guias com mais de 90 dias,\nenviá-las em fatura separada.\n\nLimite de Guias por Envio\n\n• Consultas: Máximo de 99 guias, mas recomenda-se 40 guias\npara não ultrapassar o limite de 15MB por e-mail.\n\n• Procedimentos: Máximo de 50 guias, mas recomenda-se 40\nguias pelo mesmo motivo.\n\nProcesso de Envio\n\n1.  Conferir as guias\ncom a listagem antes de gerar o XML.\n\n2. Gerar XML sem marcar nenhuma opção no gerador XML\n(versão: 3.05.00).\n\n3. Caminho para envio do xml :  efetuar login no site acima – serviços -\nEnvio de guias TISS (3.05.00 / 4.00.00 / 4.01.00)- escolher arquivo - confirmar\n\n4. Após concluir com sucesso o upload do arquivo xml, clicar\nem exportar para pdf e armazená-la em sua pasta para depois gerar o aceite na\npasta do financeiro conforme o procedimento normal. \n\n5. Notas Fiscais: Antes de retirar grampos das guias, ligar\npara o Financeiro e solicitar as notas fiscais.\n\n\n\nSolicitar Nota fiscal\n\n·        \nGerar Remessa \n\nSalvar carta da\nRemessa na pasta do financeiro (Caminho da pasta: \\\\10.0.0.239\\financeiro -\nfaturamento\\IMPRESSÃO DE NFE\\CONAB) obs: apenas colar \n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
