@@ -471,5 +471,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 24,
+        "nome": "PROASA - AMHPDF",
+        "codigo": "6",
+        "empresa": "AMHP",
+        "site": "https://saw.trixti.com.br/saw/Logar.do?method=abrirTelaDeLogin",
+        "login": "USUÁRIO INDIVIDUAL",
+        "senha": "USUÁRIO INDIVIDUAL",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "Dias 01 á 05",
+        "validade": "90 Dias",
+        "xml": "Sim",
+        "versao_xml": "3.05.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
