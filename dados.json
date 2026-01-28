@@ -324,5 +324,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 17,
+        "nome": "BRB - SAÚDE",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "https://portal.saudebrb.com.br/GuiasTISS/Logon",
+        "login": "00735860000173",
+        "senha": "00012FAT25*",
+        "sistema_utilizado": "Facil",
+        "prazo_retorno": "",
+        "envio": "Dias 01 á 02",
+        "validade": "60 Dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
