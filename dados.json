@@ -328,8 +328,8 @@
     {
         "id": 17,
         "nome": "BRB - SAÚDE",
-        "codigo": "",
-        "empresa": "Integralis",
+        "codigo": "10",
+        "empresa": "AMHP",
         "site": "https://portal.saudebrb.com.br/GuiasTISS/Logon",
         "login": "00735860000173",
         "senha": "00012FAT25*",
