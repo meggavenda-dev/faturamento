@@ -513,5 +513,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 26,
+        "nome": "EMBRATEL - AMHPDF",
+        "codigo": "52",
+        "empresa": "AMHP",
+        "site": "https://portalconectasaude.com.br/Account/Login",
+        "login": "negociacao.gerencia@amhp.com.br",
+        "senha": "Amhp2025@",
+        "sistema_utilizado": "Benner",
+        "prazo_retorno": "",
+        "envio": "1° ao 5° DIA ÚTIL",
+        "validade": "90 dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
