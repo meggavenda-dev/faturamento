@@ -555,5 +555,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 28,
+        "nome": "CNTI ",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "Não tem",
+        "login": "Não tem",
+        "senha": "Não tem",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "DIA 05 DE CADA MÊS",
+        "validade": "Sem validade",
+        "xml": "Sim",
+        "versao_xml": "Não Envia",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "NÃO TEM PRAZO DE VALIDADE\n\n-NÃO TEM SITE, O ENVIO É FEITO POR MEIO FÍSICO ATRAVÉS DO CHAGUINHAS.\n\n-O ENVIO É FEITO NO DIA 05 DE CADA MÊS.\n\n-A FATURA VAI COM NOTA FISCAL.\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
