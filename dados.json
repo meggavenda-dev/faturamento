@@ -597,5 +597,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 30,
+        "nome": "MPU",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "https://sistema.planassiste.mpu.mp.br/portaltiss/login.aspx",
+        "login": "00735860000173",
+        "senha": "Amhp2025!",
+        "sistema_utilizado": "Próprio",
+        "prazo_retorno": "",
+        "envio": "Calendário Próprio",
+        "validade": "",
+        "xml": "Sim",
+        "versao_xml": "3.04.01",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "NÃO TEM PRAZO DE VALIDADE\n\n-O ENVIO É FEITO DENTRO DO CALENDÁRIO PROPOSTO PELA OPERADORA.\n\n-SENDO NOS DIAS 01 A 07 E 15 A 20.\n\n-NÃO É NECESSÁRIO MARCAR NADA NA HORA DE GERAR O XML.\n\nO CONVÊNIO POSSUI O SITE DA OPERADORA ONDE É GERADO O PROTOCOLO\n\nhttps://sistema.planassiste.mpu.mp.br/portaltiss/login.aspx\nLOGIN: 00735860000173\nSENHA: Amhp2025!\n\nO SITE PARA CORREÇÃO DA CARTEIRINHA\n\npelo nome do paciente\n\nSITE: https://sistema.planassiste.mpu.mp.br/autorizadorweb/pagemain.aspx\n\nEO SITE DO GOV ONDE É ENVIADO A FATURA JUNTAMENTE COM PROTOCOLO.\n\nSITE: https://protocolo.mpf.mp.br/ouvidoria/app/login/\nCPF: 00150283130\nSENHA: @Wps100615 #\n\nResumo para colocar na observação:\n\nFATURA:\nPEG nº:\nVALOR:\n\nPARA CONFIRMAÇÃO DE ENVIO DAS FATURAS, VERIFICAR NO E-MAIL DO WESLEY NA CAIXA DE CORREIO 'PROTOCOLOS FATURAMENT'\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
