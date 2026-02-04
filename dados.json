@@ -639,5 +639,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 32,
+        "nome": "LIFE EMPRESARIAL - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "https://www.orizon.com.br/",
+        "login": "AMHP0073",
+        "senha": "Amhp@2025!",
+        "sistema_utilizado": "Orizon",
+        "prazo_retorno": "",
+        "envio": "01 á 05",
+        "validade": "90 DIAS",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "VALIDADE - 90 DIAS\n\n-VAI DO PRIMEIRO AO QUINTO DIA DO MÊS\n\n-ENVIO DIGITAL\n\n-Número do processo de origem\n\n-99 GUIAS\n\n-XML: MARCAR GUIA ATRIBUIDA GUIA OPERADORA\n\n-Arquivo xml deve ser zipado.\n\n-PODE PASSAR ATÉ A FASE DE RECEBIDOS, MAS SÓ PASSA PRA FASE DE LIBERADOS NO 1° DIA ÚTIL DO MÊS) COLOCAR NUMERO DA NFE NO SITE NA HORA QUE LIBERA\n\n-GUIAS SÃO ANEXADAS ATRAVES DA AUTOMAÇAO\n\n-NENHUMA GUIA PODE ESTAR SEM AUTORIZAÇÃO.\n\nSITE : https://www.orizon.com.br/\nUSUÁRIO: AMHP0073 SENHA: Amhp@2025!\n\nFATURA DEVE CONTER\n\n1-NFE\n\n2-PROTOCOLO\n\n3-FATURA\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
