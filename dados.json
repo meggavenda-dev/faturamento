@@ -576,5 +576,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 29,
+        "nome": "GRAVIA - AMHPDF",
+        "codigo": "",
+        "empresa": "AMHP",
+        "site": "Sem portal",
+        "login": "Sem portal",
+        "senha": "Sem portal",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "01 á 05",
+        "validade": "Sem validade",
+        "xml": "Não",
+        "versao_xml": "Não Envia",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "NÃO TEM PRAZO DE VALIDADE\n\n-LIMITE DE 99 GUIAS\n\n-NÃO TEM SITE, O ENVIO É FEITO POR MEIO FÍSICO ATRAVÉS DO CHAGUINHAS.\n\n-O ENVIO É FEITO NO DIA 10 DE CADA MÊS.\n\n-OBRIGATÓRIO QUE AS GUIAS CONTENHAM A SIGLA 'AMHPDF' E O VALOR TOTAL DOS PROCEDIMENTOS.\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
