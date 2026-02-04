@@ -618,5 +618,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 31,
+        "nome": "TJDFT - AMHPDF",
+        "codigo": "",
+        "empresa": "AMHP",
+        "site": "https://prosaudeconecta.tjdft.jus.br",
+        "login": "negociacao.gerencia@amhp.com.br",
+        "senha": "Amhp2025@",
+        "sistema_utilizado": "Benner",
+        "prazo_retorno": "",
+        "envio": "Calendário Próprio",
+        "validade": "120 Dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "PRAZO DE VALIDADE 120 DIAS\n\n1-GERAR XML (EM NOMES PACIENTES)\n\n2-ENVIAR ARQUIVO XML CORRIGINDO HASH E CARTEIRINHA\n\n3- CONFIRMAR SE ALGUEM ESTA FECHANDO, CASO NAÕ, PERGUNTAR QUAL A PEG E GERAR PROTOCOLO\n\n4- PROTOCOLO FECHAR FATURAS E LANÇAR\n\n5-GERAR REMESSA (TRES) E IMPRIMIR CARTA TJDFT (DUAS)\n\n6-ANEXAR PROTOCOLOS NAS FATURAS CORRESPONDENTES\n\nSITE\n\nLink do Portal: https://prosaudeconecta.tjdft.jus.br\n\nLogin: recursoadministrativo@amhp.com.br\n\nSenha:\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
