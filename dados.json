@@ -681,26 +681,5 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
-    },
-    {
-        "id": 34,
-        "nome": "SAÚDE CAIXA - AMHPDF",
-        "codigo": "",
-        "empresa": "AMHP",
-        "site": "https://saude.caixa.gov.br/PORTALPRD/saude/e/portal/inicio_prestador.aspx?i=MENUITEMID_636005437870018929&m=MAIN",
-        "login": "00735860000173",
-        "senha": "#2026Saude.",
-        "sistema_utilizado": "Outros",
-        "prazo_retorno": "",
-        "envio": "Diário",
-        "validade": "60 dias",
-        "xml": "Sim",
-        "versao_xml": "4.01.00",
-        "nf": "Não",
-        "fluxo_nf": "Envia XML sem nota",
-        "observacoes": "SAÚDE CAIXA\n\nValidade: 60 dias\n\ntodo dia (eletrônico)\n\nconsulta robô: só envia xml\n(NÃO ANEXA FATURAS)\n\n \n\n➔  ENVIO XML\n\nhttps://saude.caixa.gov.br/PORTALPRD/saude/e/portal/inicio_prestador.aspx?i=MENUITEMID_636005437870018929&m=MAIN\n\nLogin:00735860000173\n\nSenha: #2026Saude.\n\n➔  ANEXAR FATURAS: novo site 15/03/2024\n\nhttp://www.trueauditoria.com.br/\n\nlogin:\nremessa@amhp.com.br\n\nSenha: cE1BEa\n\n OBS.: TIPO DE GUIA-CONSULTA-\nNÃO ANEXA NO TRUE\n\n \n\n➔  VERIFICAR CARTEIRAS: SITE AMHPDF\n\nnão usa mais:\n\n  \nhttps://saude.caixa.gov.br/AutorizadorPRD/login.aspx\n\n\nLogin: A00735860000173\n  \nSenha: 0LP85BIM8\n \n\n➢  Máximo de guias no lote: 45\n\n➢  Tabela: TUSS, com regras da CBHPM\n\n➢  Autorização: Ver relação no site da AMHP\n\n➢  Cobrar consulta de nutrição em guia SP/SADT\n\nGUIA DE OUTRAS DESPESAS TEM QUE TER CARIMBO E\nASSINATURA DO MÉDICO ?\n\nSEPARAR\n\nMAT/MED\n\nGUIA DE CONSULTA (não envia físico)\n\n \n\nXML (MAT/MED muda só a tabela: 12 para 19 e 05 para 20)\n\n➢ Processamento Auditivo Central- 22 muda para -00\n\n➢ 30902053 tabela 98 - TROCA VALVAR -muda para tab 22\n\n➢ 30915015 tabela 98 - CORRECAO CIRURGICA DAS\nARRITMIAS -muda para tab 22\n\n➢ 50000560 consulta nutricionista -tabela 00\n\n➢ 76020169-psicopedagogia com psicologo - tabela 00\n\n➢  74010069 - PSICOMOTRICIDADE C/TERAPEUTA OCUPACIONAL - tabela 00\n\n➢   50000349 -CONSULTA HOSPITALAR EM FISIOTERAPIA -tabela 22\n\n➢   50000837  -FISIOTERAPIA AQUATICA INDIVIDUAL HIDROTERAPIA – tabela 22\n\n➢   76020053 tabela 22 - ORIENTACAO AOS PAIS DO MENOR  - 00\n\n➢   76010112 tabela 16 - PSICODIAGNOSTICO = 00\n\n➢   86010336 tabela 22 - SESSAO DE PILATES = 00            \n\n➢   86010263 tabela 22 - PACOTE FISIOTERAPIA DOMICILIAR = 98\n\n➢   86010409 tabela 22 - PLANTAO DO FISIOTERAPEUTA EM UT = 00\n\n➢   30903025 tabela 98 - REVASCULARIZACAO DO MIOCARDIO = \n",
-        "print_b64": "",
-        "config_gerador": "",
-        "doc_digitalizacao": ""
     }
 ]
