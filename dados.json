@@ -1122,5 +1122,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 55,
+        "nome": "STJ - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "https://sbs.stj.jus.br/conecta/Account/Login?ReturnUrl=%2Fconecta%2F",
+        "login": "negociacao.gerencia@amhp.com.br",
+        "senha": "Amhpdf00735#",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "21 á 23",
+        "validade": "Sem validade",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
