@@ -975,5 +975,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 48,
+        "nome": "PF SAÚDE - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "https://novowebplanpfdf.facilinformatica.com.br/Home/Index",
+        "login": "00735860000173",
+        "senha": "0073586000017302",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "01 á 02",
+        "validade": "60 Dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "PF-SAÚDE (458)\n\n\n\nEnvio nos 3 primeiros dias úteis no mês;\n\nValidade de 90 dias;\n\n\n\nENVIO XML E GUIAS DIGITALIZADAS NO SISTEMA: SEM NOTA FISCAL\n(VAI DEPOIS)\n\n    • PROTOCOLO\n\n    • LISTAGEM\n\n    • GUIAS\n\n\nEnvio do arquivo XML e anexar PDF no próprio portal.\n\n\n\nSITE: https://novowebplanpfdf.facilinformatica.com.br/Home/Index\n\n\nTIPO DE ACESSO: PRESTADOR PJ\n\n    USUÁRIO: 00735860000173\n\n    SENHA:  0073586000017302\n\n\nPara agilizar o envio antes de enviar o XML, verificar:\n\n•   Quantidade de dígitos das carteirinhas no sistema;\n\n•   Quantidade de dígitos da autorização.\n\nO portal da PF permite pesquisar a autorização, número de\ncarteirinha. Para isso, pode-se utilizar a busca através do campo “NÚMERO DE GUIA OPERADORA” (sempre\nconterá 6 dígitos) que ele buscará exatamente o atendimento referente\nàquela guia.\n\n\n\nAUTOMAÇÃO:\n\n\n•   Faz conferência da guia no portal da operadora;\n\n•   Envia XML;\n\n•   Envia PDF;\n\n\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
