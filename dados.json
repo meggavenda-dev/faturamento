@@ -807,5 +807,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 40,
+        "nome": "REAL GRANDEZA - AMHPDF",
+        "codigo": "",
+        "empresa": "AMHP",
+        "site": "https://novowebplanfrg.facilinformatica.com.br/GuiasTISS/Logon",
+        "login": "00735860000173",
+        "senha": "Amhp123@",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "1° até o 5º dia útil",
+        "validade": "120 Dias",
+        "xml": "Sim",
+        "versao_xml": "Não Envia",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "° Real grandeza °\n\n\n\n➢   Separar modelo de guia \n\n(Periódico, verificar se tem autorização).\n\n* Precisa de autorização para tudo, quando o procedimento tem PAC o que foi solicitado entra em análise e o convênio pode solicitar alguma documentação complementar ou aguardar o prazo que é estabelecido para autorizações com alguma complexidade, quando o procedimento não encontra-se nessa istagem ele normalmente é autorizado no mesmo dia.\n\n➢   Juntar até 99 guias. \n\nValidade de 120 dias.\n\n➢  Passa arquivo do 1° até o 5º dia útil.\n\n➢  Separar Salus Salutem => Plano: 446\n\n➢  Demais planos.=> Plano: 378\n\n➢   Tratamento Seriado: É necessário pedido/encaminhamento médico. O profissional que executará o atendimento fará o relatório.\n \n\nEnvio no site:\n\nhttps://novowebplanfrg.facilinformatica.com.br/GuiasTISS/Logon\n\nTipo de acesso: Prestador PJ\n\nUsuário: 00735860000173\n\nSenha: Amhp123@\n\n\nIr na opção ENVIO XML – ESCOLHER ARQUIVO – ENVIAR\n\nMarcar: Guia Operadora/ Prestador e Guia Atribuída/ Guia Operadora\n\nImprimir a via do protocolo que será gerada e\nanexar com a fatura.\n\n- Gerar Remessa \n\n- Solicitar a nota fiscal\n\nÉ necessário que seja anexado ao financeiro a\ncarta remessa junto aos protocolos das faturas que foram encaminhadas ao\nconvênio.\n\n \n\nOBS: Forma de envio somente eletrônico.\n\n\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
