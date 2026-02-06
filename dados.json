@@ -1143,5 +1143,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 56,
+        "nome": "UNAFISCO - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": " https://unafiscosaude.org.br/site/autenticacao-prestador-medico/",
+        "login": "00735860000173 ",
+        "senha": "00735860000173",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "tipo de acesso: Médico",
+        "envio": "01 á 05",
+        "validade": "90 Dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
