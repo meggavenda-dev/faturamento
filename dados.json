@@ -996,5 +996,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 49,
+        "nome": "STM - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "https://novowebplanstm.facilinformatica.com.br/GuiasTISS/Logon",
+        "login": "00735860000173",
+        "senha": "00735860000173",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "1 A 5",
+        "validade": "Sem Validade",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "STM\n\n(Listagem em ordem alfabética)\n\nVALIDADE: 1 ANO\n\n\n\nFATURAMENTO:\n\n \nPLAS/JMU (STM) - OBRIGATORIEDADE DE ENVIO DA\n  CÓPIA DO DOCUMENTO DE IDENTIFICAÇÃO E DA CARTEIRINHA DO BENEFICIÁRIO.\n\n  \n\nSITE: https://novowebplanstm.facilinformatica.com.br/GuiasTISS/Logon\n\nUSUÁRIO: Prestador PF\n\nLOGIN:00735860000173\n\nSENHA:00735860000173\n\n\n\nCERTIDÕES NO FINAL DE CADA FATURA: verificar validade\n\n·        \nCertificado de Regularidade (CAIXA)\n\n·        \nCERTIDÃO\nPOSITIVA COM EFEITOS DE NEGATIVA DE DÉBITOS RELATIVOS AOS TRIBUTOS FEDERAIS E À\nDÍVIDA ATIVA DA UNIÃO\n·        \nCERTIDÃO\nNEGATIVA DE DÉBITOS TRABALHISTAS\n\n·        \nCERTIDÃO POSITIVA DE DÉBITOS COM EFEITO DE NEGATIVA\n\n*CONFERÊNCIA:\n\n·        \nAutorização para tudo,\ninclusive para as consultas (campo senha em branco não dá crítica, nº guia\noperadora obrigatório)\n·        \nAceita autorização\nposterior\n\n· Separar modelo de guia\n\n· Separar ano\n\n· Separar periódico\n\n· Não aceita rasura, aceita guia anexa\n\n· Obrigatória cópia da carteira do convênio e de um documento de identificação anexado à guia\n\n· Confere em ordem alfabética\n\n· VALIDADE: 1 ANO\n\n· Hospitais (antes de enviar o xml, arrumar dados do solicitante no fhasso: código na operadora mudar para o código do hospital, conforme a autorização)\n\n\n*MARCAR NO GERADOR XML\n\nAUTORIZAÇÕES EM NOME DA AMHP: GUIA ATRIBUÍDA/GUIA OPERADORA E CONTRATADO/SOLICITANTE\n\nAUTORIZAÇÕES EM NOME DE HOSPITAIS: GUIA ATRIBUÍDA/GUIA OPERADORA\n \n\nAO CLICAR EM EXECUTAR NO GERADOR SELECIONAR “NOME DO PACIENTE”\n\n\n\n \n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
