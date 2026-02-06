@@ -1080,5 +1080,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 53,
+        "nome": "TRT SAÚDE - AMHPDF",
+        "codigo": "",
+        "empresa": "AMHP",
+        "site": "https://faturamentoeletronico.trt10.jus.br/faturamentoeletronico/jsf/login.jsf",
+        "login": "faturamento.amhpdf",
+        "senha": "amhp1983df",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "Calendário próprio",
+        "validade": "Sem validade",
+        "xml": "Sim",
+        "versao_xml": "3.04.01",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "  351   – TRIBUNAL REGIONAL DO TRABALHO (TRT)\n  \n \n \n  ACESSO\n  \n \n \n  Portal: https://faturamentoeletronico.trt10.jus.br/faturamentoeletronico/jsf/login.jsf\n   \n  Login:  faturamento.amhpdf\n   \n  Senha: amhp1983df\n  \n \n \n  ROTINA\n   \n  Envio: Calendário\n  próprio (aberto para passar o XML. Aguardar data do calendário pra liberar o protocolo e anexar a fatura)\n  \n \n \n  Validade: sem validade\n   \n  Qtd de guias: 50 guias\n  \n Separação: Consulta, físio e periódico\n  \n  Autorização:  Todos os procedimentos exigem autorização, inclusive consultas\n   \n  XML: \n\n Marcar no XML: guia atribuida/guia operadora e contratado/solicitante\n  \n Fechar faturas antes de mandar para o scanner\n  \n Scanner: Listagem e guias\n  \n Anexar: Verificar se não tem valor zerado\n  \n Protocolos: Imprimir e salvar os protocolos na pasta do trio (Bruno-Mariana-Pedro)\n   \n  Remessa:  Gerar remessa e lançar protocolo\n  \n  Financeiro:\n\n  Salvar os protocolos na pasta Financeiro-Faturamento\n   \n  Arquivar: Anexar arquivamento 3d nas faturas, junto com os protocolos\n  \n VERSÃO 2.02.01: SADT, e honorário\n   \n  VERSÃO 3.02.01: Consultas, Peródico e erro CRBM (quando houver material, ajustar a tabela para  12 (simpro) ou 97 (adimissão de registro) dentro do XML)\n  \n Separar faturas por versão para não confundir \n \n \n  NÃO ENVIAR NF JUNTO À FATURA\n  \n \n ERRO\n\nPara o procedimento 30101298 - ELETROCOAGULAÇÃO DE LESÕES DE OEKE E MUCISAS - COM OU SEN CURETAGEM, substituir:Material: 00081294 - Placa Ossea \"y\" curativo Dupla S/barra Medicamento: 485024 - EMLA 25+25MG/G CRM.DERM.BG.5G 2BAND.OCL. (Tabela 12- SIMPRO, tipo de serviço 2-materiais) Alterar tipo de serviço dentro do XML quando der erro de mat\n  \n \n Alterar p/ tabela 16 quando der erro de periódico; altera modelo de guia de consulta para SADT quando der erro\n  \n A versão TISS do xml de carga deve suportar o tipo de atendimento: 16 - Saúde Ocupacional ( alterar o tpo de atendimento para 16)\n  \n  Não tirar senha de autorização caso dê crítica, mesmo que o procedimento não necessite de senha. Fazer a devolução da guia.\n  \n  Em caso de duplicidade, solicitar exclusão da fatura (via telefone:abrir um chamado com protocolo) para anexar guias no lote correto\n  \n  ENTREGAR\n\n  SOMENTE O RECIBO DE CARGA NA AUDITORIA, CONFORME CALENDÁRIO DE ENTREGA DE FATURAS. Envio da remessa (grampear 1 via na parte de fora do envelope) e   protocolos (enviar dentro do envelope) – chaguinhas\n\n  ANTIGO, NÃO   FAZER MAIS DESSA FORMA\n \n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
