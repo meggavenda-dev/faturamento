@@ -723,5 +723,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 36,
+        "nome": "GDF INAS - AMHPDF",
+        "codigo": "",
+        "empresa": "AMHP",
+        "site": "https://gdf.maida.health/workspace/home",
+        "login": "remessa@amhp.com.br",
+        "senha": "Amhp@2025",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "Diário",
+        "validade": "60 Dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "Orientações GDF\n\n\n\nSITE INAS: https://gdf.maida.health/workspace/home\n\n\n\nLOGIN: remessa@amhp.com.br\n\n\n\nSENHA: Amhp@2025\n\n\n\nData de envio: Todos os dias\n\n\n\nValidade: 60 dias\n\n\n\n(Obs: devolver\nguias vencidas apenas do robô, as guias das filiais passar para a Andressa confirmar o envio)\n\n\n\nEnvio digital\n\n\n\nSem envio físico e sem envio pelos correios\n\n\nNão faz uso da automação\n\n\nGerar XML:       \n\n\n\nMarcar\nSIMPRO/BRASÍNDICE 10 DÍGITOS\n\n\n\nGuia\nAtribuida/Guia Operadora\n\nAutorização/Guia\nPrincipal\n\n\n\nLOGIN DO MAIDA\n\n\n\nSITE: https://nextcloud.maida.health/apps/files/?dir=/AMHPDF%20-%20ASSOCIA%C3%87%C3%83O%20DOS%20MEDICOS%20DE%20HOSPITAIS%20PRIVADOS%20DO%20DF%20-%20PMDF%20%E2%80%93%20FATURAMENTO&fileid=59890\n\n\n\n\n\nLOGIN: 735860000173\n\n\n\nSENHA: nopaperpass\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
