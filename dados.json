@@ -1017,5 +1017,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 50,
+        "nome": "PMDF - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "https://portalconectasaude.com.br/Account/Login?ReturnUrl=%2FHome%2FIndex",
+        "login": "negociacao.gerencia@amhp.com.br",
+        "senha": "Amhp2025@",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "Diário",
+        "validade": "60 Dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "PMDF (381 e 476)\n\n\n\n• Validade de 60 dias contando a partir do atendimento.\n\n•  Não misturar os meses;\n\n•  Em caso de sessões que começam em um mês e terminam em outro, sempre mandar separado conforme a data inicial do atendimento;\n\n•  Sessões – Contar da última data do atendimento;\n\n• Pacientes INTERNADOS e guias de HONORÁRIOS somente 10 GUIAS por faturas;\n\n• MARCAR NO GERADOR XML CONTRATADO/SOLICITANTE E, SOMENTE PARA HONORÁRIOS, MARCAR AUTORIZAÇÃO/GUIA PRINCIPAL e CONTRATADO/SOLICITANTE.\n\n\nIncluir na pasta do financeiro (PMDF) as PEG’s e a remessa.\n\n\n1. GUIAS ACIMA DE 120 DIAS  - DEVOLVER – (Emerson 08/10/2025).\n2. GUIAS ACIMA DE 60 DIAS ATÉ 120 DIAS – ENVIAR NORMALMENTE E INFORMAR AS FATURAS PARA WESLEY PARA COLOCAR COMO ADMINISTRATIVA TIPO 07).\n\n3. RENOMEAR AS GUIAS SCANEADAS DA SEGUINTE FORMA:  “PEG 123456”;\n\n4. ANEXAR AS GUIAS SCANEADAS, NO MÁXIMO, DENTRO DE 10 DIAS. (Emerson 08/10/2025).\n\n Enviar arquivo XML e anexar PDF:\n\n\nOrdem do processo:\n\n1. Capa Fatura PMDF;\n\n2. PEG;\n\n3. Listagem de guias;\n\n4. Guias.\n\n \n    • SITE: https://portalconectasaude.com.br/Account/Login?ReturnUrl=%2FHome%2FIndex\n\n    • Login: negociacao.gerencia@amhp.com.br\n\n    • Senha: Amhp2025@\n\n\nAUTOMAÇÃO:\n\n\n• Renomeia Fatura;\n\n• Envia XML;\n\n• Envia PDF;\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
