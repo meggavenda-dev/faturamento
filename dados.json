@@ -681,5 +681,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 34,
+        "nome": "FAPES - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "https://portalconectasaude.com.br",
+        "login": "negociacao.gerencia@amhp.com.br",
+        "senha": "Amhp2025@",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "01 á 20",
+        "validade": "60 Dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Sim",
+        "fluxo_nf": "Envia NF junto com o lote",
+        "observacoes": "FAPES                                       \n                                                                         \n   \n\n01 A 20 - Com NF \n\n\nSite: https://portalconectasaude.com.br\n\nUsuário: negociacao.gerencia@amhp.com.br\n\nSenha: Amhp2025@\n\n\n\nValidade: 60 dias\n\nTabela: CBHPM\n\nAutorização para tudo, inclusive\nconsultas\n\n\n•    Código próprio para consultas (ver relação no site da AMHP)\n\n•    Não paga nutrição, taxas, holter e mapa.\n\n•    Não paga acupuntura.\n\n•    Mat/med item por item.\n\n•   Só pode digitar taxa se tiver cobrando um código de honorário\n\n\t\n\n\tFechamento\n\n\n•   Separa modelo de guia e periódico\n\n•   99 guias no lote\n\n\t \n\n\tXml\n\t \n\n\t➢  Após enviar o xml (importado com sucesso), anexa as guias - IA ou escaneadas - fecha o lote, envia o lote, salva a capa de lote, gera CR , pede NF, anexa a capa (protocolo) e a NF, separados.\t \n\n\t•   obrigatório nº guia da operadora emitida pelo convênio (08 dígitos)\n\n\t•    Honorário individual não pode ter número de guia igual\n\n\t•    Gerar xml Honorário individual marca guia operadora/prestador e executante/contratado e dentro da guia em dados do honorário muda cod cnpj  e cnes por 00714\n\n\t•    taxas muda para tab 18\n\n\t•    500 muda para tab 22\n\n\t•    atenção a criticas zero,vai em exibir log de envio ,detalhes do lote (seta) abre e verifica se deu alguma ocorrência, pois não acusa no lote\n\n\t•    escaneia e anexa só as faturas com a listagem (documentação física para faturas e protocolos)Documentação\nFísica\n\t•    pede NF só após emitir a capa de lote.\n\n    •    anexa NF e protocolo (separados), com o número da fatura\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
