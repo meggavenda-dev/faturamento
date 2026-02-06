@@ -1101,5 +1101,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 54,
+        "nome": "TST Saúde - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "https://autenticacao.tst.jus.br/auth/realms/tst-saude/protocol/openid-connect/auth",
+        "login": "u000971",
+        "senha": "AMHPDF2@",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "1º dia útil  ",
+        "validade": "180 Dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "TST (320)       \n\n            \n\n•   Período de Envio: 1º dia útil  \n\n•   Ordem das Guias: Alfabética \n\n•   Quantidade de Guias: 30 guias          \n\n•   Geração de Xml: Não precisa marcar nada. (apenas\npaciente)        \n\n\n\nEnvio do Xml:\n\n\n\n    • Site: https://autenticacao.tst.jus.br/auth/realms/tst-saude/protocol/openid-connect/auth\n\n    • Login: u000971\n\n    • Senha: AMHPDF2@\n\n\n\nParticularidades de Faturamento:\n\n\n\n    • Honorário Individual devem está com a informação do Nº Emissão Guia conforme autorização\ndo convênio.        \n\n    • Cadastro de Internação: caso ocorra erro durante o envio do xml, encaminhar guias para\nAndressa (Apoio e Controle).    \n\n    • Guias de Sessão devem ser faturadas com o tipo de atendimento 03 – Terapias.         \n\n    • Erro de valor no cálculo da quantidade deve ser corrigido dentro do amhptiss.           \n\n\n\nEnvio das Guias:\n\n\n\nDigital.\n\nSite:sei.tst.jus.br/sip/login.phpsigla_orgao_sistema=TST&sigla_sistema=SEI&infra_url=L3NlaS8=\n\n    • Usuario: remessa@amhp.com.br\n\n    • SENHA: 0OEShPgu       \n\n\n\nValidade das Guias: 180 dias \n\n(pode pedir revalidação).\n\nDados para Financeiro: \n\nUnir em PDF Carta Remessa e Protocolos de Envio e salvar na\npasta.       \n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
