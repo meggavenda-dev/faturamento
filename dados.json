@@ -828,5 +828,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 41,
+        "nome": "STF - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "portalconectasaude.com.br",
+        "login": "negociacao.gerencia@amhp.com.br",
+        "senha": "Amhp@0073",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "01 a 21",
+        "validade": "Sem validade",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "STF-MED\n\nCOM NF 01 A 20\n\n\n\nSITE\n\nportalconectasaude.com.br\n\nusuario:negociacao.gerencia@amhp.com.br\n\nsenha: Amhp@0073\n\n \n\nsó baixa o pdf depois que enviar o xml (DÁ MUITO ERRO)\n\n \n\n➢  pode passar xml o mês todo\n\n➢  entrega (anexa) 01 a 21\n\n➢  30 guias no lote  (15 MB)\n\n➢  separa modelo de guia e ano\n\n➢ não tem validade\n\n➢ envio digital\n\n \n\nMarcar:\n\n➢ Contratado/solicitante\n\n➢ Executante/contratado\n\n \n\nAutorização:\n\n➢ Tabela autorização de procedimentos no site da amhp\n\n➢ Autorização prévia para medicamento valor unitário superior a R$ 1.000,00\n \n\nPasso a passo envio\n\n➢ Envia xml\n\n➢ Corrige crítica\n\n \n\n50000055 – tab 22\n\n50000071 – tab 22\n\n50000101 – tab 22\n\n50041037 – tab 00\n\n50000050 – tab 22\n\n50000500 – 22\n\nEquipo – 150972\n\nCPF / CNPJ INVÁLIDO: prestador não localizado na operadora- coloca CNPJ AMH 00735860000173\n\nErro: Nullable object must have a value -dividir fatura até localizar erro e mudar cbo,cpf e profissional para   \n\n   \n<ans:CBOS>225125</ans:CBOS>\n\n    <ans:nomeProf>ELIANA TELES DE GOIS</ans:nomeProf>\n\n    <ans:nomeProfissional>ELIANA TELES DE GOIS</ans:nomeProfissional>\n\n    <ans:cpfContratado>90575989149</ans:cpfContratado>   \n\n \n\n➢ exclui xml que deu erro\n\n➢ gera outro xml\n\n➢ situação do lote\n\n➢ fecha lote\n\n➢ envia lote\n\n➢ atualizar\n\n➢ verificar log do envio\n\n➢ capa lote\n\n \n\nAnexar:\nnota fiscal, protocolo, listagem guias\n\n➢ faturamento\n\n➢ lotes de pagamento\n\n➢ pesquisar lotes\n\n➢ filtrar\n\n➢ nº do lote\n\n➢ pesquisar\n\n➢ detalhes do lote\n\n➢ documentos anexados ao lote\n\n➢ incluir anexo (15 mb)\n\n➢ guias digitalizadas\n\n➢ enviar\n\n \n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
