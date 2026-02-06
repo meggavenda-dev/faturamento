@@ -1059,5 +1059,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 52,
+        "nome": "SAUDE PETROBRAS - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "https://portaltiss.saudepetrobras.com.br/",
+        "login": "amhpfaturamento",
+        "senha": "fat0073",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "De 1 a 20.",
+        "validade": "90 Dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "                                                   \t\t\t\t\t\t\t\t\t\t\t\t\t\t PETROBRÁS\n\nSITE: https://portaltiss.saudepetrobras.com.br/\n\nUSUÁRIO: amhpfaturamento\n\nSENHA: fat0073\n\nOBS: PROXIMO MES 10/25 MARCAR:\n\nGUIA FINANCEIRO/GUIA PRESTADOR.\n\n \n\n*VALIDADE: 90 DIAS DA PRIMEIRA DATA\n\n* NÃO REVALIDA\n\n*ATE 99 GUIAS\n\n*SEPARA MODELO DE GUIA E PERIÓDICO ( QUANDO HOUVER)\n\n*PORTAL ABERTO DE 1 A 20.\n\n \n\nGERALMENTE SÓ DA ERRO DE CARTEIRINHA.\n\nQUANDO O SITE DER A CRÍTICA DE ALERTA PODE AUTORIZAR O ENVIO.\n\n \n\nPASSO A PASSO\n\nINÍCIO > FATURAMENTO > TRANSFERÊNCIA > TRANSFERIR > TRANSFERIR NOVO ARQUIVO\n\n \n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
