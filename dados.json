@@ -849,5 +849,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 42,
+        "nome": "TRE - AMHPDF ",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "https://brasilmed.saudi.com.br/saudi/welcome.do?task=abreLogin",
+        "login": "735860000173",
+        "senha": "Amhp#7358600",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "ENVIO NO 4º DIA. (MOTOBOY LEVA  CEDO)",
+        "validade": "120 DIAS",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "TRE-DF (215)\n\n\n\nCONTATO: 3574-7624 / 9 92696795 BRASILMED\n\n\n\nVALIDADE: 120 DIAS\n\nENVIO NO 4º DIA. (MOTOBOY LEVA\nCEDO)\n\nCOLOCAR EM ORDEM ALFABÉTICA.\n\nGERAR XML EM ORDEM ALFABÉTICA.\n\n \n\nhttps://brasilmed.saudi.com.br/saudi/welcome.do?task=abreLogin\n\nLOGIN: 735860000173\n\nSENHA: Amhp#7358600\n\nPRESTADORES SP/SADT\n\n \n\nSERVIÇOS > GUIAS XML >\nUPLOAD DE GUIAS SP/SADT > ENVIAR > ESCOLHER ARQUIVO > CONFIRMAR\n\n \n\n\n\n\n\nCLICAR NO Nº DO PROTOCOLO DE\nENTREGA ELETRÔNICA > VERIFICAR SE NÃO TEM GUIAS REJEITADAS. (CASO HAJA,\nRETIRAR DO PROCESSO, GERAR OUTRO XML E EMITIR PROTOCOLO SEM CRÍTICAS)\n\nIMPRIMIR  1 E SALVAR 1 COM O NÚMERO DA FATURA + NÚMERO\nDO PROTOCOLO  \n\n \n\n\n\n\n\n\n\n\n\n \n\nSERVIÇOS > DOCUMENTAÇÃO\n> ENTREGAR DOCUMENTAÇÃO NA OPERADORA >\n\n\n\nBUSCAR > MARCAR TODOS >\nPROSSEGUIR\n\n\n\n                                                                                                                                                                                 \n\nCONFIRMAR > GERAR\nPROTOCOLO> IMPRIMIR 1 E SALVAR 1 COM O NÚMERO DA REMESSA + NÚMERO DO\nPROTOCOLO\n\n\n\n                                                                                                                                                                                 \n\n \n\n \n\n \n\n \n\nANEXAR OS 2 PROTOCOLOS NA\nFATURA PARA ESCANEAR E ENVIAR AO CONVÊNIO.\n\nGERAR CARTA REMESSA\n\nENVIAR 2 VIAS PARA O CONVÊNIO\n\n1 VOLTA ASSINADA.\n\n \n\nENTRAR NO FHASSO E GERAR O\nARQUIVO MAGNÉTICO PARA WESLEY ENVIAR POR E-MAIL AO CONVÊNIO ANTES DA ENTREGA.\n\n \n\nFERRAMENTAS > GERAR ARQUIVO\nMAGNÉTICO > TRE-DF > SELECIONAR AS FATURAS 1 POR VEZ > NOME DO\nPACIENTE >\n\n \n\n \n\n\n\n \n\nOS ARQUIVOS FICARÃO SALVOS EM\nDISCO LOCAL (C:) > CONVÊNIOS MÉDICOS > SERVER > SELECIONAR POR DATA DE\nMODIFICAÇÃO > COLOCAR NOS ARQUIVOS TEMPORÁRIOS E AVISAR WESLEY.\n\n\n\nDISPONIBILIZAR OS PROTOCOLOS\nNA PASTA DO FINANCEIRO.\n\n\n\n\n\n\n\nCASO HAJA GUIAS VENCIDAS , ENVIAR EM UM PROCESSO SEPARADO .\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
