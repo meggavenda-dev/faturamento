@@ -765,5 +765,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 38,
+        "nome": "CASEMBRAPA - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "http://https://prestador.casembrapa.org.br/sistema",
+        "login": "00735860000173",
+        "senha": "Amh0073586@25#",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "01 á 03",
+        "validade": "90",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "Site:\nhttp://https://prestador.casembrapa.org.br/sistema\n\nLogin:\n00735860000173\n\nSenha:\nAmh0073586@25#\n\nSeparação > Perio, hono, Sadt consulta, sadt mat/med, sadt procedimento, consulta, consulta periodico \nxml gerar - marcando >>>  operadoradora / prestador  & contrato/solicitante.\n\nEnvio Casembrapa (78) - Maurício \n\nClickar em Salutis, depois ir em WebSaúde, lotes,  uploud do XML de Envio de Lote.\n\nLogo após clickar no raio, é selecionar o processo que estiver mandando no momento.\n\nDepois clickar em prosseguir, Conferir se no campo de Erros encontrados durante a importação \t0/0 (0)\tficou zerado.\n\nDepois conferir número do processo, quantidade de guias e valor.\n\nLogo após CONFIRMAR GRAVAÇÃO.\n\nDepois 1- Abrir o lote recém criado e confirmar novamente, agora só fechar agora é passar outro.\n\nDepois mandando todos processos e gerado aceite, pedi notas no financeiro.\n\nQuando volta do scaner conferir primeiro e ultimo e conta a quantidade de guias para ver se bate de acordo com a quantidade de guias para anexar os processos é os SP/SADT (Vão para o convênio)\n\nDepois de conferido acima, anexa as Notas Ficais indo em → Salutis → WebSaúde → Lotes de credenciados → Campo: Número do Lote no prestador  é digitar o número do processo.\n\nDepois disso anexar as notas ficais ↓\n\nTipo: NF - Série e subsérie: U - \n\nNúmero NF/Fatura/RPA: NÚMERO DA NOTA FISCAL (2881818)\n\ne clickar em \"fechar produção\" e imprimir o protocolo.\n\n(Salvar protocolo da seguinte forma LAYOUT: Paisagem, Mais definições Escala: Personalizado, 200)\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
