@@ -891,5 +891,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 44,
+        "nome": "LUMINAR SAÚDE (EVIDA) - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "https://novowebplanevida.facilinformatica.com.br/GuiasTISS/Logon",
+        "login": "Tipo de acesso: PF  - Login: 00735860000173M",
+        "senha": "Senha: 00735860000173M",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "Primeira Semana",
+        "validade": "90 Dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Sim",
+        "fluxo_nf": "Envia NF junto com o lote",
+        "observacoes": "E VIDA (90 DIAS) - 216\n\n\n\n1. JUNTAR GUIAS POR TIPO DE GUIAS\n\n\na. ATÉ 30 MEGAS POR FATURA\n\nb. SEPARA PERIÓDICOS (não separa aceite do periódico)\n\nc. PODE JUNTAR PROCEDIMENTOS / CONSULTAS DESDE QUE NAS GUIAS CORRETAS.\n\nd. IMPRIMIR LISTAGEM DE “ATENDIMENTOS”\n\n\n2. ESCANEAMENTO\n\na. PREENCHER “ORDEM DE SERVIÇO - SCANNER”\n\nb. DESGRAMPEAR\n\nc. MANDAR PARA ESCANEAMENTO\n\n\n\n3. CONFERIR “LISTAGEM DE ATENDIMENTOS”\n\n\n\n4. CONFERIR ARQUIVOS PDF NA PASTA DE GUIAS ESCANEADAS\n\n\n\n5. GERAR ARQUIVO XML\n\n\na. NÃO MARCA NADA NO GERADOR\n\nb. NÃO PRECISA ZIPAR\n\nc. PERIÓDICO SEM SENHA\n\n\n\n6. SITE\n\na. ENVIO\n\nI.  NO SITE APENAS NA PRIMEIRA SEMANA DO MÊS (CFME CALENDÁRIO PRÓPRIO)\n\nII. ENVIO FÍSICO CONFORME TABELA NO SITE (NÃO ENVIA FÍSICO)\n\n\n\n7. NFE\n\na. FECHAR ACEITE E SOLICITAR NF AO FINANCEIRO\n\nb. ANEXAR NF NOS ARQUIVOS DIGITALIZADOS\n\n\n\n8. PDFS\n\na.  ANEXAR PDFs NO SITE DOS ARQUIVOS CONTENDO GUIAS E NF.\n\nb.  CONFERIR SE ESTÃO COM NF ANEXADAS\n\n\n\nSE CRITICAR (SEM ESPECIALIDADE) TEM QUE MARCAR “CONTRATADO SOLICITANTE”\n\n \n\nhttps://novowebplanevida.facilinformatica.com.br/GuiasTISS/Logon\n\n \nTipo de acesso: PF\n\nUsuario: 00735860000173M\n\nSenha: 00735860000173M\n\n ORDEM DE ESCANEAMENTO:\n\n\n\n1° PROTOCOLOS\n\n2° LISTAGEM\n\n3° GUIAS\n\n4° NOTA FISCAL\n\n \nAUTOMAÇÃO:\n\n\n\n•   Faz conferência da guia no portal da operadora;\n\n•   Envia XML;\n\n•   Envia PDF;\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
