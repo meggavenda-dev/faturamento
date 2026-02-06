@@ -1038,5 +1038,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 51,
+        "nome": "SIS SAÚDE - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "https://intra4p.senado.leg.br/WebAppPortal",
+        "login": "01047886154",
+        "senha": "Amhp*0073",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "Diário",
+        "validade": "60 Dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "SIS – SENADO (160)\n\n\nValidade de 90 dias (tentar enviar com 60 dias).\n\n\nPode enviar todos os dias:\n\n•    Se enviar XML no dia 30, terá que anexar as guias digitalizadas no portal MAIDA para não serem devolvidas por falta de anexo.\n\n\n\nNão misturar guias com MAT/MED, com exames, com sessões.\n\nNão enviar guias de consultas PERIÓDICO com guias de cobrança normal.\n\n\nGuias vencidas incluir na “Planilha para apresentação de contas fora do prazo” e encaminhar para Emerson ao final de cada mês.\n\nCarteirinha precisa ser legível e dentro do prazo!\n\nSalvar PROTOCOLO de envio do arquivo para enviar à pasta do financeiro.\n\n\nMontagem do processo:\n\n• Protocolo;\n\n• Listagem;\n\n• Guias.\n\n\n\nRENOMEAR NOTA FISCAL E XML:\n\nEXEMPLO → Para Nota Fisca e XML da nota - PEG 174703 NF\n\n                       Para Guias Scaneadas - PEG 174703\n\n                                                                  \n\n\n\nSEMPRE ENVIAR E-MAIL DA MÁRCIA NA FRENTE DE CADA FATURA.\n\n\n\nAO GERAR XML, MARCAR A OPÇÃO “CONTRATADO/SOLICITANTE”.\n\n\n\nSIS SENADO XML\n\n• Site: https://intra4p.senado.leg.br/WebAppPortal\n\n• LOGIN: 01047886154\n\n• Senha: Amhp*0073\n\n\n\n• SIS - CARTEIRINHAS TITULAR (Necessário CPF do titular)\n\nhttps://www.senado.leg.br/institucional/saude/carteirasis.asp\n\n\n\n•    PESQUISAR CARTEIRINHAS:\n\n \n\nFazer login na AMHP (WEB).\n\n• Faturamento;\n\n◦ SIS;\n\n▪ Autorizações;\n\n• Clicar no botão “PORTAL SIS SENADO”;\n\n◦ Aba “Consultas”;\n\n▪ Solicitação de Consultas;\n\n• Digitar o nome do beneficiário no campo “Beneficiário”.\n\n\nQUANDO HOUVER DEVOLUÇÃO:\n\n\n\nSe precisar retirar alguma guia da fatura, o valor vai mudar. Será necessário:\n\n• Solicitar o cancelamento da N.F;\n\n• Retirar aceite;\n\n• Retirar Data de pagamento;\n\n• Retirar a guia da fatura digitalizada;\n\n• Refazer todo processo de envio.\n\n\nCaso seja necessário fazer um novo envio no portal, crie uma nova fatura para não puxar a PEG anterior.\n\n \n\nSe precisar acrescentar apenas algum documento à fatura, não precisa mudar a fatura nem cancelar a nota fiscal.\nApenas reenvie no portal.\n\n \n\nENVIO DAS GUIAS:\n\n \n\nPEGSYNC\n\nLink:  https://script.google.com/macros/s/AKfycbzdumElozdr0PTZbheW98Gh5qkCF6k_eYqEc0fbOUq9_ctWsdJYiOzKTrP_SJdhDELT/exec\n \nlogin: coordenacaofaturamento@amhp.com.br\n\nsenha: sync123@\n\nMAIDA: Parou de ser utilizado em 10/07/2025\n\nSite:https://nextcloud.maida.health/apps/files  \n\nLogin: 735860000173\n\nSenha: nopaperpass\n \n\nAUTOMAÇÃO:\n\n• Renomeia Fatura;\n\n• Envia XML;\n\n• Envia PDF;\n\n\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
