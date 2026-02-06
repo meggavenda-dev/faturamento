@@ -870,5 +870,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 43,
+        "nome": "CÂMARA DOS DEPUTADOS - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "portalconectasaude.com.br",
+        "login": "negociacao.gerencia@amhp.com.br",
+        "senha": "Amhp2025@",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "Diário",
+        "validade": "60 Dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "Câmara dos Deputados (456)\n \n\nPORTAL\n\nSite: portalconectasaude.com.br\n\nLogin: negociacao.gerencia@amhp.com.br\n\nSenha: Amhp2025@\n\n \n\nPRAZO DE ENVIO\n\n \n\nPeríodo: ENVIO DIÁRIO\n\n\n\n* Separação por modelo de guia\n\n* VALIDADE 60 DIAS\n\n* Gerar o XML sem marcar nada.\n\n* As faturas são anexadas\nmanualmente pelo portal.\n\n* Necessário unir a fatura com o\nprotocolo de aceite na frente para anexo no portal.\n\n* Máximo de 15mb por fatura\n\n\n\nInstruções\nde envio:\n\n\n\n1.     \nAcesso: Entre no portal e selecione XML\nLote Guias.\n\n2.     \nUpload: Clique\nem Novo Envio, selecione o arquivo XML e clique em Incluir.\n3.     \nValidação: Corrija eventuais críticas apontadas pelo sistema.\n\n4.     \nFinalização: No canto superior direito, clique em Fechar Lote e\ndepois em Enviar Lote.\n5.     \nConclusão: Baixe o Protocolo de Aceite e utilize o número\npara Fechar Fatura.\n\n\nInstruções de anexo:\n\n\n\nNo portal, acesse a\nseção XML Lote Guias.\n\n1.                 \nNo campo\nOperadora, selecione CÂMARA\nDOS DEPUTADOS. No campo Nº\nLote, insira o número da fatura e clique em pesquisar.\n2.                 \nLocalize\na fatura nos resultados e clique em Detalhes do lote.\n3.                 \nVá na\naba Documentos Anexados ao Lote e clique em Incluir\nAnexo.\n4.                 \nAdicione\no arquivo da fatura (limite máximo de 15MB) e\nclique em Incluir.\n\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
