@@ -912,5 +912,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 45,
+        "nome": "NOTRE DAME - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "https://portalprestador.gndi.com.br/login",
+        "login": "00735860000173",
+        "senha": "Amhp*2",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "22 AO DIA 31 DE CADA MÊS",
+        "validade": "60 Dias",
+        "xml": "Sim",
+        "versao_xml": "Não Envia",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "NOTREDAME - 194\n\n\n\n•   ENVIA DIA 22 AO DIA 31 DE CADA MÊS (ou quando estiver vencendo) -CORREIO\n\n•   VALIDADE 60 DIAS\n\n•   JUNTAR OS PROCESSOS POR TIPO DE GUIA (MÁXIMO DE 50 GUIAS)\n\n•   É GERADA APENAS UMA NOTA FISCAL COM TODAS AS FATURAS PARA CADA (REMESSA) DATA DE ENVIO.\n\n•   ORDEM ALFABÉTICA\n\n\n\n•   GERAR XML: marca guia atribuída/operadora e cbos\n\n•   Envio pelos correios nos dias de 22 à 31;\n\n\n\nSenha:\n\nhttps://portalprestador.gndi.com.br/login\n\nLogin:00735860000173\n\nSenha: Amhp*2\n\n\n\n \n\n    • DESGRAMPEAR\n\n    • ENVIAR GUIAS PARA O ESCANER.\n\n    • CONFERIR NA PASTA DE GUIAS ENVIADAS\n\n    • CONFERIR SE ESTÃO GRAMPEADAS CORRETAMENTE\n\n    • DEIXÁ-LAS AGUARDANDO PARA GERAR CR E NOTA FISCAL NO VALOR TOTAL NO DIA NO ENVIO.\n\n    • QUANDO DO ENVIO, GERAR REMESSA E ENVIAR AO FINANCEIRO PARA GERAR NOTA NO VALOR TOTAL.\n\n\n\nSITE DA GNDI:\n\nPARTE 02  (DE POSSE DA NOTA FISCAL)\n\nCLICA EM “2 – INFORMAR NOTA FISCAL”\n\n    1. SELECIONA INTERMÉDICA OU NOTREDAME\n\n    2. SELECIONA LOTES ENVIADOS\n\n    3. CLICA EM “INFORMAR NOTA FISCAL DOS LOTES SELECIONADOS”\n\n    4. PREENCHE OS DADOS SOLICITADOS\n\n    5. PERCENTUAL ISS SEMPRE IGUAL A ZERO\n\n    6. SÉRIE NF 1\n\n    7. LEMBRAR DE COLOCAR VIRGULA PARA OS CENTAVOS                                                                                                                        \n\n    8. CLICA EM CRIAR NOTA FISCAL\n\n       CLICA EM “3 – COMPOSIÇÃO DA NOTA FISCAL”\n\n    9. SELECIONA NOTREDAME OU INTERMEDICA\n\n    10. CLICA NO (+)\n\n    11. CLICA INCLUIR\n\n    12. TIPO / SUBTIPO\n\n    13. HOSPITAIS TERCEIROS PS\n\n    14. QUANTIDADE DE GUIAS CONSTANTES DO ACEITE( sem ponto)\n\n    15. VALOR TOTAL COM VIRGULA (sem ponto)\n\n    16. GRAVAR                                                                                           \n\n    17. SELECIONA NO QUADRADINHO\n\n    18. CLICA EM FECHAR NOTAS FISCAIS SELECIONADAS\n\n    19. OK.\n\n\n\nCLICA EM “4 – ENVIAR FATURAMENTO”\n\n    1. SELECIONA  NOTREDAME / INTERMÉDICA\n\n    2. MARCA QUADRADO\n\n    3. CLICA EM ENVIAR FATURAMENTO DAS NOTAS FISCAIS SELECIONADAS\n\n    4. VALOR COM VIRGULA\n\n    5. SELECIONA “IMPRIMIR CAPA DE FATURAMENTO” (MARCA QUADRADO)\n\n    6. CLICA EM “FECHAR E ENVIAR FATURAMENTO”\n\n    7. SELECIONA OPÇÃO DE IMPRESSÃO (2º DISQUETE)\n\n\n\nORDEM PCTE:\n\n    1. NF\n\n    2. PROTOCOLO\n\n    3. CR  ASSINADA (2 vias,uma pro convênio,outra pro financeiro)\n\n    4. LISTAGEM\n\n    5. GUIAS\n\n    • cola  AR e endereço AMH em cima da caixa\n\n    • cola endereço do NOTREDAME em duas laterais\n\n    • não passa fita em cima da AR\n\n\n\nIMPRIME UMA CR E UM PROTOCOLO P/ EMERSON\n\n\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
