@@ -702,5 +702,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 35,
+        "nome": "FASCAL - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "Https://novowebplanfascal.facilinformatica.com.br/guiastiss/logon",
+        "login": "AMHPDF-ADM",
+        "senha": "00735860000173",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "01 á 20",
+        "validade": "90 Dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "FASCAL\n\nNÃO VAI FÍSICO - 01 A 10\n\n \n\n1ºsite:\n\nHttps://novowebplanfascal.facilinformatica.com.br/guiastiss/logon\n\n\n\n AMHP–DF\n\nTipo acesso: PJ\n\n Login: AMHPDF-ADM\n\n Senha: 00735860000173\n\n\n\nSANTA LÚCIA\n\nLogin:00025841000153\n\nSenha:\n00025841000153\n\n\n\n00036541000170\n\n\n\n2º site: - NÃO USA MAIS-ANEXA NO SITE\nDA FASCAL\n\nSEI:\n\nHttps://sei.cl.df.gov.br/sei/controlador_externo.php?acao=usuario_externo_logar&id_orgao_acesso_externo=0\n\nLogin: contratos@amhp.com.br\n\nSenha: amhp0073\n\n \n\nDeverão ser autorizados previamente todos os atendimentos (inclusive as consultas) e LACRE E PINÇA P/ BIOPSIA (material) \n\n99 guias no lote (100 MB)\n\nValidade: 90 dias                              \n\nPrecisa de laudo para:\n\nendoscopia\n\ntomografia\n\nressonancia magnetica\n\nultrassonografias\n\nexames de especialidade de medicina nuclear\n\n \n\n➢   Conforme kaliane em 10-06-22 o convenio não tem contrato com a amhp para cobrança do código 40101053 (variabilidade de frequência cardíaca)\n\n➢   Conforme isa em 26-01-2022 se a consulta de fisioterapia estiver autorizada junto com as sessões pode faturar e enviar para o convênio\n\n \n\n            SEPARAR\n\nANO\n\nMat-med  \n                              \n\nGUIA HONORÁRIO E SADT\nÉ OBRIGATÓRIO  PREENCHER SENHA\n(09 DÍGITOS), GUIA OPERADORA (06 DÍGITOS) E Nº GUIA  ( O MESMO DA OPERADORA)\n\nGUIA CONSULTA É OBRIGATÓRIO PREENCHER GUIA\nOPERADORA (06 DÍGITOS) E Nº GUIA  (O MESMO DA OPERADORA).\n\n \n\n            XML\n\nAté 10 MB: robô divide fatura para anexar no SEI - não usa mais\n\nATUAL – 100 MB   07-2025 e anexa no site da fascal\n\nTodas as guias, inclusive consulta, deve ter o nº da operadora emitido pela fascal, no campo nº da guia. Não aceita nº AMHPTISS\n\nDevolver as guias que chegam vencidas (01/02/2024)\n\nConsulta não é obrigatório preencher a senha\n\nSADT, nº guia e senha\n\nMatrícula pode ser com ou sem traço.\n\n<ans:conselho>12</ans:conselho> substituir 12 por 1\n\n \n\n            ESCANEAR\n\n\nprotocolo xml\n\nlistagem\n\nguias\n\ncertidões (no final de cada fatura)- não precisa mais-financeiro envia\n\n(Não precisa carta de isenção)\n\n \n\n            SEI-\n\nnão usa mais\n\nPeticionamento\n\nProcesso novo\n\nPagamento faturas hospitalares\n\nREMESSA-CHAVE-52794-AMHPDF\n\nComplemento: chave\n\nAnexa a fatura escaneada\n\nAdiciona\n\nPeticionar\n\nCargo: faturista\n\nSenha,a mesma do sei\n\n\n\nNO FINAL ESCANEAR TODAS AS CARTAS REMESSAS COM OS PROTOCOLOS DO XML E DO SEI, PARA COLOCAR NA PASTA FINANCEIRO. (se não tiver salvo)\n\n\n\n\nAUTOMAÇÃO\nFASCAL (não usa mais)\n\n \n\n✔  abre a fatura no AMHPTISS                                                                               \n\n✔  salva listagem no formato excel\n\n✔  clica com botão direito em verificação situação, no 2º edit with\n\n✔  quando abrir aperta F5\n\n✔  clica na listagem 2x para abrir\n\n✔  o robô abre o site e verifica as autorizações\n\n✔  quando der erro, exclui ,salva e joga na pasta não concluido\n\n✔  exclui as guias que o robô leu na listagem\n\n✔  volta pra fatura e abre\n\n✔  quando termina vai em processo ,abre planilha, copia guias sem a 1ª linha,cola em não concluido\n\n✔  tira do não concluido\n\n✔  salva e substitui o arquivo -listagem\n\n\n\n            \n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
