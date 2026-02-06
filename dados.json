@@ -786,5 +786,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 39,
+        "nome": "GEAP - AMHPDF",
+        "codigo": "",
+        "empresa": "Integralis",
+        "site": "www2.geap.com.br",
+        "login": "666.616.921-20",
+        "senha": "Amhp2024",
+        "sistema_utilizado": "Outros",
+        "prazo_retorno": "",
+        "envio": "Dia 1 ao 10",
+        "validade": "90  Dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Não",
+        "fluxo_nf": "Envia XML sem nota",
+        "observacoes": "GEAP (225)\n \n\nPORTAL\n\nSite: www2.geap.com.br\n\nLogin: 666.616.921-20\n\nSenha: Amhp2024\n \n\nPRAZO DE ENVIO\n\nPeríodo: Dia 1 ao 10.\n\n\n* VALIDADE 90 DIAS\n\n* Consulta não e necessário anexo de guias\n\n* As guias são anexadas digitalmente com o Automação (MENOS\nCONSULTA)\n\n* Gerar o XML sem marcar nada.\n\n\n\nInstruções de\nenvio:\n\n\n\n1.      Acessar o portal TISS\n\n2.      Selecionar a opção TISS e escolher ENVIO DE XML.\n\n3.      Aguardar processamento de protocolo…\n\n4.      (Arrumar críticas caso haja)\n\n5.      Fechar faturas com o protocolo gerado\n\n6.      Gerar remessa e anexar guias\n\n7.      Depois de anexado, liberar remessas.\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
