@@ -954,5 +954,26 @@
         "print_b64": "",
         "config_gerador": "",
         "doc_digitalizacao": ""
+    },
+    {
+        "id": 47,
+        "nome": "OMINT - AMHPDF",
+        "codigo": "",
+        "empresa": "AMHP",
+        "site": "https://portal.orizon.com.br/fature/prestador.html#/dashboard",
+        "login": "AMHP0073",
+        "senha": "Amhp@2025!",
+        "sistema_utilizado": "Orizon",
+        "prazo_retorno": "",
+        "envio": "ENVIO DE 15 A 17",
+        "validade": "180 Dias",
+        "xml": "Sim",
+        "versao_xml": "4.01.00",
+        "nf": "Sim",
+        "fluxo_nf": "Envia NF junto com o lote",
+        "observacoes": "OMINT - 011\n\n\n\nValidade de 180 dias;\n\nENVIO DE 15 A 17\n\nATÉ 99 GUIAS NO LOTE.\n\nNÃO PRECISA MARCAR NADA PARA PASSAR XML.\n\nZIPAR ARQUIVOS PARA ENVIAR NO SITE.\n\nEMITIR NFe.\n\nIMPRIMIR PROTOCOLOS PARA ENVIAR COM AS FATURAS.\n\nVAI COM NOTA FISCAL VINCULADA DENTRO DO PORTAL.\n\n180 PRAZO DE VALIDADE\n\n\n\nSITE (ORIZON)\n\n\n\nhttps://portal.orizon.com.br/fature/prestador.html#/dashboard\n\nLOGIN: AMHP0073\n\nSENHA: Amhp@2025!\n",
+        "print_b64": "",
+        "config_gerador": "",
+        "doc_digitalizacao": ""
     }
 ]
